@@ -29,8 +29,7 @@ struct MarkyApp: App {
         }
         .modelContainer(sharedModelContainer)
         #if os(macOS)
-        .windowStyle(.hiddenTitleBar)
-        .windowToolbarStyle(.unified(showsTitle: false))
+        .windowToolbarStyle(.unified(showsTitle: true))
         #endif
     }
 }
