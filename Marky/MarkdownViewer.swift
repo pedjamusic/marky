@@ -6,6 +6,47 @@ import AppKit
 #endif
 
 final class MarkdownDoc: ObservableObject {
+    private struct Typography {
+        let bodyFontSize: CGFloat = 16
+        let bodyLineHeightMultiple: CGFloat = 1.5
+        // Keep body text tight; markdown blank lines provide paragraph breaks.
+        let bodyParagraphSpacing: CGFloat = 0
+        let bodyTracking: CGFloat = 0.15
+        let paragraphBreakSpacingBefore: CGFloat = 8
+
+        let headingScales: [CGFloat] = [1.72, 1.48, 1.30, 1.18, 1.08, 1.0]
+        let headingLineHeights: [CGFloat] = [1.12, 1.15, 1.18, 1.22, 1.24, 1.26]
+        let headingParagraphSpacingBefore: CGFloat = 26
+        let headingParagraphSpacing: CGFloat = 6
+        let headingTracking: CGFloat = -0.08
+
+        let listIndent: CGFloat = 18
+        let listParagraphSpacing: CGFloat = 4
+        let listLineHeightMultiple: CGFloat = 1.42
+        let checkboxUncheckedSymbol: String = "☐"
+        let checkboxCheckedSymbol: String = "☑"
+
+        let codeFontScale: CGFloat = 0.9
+        let codeMinimumFontSize: CGFloat = 13
+        let codeBackgroundOpacity: CGFloat = 0.18
+        let codeForegroundColor: NSColor = .labelColor
+
+        func headingFont(for level: Int) -> NSFont {
+            let clamped = min(max(level, 1), 6)
+            let scale = headingScales[clamped - 1]
+            let size = bodyFontSize * scale
+            let weight: NSFont.Weight = clamped <= 2 ? .bold : .semibold
+            return NSFont.systemFont(ofSize: size, weight: weight)
+        }
+
+        func headingLineHeight(for level: Int) -> CGFloat {
+            let clamped = min(max(level, 1), 6)
+            return headingLineHeights[clamped - 1]
+        }
+    }
+
+    private static let typography = Typography()
+
     @Published var rendered: NSAttributedString?
     @Published var rawText: String = ""
     @Published var isLoading: Bool = false
@@ -55,44 +96,68 @@ final class MarkdownDoc: ObservableObject {
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = source.components(separatedBy: "\n")
         var displayLines: [String] = []
-        var lineStyles: [(headingLevel: Int?, isList: Bool)] = []
+        var lineStyles: [(headingLevel: Int?, isList: Bool, isQuote: Bool, startsAfterBlankLine: Bool)] = []
         displayLines.reserveCapacity(lines.count)
         lineStyles.reserveCapacity(lines.count)
+        var pendingParagraphBreak = false
 
         for line in lines {
             let prefixCount = line.prefix(while: { $0 == " " || $0 == "\t" }).count
             let indent = String(line.prefix(prefixCount))
             let content = String(line.dropFirst(prefixCount))
+            let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if trimmedContent.isEmpty {
+                pendingParagraphBreak = true
+                continue
+            }
 
             var renderedLine = line
             var headingLevelValue: Int?
             var isList = false
+            var isQuote = false
 
             if let level = headingLevel(in: content) {
                 headingLevelValue = level
                 let markerLength = level + 1 // leading '#' chars and following space
                 let body = String(content.dropFirst(markerLength))
                 renderedLine = indent + body
+            } else if let taskItem = taskListItem(in: content) {
+                isList = true
+                let checkbox = taskItem.isChecked ? typography.checkboxCheckedSymbol : typography.checkboxUncheckedSymbol
+                renderedLine = indent + checkbox + " " + taskItem.body
             } else if content.hasPrefix("- ") || content.hasPrefix("* ") || content.hasPrefix("+ ") {
                 isList = true
                 let body = String(content.dropFirst(2))
                 renderedLine = indent + "• " + body
+            } else if content.hasPrefix("> ") {
+                isQuote = true
+                let body = String(content.dropFirst(2))
+                renderedLine = indent + "▎ " + body
             }
 
             displayLines.append(renderedLine)
-            lineStyles.append((headingLevel: headingLevelValue, isList: isList))
+            lineStyles.append((
+                headingLevel: headingLevelValue,
+                isList: isList,
+                isQuote: isQuote,
+                startsAfterBlankLine: pendingParagraphBreak
+            ))
+            pendingParagraphBreak = false
         }
 
         let display = displayLines.joined(separator: "\n")
         let styled = NSMutableAttributedString(string: display)
-        let bodyFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+        let bodyFont = NSFont.systemFont(ofSize: typography.bodyFontSize, weight: .regular)
         let baseParagraph = NSMutableParagraphStyle()
-        baseParagraph.lineHeightMultiple = 1.24
-        baseParagraph.paragraphSpacing = 10
+        // Keep body text around 150% leading for easier long-form reading.
+        baseParagraph.lineHeightMultiple = typography.bodyLineHeightMultiple
+        baseParagraph.paragraphSpacing = typography.bodyParagraphSpacing
         styled.addAttributes([
             .font: bodyFont,
             .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: baseParagraph
+            .paragraphStyle: baseParagraph,
+            .kern: typography.bodyTracking
         ], range: NSRange(location: 0, length: styled.length))
 
         var location = 0
@@ -105,27 +170,36 @@ final class MarkdownDoc: ObservableObject {
             var font = bodyFont
             let paragraph = baseParagraph.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
             let style = lineStyles[index]
+            paragraph.paragraphSpacingBefore = style.startsAfterBlankLine ? typography.paragraphBreakSpacingBefore : 0
 
             if let level = style.headingLevel {
-                switch level {
-                case 1: font = NSFont.systemFont(ofSize: 34, weight: .bold)
-                case 2: font = NSFont.systemFont(ofSize: 28, weight: .bold)
-                case 3: font = NSFont.systemFont(ofSize: 23, weight: .semibold)
-                case 4: font = NSFont.systemFont(ofSize: 20, weight: .semibold)
-                default: font = NSFont.systemFont(ofSize: 18, weight: .semibold)
-                }
-                paragraph.paragraphSpacing = 14
+                font = typography.headingFont(for: level)
+                paragraph.lineHeightMultiple = typography.headingLineHeight(for: level)
+                paragraph.paragraphSpacingBefore = max(
+                    paragraph.paragraphSpacingBefore,
+                    typography.headingParagraphSpacingBefore
+                )
+                paragraph.paragraphSpacing = typography.headingParagraphSpacing
+                styled.addAttribute(.kern, value: typography.headingTracking, range: lineRange)
             } else if style.isList {
-                paragraph.firstLineHeadIndent = 18
-                paragraph.headIndent = 18
-                paragraph.paragraphSpacing = 6
+                paragraph.firstLineHeadIndent = typography.listIndent
+                paragraph.headIndent = typography.listIndent
+                paragraph.paragraphSpacing = typography.listParagraphSpacing
+                paragraph.lineHeightMultiple = typography.listLineHeightMultiple
+            } else if style.isQuote {
+                paragraph.firstLineHeadIndent = typography.listIndent
+                paragraph.headIndent = typography.listIndent
+                paragraph.paragraphSpacing = typography.listParagraphSpacing
+                paragraph.lineHeightMultiple = 1.45
+                styled.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: lineRange)
+                styled.addAttribute(.obliqueness, value: 0.08, range: lineRange)
             }
 
             styled.addAttribute(.font, value: font, range: lineRange)
             styled.addAttribute(.paragraphStyle, value: paragraph, range: lineRange)
         }
 
-        applyInlineStyles(to: styled)
+        applyInlineStyles(to: styled, typography: typography)
         return styled
     }
 
@@ -136,7 +210,21 @@ final class MarkdownDoc: ObservableObject {
         return hashes
     }
 
-    private static func applyInlineStyles(to styled: NSMutableAttributedString) {
+    private static func taskListItem(in line: String) -> (isChecked: Bool, body: String)? {
+        let patterns: [(prefix: String, checked: Bool)] = [
+            ("- [ ] ", false), ("* [ ] ", false), ("+ [ ] ", false),
+            ("- [x] ", true), ("* [x] ", true), ("+ [x] ", true),
+            ("- [X] ", true), ("* [X] ", true), ("+ [X] ", true)
+        ]
+
+        for pattern in patterns where line.hasPrefix(pattern.prefix) {
+            let body = String(line.dropFirst(pattern.prefix.count))
+            return (pattern.checked, body)
+        }
+        return nil
+    }
+
+    private static func applyInlineStyles(to styled: NSMutableAttributedString, typography: Typography) {
         let boldRegex = try? NSRegularExpression(pattern: #"\*\*([^*\n]+)\*\*"#)
         let codeRegex = try? NSRegularExpression(pattern: #"`([^`\n]+)`"#)
         let linkRegex = try? NSRegularExpression(pattern: #"\[([^\]]+)\]\(([^)\s]+)\)"#)
@@ -154,7 +242,7 @@ final class MarkdownDoc: ObservableObject {
                 var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
                 attrs[.link] = url
                 attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
-                attrs[.foregroundColor] = NSColor.linkColor
+                attrs[.foregroundColor] = MarkyTheme.nsBlue
                 styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
             }
         }
@@ -182,8 +270,12 @@ final class MarkdownDoc: ObservableObject {
                 let text = ns.substring(with: textRange)
                 var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
                 let currentFont = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: 16)
-                attrs[.font] = NSFont.monospacedSystemFont(ofSize: max(13, currentFont.pointSize * 0.9), weight: .regular)
-                attrs[.backgroundColor] = NSColor.secondaryLabelColor.withAlphaComponent(0.15)
+                attrs[.font] = NSFont.monospacedSystemFont(
+                    ofSize: max(typography.codeMinimumFontSize, currentFont.pointSize * typography.codeFontScale),
+                    weight: .regular
+                )
+                attrs[.foregroundColor] = typography.codeForegroundColor
+                attrs[.backgroundColor] = NSColor.secondaryLabelColor.withAlphaComponent(typography.codeBackgroundOpacity)
                 styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
             }
         }
@@ -193,8 +285,8 @@ final class MarkdownDoc: ObservableObject {
 struct MarkdownViewer: View {
     let url: URL
     @StateObject private var doc = MarkdownDoc()
-    @State private var topFadeOpacity: Double = 0
-    @State private var bottomFadeOpacity: Double = 0.88
+    private let topFadeOpacity: Double = 0.9
+    private let bottomFadeOpacity: Double = 0.96
 
     var body: some View {
         ZStack {
@@ -214,9 +306,7 @@ struct MarkdownViewer: View {
                 } else if let rendered = doc.rendered {
                     #if os(macOS)
                     MarkdownTextView(
-                        attributed: rendered,
-                        topFadeOpacity: $topFadeOpacity,
-                        bottomFadeOpacity: $bottomFadeOpacity
+                        attributed: rendered
                     )
                         .overlay {
                             ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
@@ -225,7 +315,17 @@ struct MarkdownViewer: View {
                     ScrollView { Text(AttributedString(rendered)).textSelection(.enabled).padding() }
                     #endif
                 } else if !doc.rawText.isEmpty {
-                    ScrollView { Text(doc.rawText).font(.system(.body, design: .monospaced)).textSelection(.enabled).padding() }
+                    ScrollView {
+                        Text(doc.rawText)
+                            .font(.system(.body, design: .monospaced))
+                            .lineSpacing(8)
+                            .kerning(0.15)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: 700, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 42)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
                         .overlay {
                             ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
                         }
@@ -239,7 +339,6 @@ struct MarkdownViewer: View {
                 }
             }
         }
-        .navigationTitle("")
         .task(id: url) {
             doc.load(from: url)
         }
@@ -281,43 +380,12 @@ private struct ReaderEdgeFadeOverlay: View {
 
 private struct MarkdownTextView: NSViewRepresentable {
     let attributed: NSAttributedString
-    @Binding var topFadeOpacity: Double
-    @Binding var bottomFadeOpacity: Double
-
-    final class Coordinator: NSObject {
-        var observer: NSObjectProtocol?
-        var topFadeOpacity: Binding<Double>
-        var bottomFadeOpacity: Binding<Double>
-
-        init(topFadeOpacity: Binding<Double>, bottomFadeOpacity: Binding<Double>) {
-            self.topFadeOpacity = topFadeOpacity
-            self.bottomFadeOpacity = bottomFadeOpacity
-        }
-
-        deinit {
-            if let observer {
-                NotificationCenter.default.removeObserver(observer)
-            }
-        }
-
-        func updateFade(for scrollView: NSScrollView) {
-            let offsetY = scrollView.contentView.bounds.origin.y
-            let visibleHeight = scrollView.contentView.bounds.height
-            let contentHeight = scrollView.documentView?.bounds.height ?? 0
-            let maxOffset = max(0, contentHeight - visibleHeight)
-
-            let edgeDistance: CGFloat = 120
-            let topProgress = min(max(offsetY / edgeDistance, 0), 1)
-            let bottomDistance = max(0, maxOffset - offsetY)
-            let bottomProgress = min(max(bottomDistance / edgeDistance, 0), 1)
-
-            topFadeOpacity.wrappedValue = 0.2 + Double(topProgress) * 0.8
-            bottomFadeOpacity.wrappedValue = 0.2 + Double(bottomProgress) * 0.8
-        }
-    }
+    private static let desiredMeasureCharacters: CGFloat = 65
+    private static let maxReadableWidth: CGFloat = 700
+    private static let minimumHorizontalInset: CGFloat = 24
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(topFadeOpacity: $topFadeOpacity, bottomFadeOpacity: $bottomFadeOpacity)
+        Coordinator()
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -332,37 +400,33 @@ private struct MarkdownTextView: NSViewRepresentable {
         textView.isEditable = false
         textView.isSelectable = true
         textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 70, height: 42)
+        textView.textContainerInset = NSSize(width: 24, height: 42)
         textView.allowsUndo = false
         textView.isRichText = true
         textView.importsGraphics = false
         textView.usesFindPanel = true
         textView.isAutomaticLinkDetectionEnabled = true
         textView.linkTextAttributes = [
-            .foregroundColor: NSColor.linkColor,
+            .foregroundColor: MarkyTheme.nsBlue,
             .underlineStyle: NSUnderlineStyle.single.rawValue
         ]
         textView.textContainer?.lineFragmentPadding = 0
-        textView.textContainer?.widthTracksTextView = true
-        textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = false
+        textView.textContainer?.containerSize = NSSize(width: 640, height: CGFloat.greatestFiniteMagnitude)
         textView.autoresizingMask = [.width]
+        textView.isHorizontallyResizable = false
+        textView.isVerticallyResizable = true
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textStorage?.setAttributedString(attributed)
 
         scrollView.documentView = textView
-        scrollView.contentView.postsBoundsChangedNotifications = true
-
-        context.coordinator.observer = NotificationCenter.default.addObserver(
-            forName: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView,
-            queue: .main
-        ) { _ in
-            context.coordinator.updateFade(for: scrollView)
+        context.coordinator.startObserving(scrollView: scrollView, textView: textView) { observedScrollView, observedTextView in
+            Self.applyReadableMeasure(in: observedScrollView, textView: observedTextView)
         }
-
+        Self.applyReadableMeasure(in: scrollView, textView: textView)
         DispatchQueue.main.async {
-            context.coordinator.updateFade(for: scrollView)
+            Self.applyReadableMeasure(in: scrollView, textView: textView)
         }
         return scrollView
     }
@@ -370,8 +434,77 @@ private struct MarkdownTextView: NSViewRepresentable {
     func updateNSView(_ nsView: NSScrollView, context: Context) {
         guard let textView = nsView.documentView as? NSTextView else { return }
         textView.textStorage?.setAttributedString(attributed)
-        DispatchQueue.main.async {
-            context.coordinator.updateFade(for: nsView)
+        Self.applyReadableMeasure(in: nsView, textView: textView)
+    }
+
+    private static func applyReadableMeasure(in scrollView: NSScrollView, textView: NSTextView) {
+        guard let container = textView.textContainer else { return }
+        let bodyFont = textView.font ?? NSFont.systemFont(ofSize: 16, weight: .regular)
+        let availableWidth = max(0, scrollView.contentSize.width)
+        let averageCharacterWidth = ("abcdefghijklmnopqrstuvwxyz" as NSString)
+            .size(withAttributes: [.font: bodyFont]).width / 26
+        let desiredMeasureWidth = averageCharacterWidth * desiredMeasureCharacters
+        let cappedMeasureWidth = min(maxReadableWidth, desiredMeasureWidth)
+        let maxFittingWidth = max(160, availableWidth - (minimumHorizontalInset * 2))
+        let usedColumnWidth = min(cappedMeasureWidth, maxFittingWidth)
+        let inset = max(0, (availableWidth - usedColumnWidth) / 2)
+
+        textView.textContainerInset = NSSize(width: inset, height: 42)
+        container.widthTracksTextView = false
+        container.containerSize = NSSize(width: usedColumnWidth, height: CGFloat.greatestFiniteMagnitude)
+    }
+
+    final class Coordinator {
+        private var observers: [NSObjectProtocol] = []
+
+        deinit {
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+
+        func startObserving(
+            scrollView: NSScrollView,
+            textView: NSTextView,
+            onChange: @escaping (NSScrollView, NSTextView) -> Void
+        ) {
+            scrollView.contentView.postsBoundsChangedNotifications = true
+            scrollView.contentView.postsFrameChangedNotifications = true
+            scrollView.postsFrameChangedNotifications = true
+
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            observers.removeAll()
+
+            let boundsObserver = NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification,
+                object: scrollView.contentView,
+                queue: .main
+            ) { [weak scrollView, weak textView] _ in
+                guard let scrollView, let textView else { return }
+                onChange(scrollView, textView)
+            }
+
+            let contentFrameObserver = NotificationCenter.default.addObserver(
+                forName: NSView.frameDidChangeNotification,
+                object: scrollView.contentView,
+                queue: .main
+            ) { [weak scrollView, weak textView] _ in
+                guard let scrollView, let textView else { return }
+                onChange(scrollView, textView)
+            }
+
+            let scrollFrameObserver = NotificationCenter.default.addObserver(
+                forName: NSView.frameDidChangeNotification,
+                object: scrollView,
+                queue: .main
+            ) { [weak scrollView, weak textView] _ in
+                guard let scrollView, let textView else { return }
+                onChange(scrollView, textView)
+            }
+
+            observers = [boundsObserver, contentFrameObserver, scrollFrameObserver]
         }
     }
 }

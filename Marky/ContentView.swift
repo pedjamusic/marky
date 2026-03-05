@@ -33,6 +33,10 @@ struct ContentView: View {
 
     private static let lastProjectBookmarkKey = "LastProjectBookmarkKey"
 
+    private func nodeIconColor(for node: FileNode) -> Color {
+        node.isDirectory ? MarkyTheme.yellow : MarkyTheme.blue
+    }
+
     private func saveBookmark(for url: URL) {
         // Persist bookmark opportunistically: security-scoped when available, plain bookmark as fallback.
         if let securityScopedData = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
@@ -199,6 +203,13 @@ struct ContentView: View {
                     VStack(spacing: 20) {
                         Text("Marky")
                             .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [MarkyTheme.red, MarkyTheme.yellow, MarkyTheme.green, MarkyTheme.blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
 
                         HStack(spacing: 12) {
                             Button {
@@ -225,10 +236,11 @@ struct ContentView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: node.isDirectory ? "folder" : "doc.text")
                                     .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(nodeIconColor(for: node))
                                 Text(node.name)
                                     .font(.system(size: 13, weight: selectedURL == node.url ? .semibold : .regular))
+                                    .foregroundStyle(selectedURL == node.url ? MarkyTheme.green : .primary)
                             }
-                            .foregroundStyle(selectedURL == node.url ? .primary : .secondary)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 if !node.isDirectory {
@@ -281,21 +293,18 @@ struct ContentView: View {
                                 .ignoresSafeArea()
 
                                 Text("Select a Markdown file")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(MarkyTheme.blue.opacity(0.8))
                             }
                         }
                     }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        Text(selectedURL?.lastPathComponent ?? "Marky")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    .navigationTitle(selectedURL?.lastPathComponent ?? "Marky")
                 }
             }
         }
+        #if os(macOS)
+        .toolbarBackground(.hidden, for: .windowToolbar)
+        #endif
+        .tint(MarkyTheme.blue)
         .alert("Error", isPresented: Binding(
             get: { errorMessage != nil },
             set: { isPresented in
