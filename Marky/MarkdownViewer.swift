@@ -5,11 +5,11 @@ import Combine
 import AppKit
 #endif
 
-final class MarkdownDoc: ObservableObject {
+#if os(macOS)
+enum MarkdownRenderer {
     private struct Typography {
         let bodyFontSize: CGFloat = 16
         let bodyLineHeightMultiple: CGFloat = 1.5
-        // Keep body text tight; markdown blank lines provide paragraph breaks.
         let bodyParagraphSpacing: CGFloat = 0
         let bodyTracking: CGFloat = 0.15
         let paragraphBreakSpacingBefore: CGFloat = 8
@@ -47,52 +47,7 @@ final class MarkdownDoc: ObservableObject {
 
     private static let typography = Typography()
 
-    @Published var rendered: NSAttributedString?
-    @Published var rawText: String = ""
-    @Published var isLoading: Bool = false
-    @Published var error: String?
-
-    func load(from url: URL) {
-        isLoading = true
-        error = nil
-        rendered = nil
-        rawText = ""
-
-        Task.detached { [weak self] in
-            guard let self else { return }
-            let needsAccess = url.startAccessingSecurityScopedResource()
-            defer { if needsAccess { url.stopAccessingSecurityScopedResource() } }
-            do {
-                let data = try Data(contentsOf: url)
-                var text = String(data: data, encoding: .utf8)
-                if text == nil {
-                    text = String(data: data, encoding: .utf16)
-                }
-                guard let text else {
-                    await MainActor.run { [weak self] in
-                        self?.isLoading = false
-                        self?.error = "Unable to decode file as UTF-8/UTF-16 text"
-                    }
-                    return
-                }
-
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.rendered = Self.makeStyledMarkdown(from: text)
-                    self.rawText = text
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run { [weak self] in
-                    self?.isLoading = false
-                    self?.error = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    @MainActor
-    private static func makeStyledMarkdown(from text: String) -> NSAttributedString {
+    static func render(from text: String) -> NSAttributedString {
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = source.components(separatedBy: "\n")
         var displayLines: [String] = []
@@ -119,7 +74,7 @@ final class MarkdownDoc: ObservableObject {
 
             if let level = headingLevel(in: content) {
                 headingLevelValue = level
-                let markerLength = level + 1 // leading '#' chars and following space
+                let markerLength = level + 1
                 let body = String(content.dropFirst(markerLength))
                 renderedLine = indent + body
             } else if let taskItem = taskListItem(in: content) {
@@ -150,9 +105,9 @@ final class MarkdownDoc: ObservableObject {
         let styled = NSMutableAttributedString(string: display)
         let bodyFont = NSFont.systemFont(ofSize: typography.bodyFontSize, weight: .regular)
         let baseParagraph = NSMutableParagraphStyle()
-        // Keep body text around 150% leading for easier long-form reading.
         baseParagraph.lineHeightMultiple = typography.bodyLineHeightMultiple
         baseParagraph.paragraphSpacing = typography.bodyParagraphSpacing
+
         styled.addAttributes([
             .font: bodyFont,
             .foregroundColor: NSColor.labelColor,
@@ -164,7 +119,7 @@ final class MarkdownDoc: ObservableObject {
         for (index, line) in displayLines.enumerated() {
             let lineLength = (line as NSString).length
             let lineRange = NSRange(location: location, length: lineLength)
-            location += lineLength + 1 // account for newline separator
+            location += lineLength + 1
             guard lineLength > 0 else { continue }
 
             var font = bodyFont
@@ -175,10 +130,12 @@ final class MarkdownDoc: ObservableObject {
             if let level = style.headingLevel {
                 font = typography.headingFont(for: level)
                 paragraph.lineHeightMultiple = typography.headingLineHeight(for: level)
-                paragraph.paragraphSpacingBefore = max(
-                    paragraph.paragraphSpacingBefore,
-                    typography.headingParagraphSpacingBefore
-                )
+                if index > 0 {
+                    paragraph.paragraphSpacingBefore = max(
+                        paragraph.paragraphSpacingBefore,
+                        typography.headingParagraphSpacingBefore
+                    )
+                }
                 paragraph.paragraphSpacing = typography.headingParagraphSpacing
                 styled.addAttribute(.kern, value: typography.headingTracking, range: lineRange)
             } else if style.isList {
@@ -238,11 +195,12 @@ final class MarkdownDoc: ObservableObject {
                 let urlRange = match.range(at: 2)
                 let text = ns.substring(with: textRange)
                 let urlString = ns.substring(with: urlRange)
-                let url = URL(string: urlString)
                 var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
-                attrs[.link] = url
-                attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
-                attrs[.foregroundColor] = MarkyTheme.nsBlue
+                if let url = URL(string: urlString) {
+                    attrs[.link] = url
+                    attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+                    attrs[.foregroundColor] = MarkyTheme.nsBlue
+                }
                 styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
             }
         }
@@ -281,10 +239,99 @@ final class MarkdownDoc: ObservableObject {
         }
     }
 }
+#endif
+
+final class MarkdownDoc: ObservableObject {
+    @Published var rendered: AttributedString?
+    @Published var rawText: String = ""
+    @Published var isLoading: Bool = false
+    @Published var error: String?
+
+    private var loadTask: Task<Void, Never>?
+    private var loadGeneration: UInt64 = 0
+
+    deinit {
+        loadTask?.cancel()
+    }
+
+    func load(from url: URL) {
+        loadTask?.cancel()
+        loadGeneration &+= 1
+        let generation = loadGeneration
+
+        isLoading = true
+        error = nil
+        rendered = nil
+        rawText = ""
+
+        loadTask = Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self else { return }
+            let needsAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if needsAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let data = try Data(contentsOf: url)
+                try Task.checkCancellation()
+
+                let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16)
+                guard let text else {
+                    await MainActor.run { [weak self] in
+                        guard let self, generation == self.loadGeneration else { return }
+                        self.isLoading = false
+                        self.error = "Unable to decode file as UTF-8/UTF-16 text"
+                        self.loadTask = nil
+                    }
+                    return
+                }
+
+                #if os(macOS)
+                let rendered = await MainActor.run {
+                    AttributedString(MarkdownRenderer.render(from: text))
+                }
+                #else
+                let rendered = try? AttributedString(markdown: text)
+                #endif
+
+                try Task.checkCancellation()
+                await MainActor.run { [weak self] in
+                    guard let self, generation == self.loadGeneration else { return }
+                    self.rawText = text
+                    self.rendered = rendered
+                    self.isLoading = false
+                    self.loadTask = nil
+                }
+            } catch is CancellationError {
+                await MainActor.run { [weak self] in
+                    guard let self, generation == self.loadGeneration else { return }
+                    self.isLoading = false
+                    self.loadTask = nil
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    guard let self, generation == self.loadGeneration else { return }
+                    self.isLoading = false
+                    self.error = error.localizedDescription
+                    self.loadTask = nil
+                }
+            }
+        }
+    }
+}
+
+private enum ReaderLayout {
+    static let maxReadableWidth: CGFloat = 700
+    static let horizontalPadding: CGFloat = 24
+    static let verticalPadding: CGFloat = 42
+}
 
 struct MarkdownViewer: View {
     let url: URL
     @StateObject private var doc = MarkdownDoc()
+
     private let topFadeOpacity: Double = 0.9
     private let bottomFadeOpacity: Double = 0.96
 
@@ -300,52 +347,69 @@ struct MarkdownViewer: View {
             )
             .ignoresSafeArea()
 
-            Group {
-                if doc.isLoading {
-                    ProgressView("Loading…")
-                } else if let rendered = doc.rendered {
-                    #if os(macOS)
-                    MarkdownTextView(
-                        attributed: rendered
-                    )
-                        .overlay {
-                            ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
-                        }
-                    #else
-                    ScrollView { Text(AttributedString(rendered)).textSelection(.enabled).padding() }
-                    #endif
-                } else if !doc.rawText.isEmpty {
-                    ScrollView {
-                        Text(doc.rawText)
-                            .font(.system(.body, design: .monospaced))
-                            .lineSpacing(8)
-                            .kerning(0.15)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: 700, alignment: .leading)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 42)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                        .overlay {
-                            ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
-                        }
-                } else if let error = doc.error {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle").font(.largeTitle)
-                        Text(error)
-                    }.padding()
-                } else {
-                    Text("No content")
-                }
-            }
+            content
         }
         .task(id: url) {
             doc.load(from: url)
         }
     }
+
+    @ViewBuilder
+    private var content: some View {
+        if doc.isLoading {
+            ProgressView("Loading…")
+        } else if let error = doc.error {
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                Text(error)
+            }
+            .padding()
+        } else if let rendered = doc.rendered {
+            ReaderScrollContainer {
+                Text(rendered)
+                    .textSelection(.enabled)
+            }
+            .overlay {
+                ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
+            }
+        } else if !doc.rawText.isEmpty {
+            ReaderScrollContainer {
+                Text(doc.rawText)
+                    .font(.system(.body, design: .monospaced))
+                    .lineSpacing(8)
+                    .kerning(0.15)
+                    .textSelection(.enabled)
+            }
+            .overlay {
+                ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
+            }
+        } else {
+            Text("No content")
+        }
+    }
 }
 
-#if os(macOS)
+private struct ReaderScrollContainer<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .frame(maxWidth: ReaderLayout.maxReadableWidth, alignment: .leading)
+            .padding(.horizontal, ReaderLayout.horizontalPadding)
+            .padding(.vertical, ReaderLayout.verticalPadding)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+}
+
 private struct ReaderEdgeFadeOverlay: View {
     let topOpacity: Double
     let bottomOpacity: Double
@@ -377,138 +441,6 @@ private struct ReaderEdgeFadeOverlay: View {
         .allowsHitTesting(false)
     }
 }
-
-private struct MarkdownTextView: NSViewRepresentable {
-    let attributed: NSAttributedString
-    private static let desiredMeasureCharacters: CGFloat = 65
-    private static let maxReadableWidth: CGFloat = 700
-    private static let minimumHorizontalInset: CGFloat = 24
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.borderType = .noBorder
-        scrollView.drawsBackground = false
-        scrollView.automaticallyAdjustsContentInsets = true
-
-        let textView = NSTextView()
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 24, height: 42)
-        textView.allowsUndo = false
-        textView.isRichText = true
-        textView.importsGraphics = false
-        textView.usesFindPanel = true
-        textView.isAutomaticLinkDetectionEnabled = true
-        textView.linkTextAttributes = [
-            .foregroundColor: MarkyTheme.nsBlue,
-            .underlineStyle: NSUnderlineStyle.single.rawValue
-        ]
-        textView.textContainer?.lineFragmentPadding = 0
-        textView.textContainer?.widthTracksTextView = false
-        textView.textContainer?.containerSize = NSSize(width: 640, height: CGFloat.greatestFiniteMagnitude)
-        textView.autoresizingMask = [.width]
-        textView.isHorizontallyResizable = false
-        textView.isVerticallyResizable = true
-        textView.minSize = NSSize(width: 0, height: 0)
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        textView.textStorage?.setAttributedString(attributed)
-
-        scrollView.documentView = textView
-        context.coordinator.startObserving(scrollView: scrollView, textView: textView) { observedScrollView, observedTextView in
-            Self.applyReadableMeasure(in: observedScrollView, textView: observedTextView)
-        }
-        Self.applyReadableMeasure(in: scrollView, textView: textView)
-        DispatchQueue.main.async {
-            Self.applyReadableMeasure(in: scrollView, textView: textView)
-        }
-        return scrollView
-    }
-
-    func updateNSView(_ nsView: NSScrollView, context: Context) {
-        guard let textView = nsView.documentView as? NSTextView else { return }
-        textView.textStorage?.setAttributedString(attributed)
-        Self.applyReadableMeasure(in: nsView, textView: textView)
-    }
-
-    private static func applyReadableMeasure(in scrollView: NSScrollView, textView: NSTextView) {
-        guard let container = textView.textContainer else { return }
-        let bodyFont = textView.font ?? NSFont.systemFont(ofSize: 16, weight: .regular)
-        let availableWidth = max(0, scrollView.contentSize.width)
-        let averageCharacterWidth = ("abcdefghijklmnopqrstuvwxyz" as NSString)
-            .size(withAttributes: [.font: bodyFont]).width / 26
-        let desiredMeasureWidth = averageCharacterWidth * desiredMeasureCharacters
-        let cappedMeasureWidth = min(maxReadableWidth, desiredMeasureWidth)
-        let maxFittingWidth = max(160, availableWidth - (minimumHorizontalInset * 2))
-        let usedColumnWidth = min(cappedMeasureWidth, maxFittingWidth)
-        let inset = max(0, (availableWidth - usedColumnWidth) / 2)
-
-        textView.textContainerInset = NSSize(width: inset, height: 42)
-        container.widthTracksTextView = false
-        container.containerSize = NSSize(width: usedColumnWidth, height: CGFloat.greatestFiniteMagnitude)
-    }
-
-    final class Coordinator {
-        private var observers: [NSObjectProtocol] = []
-
-        deinit {
-            for observer in observers {
-                NotificationCenter.default.removeObserver(observer)
-            }
-        }
-
-        func startObserving(
-            scrollView: NSScrollView,
-            textView: NSTextView,
-            onChange: @escaping (NSScrollView, NSTextView) -> Void
-        ) {
-            scrollView.contentView.postsBoundsChangedNotifications = true
-            scrollView.contentView.postsFrameChangedNotifications = true
-            scrollView.postsFrameChangedNotifications = true
-
-            for observer in observers {
-                NotificationCenter.default.removeObserver(observer)
-            }
-            observers.removeAll()
-
-            let boundsObserver = NotificationCenter.default.addObserver(
-                forName: NSView.boundsDidChangeNotification,
-                object: scrollView.contentView,
-                queue: .main
-            ) { [weak scrollView, weak textView] _ in
-                guard let scrollView, let textView else { return }
-                onChange(scrollView, textView)
-            }
-
-            let contentFrameObserver = NotificationCenter.default.addObserver(
-                forName: NSView.frameDidChangeNotification,
-                object: scrollView.contentView,
-                queue: .main
-            ) { [weak scrollView, weak textView] _ in
-                guard let scrollView, let textView else { return }
-                onChange(scrollView, textView)
-            }
-
-            let scrollFrameObserver = NotificationCenter.default.addObserver(
-                forName: NSView.frameDidChangeNotification,
-                object: scrollView,
-                queue: .main
-            ) { [weak scrollView, weak textView] _ in
-                guard let scrollView, let textView else { return }
-                onChange(scrollView, textView)
-            }
-
-            observers = [boundsObserver, contentFrameObserver, scrollFrameObserver]
-        }
-    }
-}
-#endif
 
 #Preview {
     let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Preview.md")
