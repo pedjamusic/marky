@@ -72,15 +72,22 @@ struct MarkyApp: App {
     }
 
     private static func registerBundledFontsIfNeeded() {
-        guard let fontURL = Bundle.main.url(
-            forResource: "Fraunces[SOFT,WONK,opsz,wght]",
-            withExtension: "ttf"
+        guard let fontsDirectoryURL = Bundle.main.resourceURL?.appendingPathComponent("Fonts", isDirectory: true) else {
+            return
+        }
+
+        let fileManager = FileManager.default
+        guard let fontURLs = try? fileManager.contentsOfDirectory(
+            at: fontsDirectoryURL,
+            includingPropertiesForKeys: nil
         ) else {
             return
         }
 
-        var registrationError: Unmanaged<CFError>?
-        CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, &registrationError)
+        for fontURL in fontURLs where fontURL.pathExtension.lowercased() == "ttf" {
+            var registrationError: Unmanaged<CFError>?
+            CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, &registrationError)
+        }
     }
 
     private static func applyDockIconFallbackIfNeeded() {

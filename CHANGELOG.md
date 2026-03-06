@@ -28,3 +28,4 @@ All notable changes to this project are documented in this file.
 - Added App Settings support for markdown typography mode and global appearance mode (System/Light/Dark), available via `Cmd+,`.
 - Fixed appearance switching edge cases for immediate System reversion and reduced mode-switch flicker by rerendering from cached markdown text.
 - Stabilized inline/code-block highlight background colors across appearance switches with explicit light/dark tokens.
+- Added bundled Literata font resources and startup registration for all `.ttf` files under `Marky/Resources/Fonts`, enabling serif reader modes to use app-shipped fonts.
