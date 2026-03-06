@@ -10,7 +10,8 @@ import XCTest
 final class MarkyUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
-        true
+        // Avoid toggling host appearance during automation runs.
+        false
     }
 
     override func setUpWithError() throws {
