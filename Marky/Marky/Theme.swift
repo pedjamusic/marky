@@ -8,9 +8,9 @@ import UIKit
 enum MarkyTheme {
     // Terminal-inspired accent palette, authored in OKLCH.
     static let red = color(oklchL: 0.66, c: 0.16, h: 22)
-    static let yellow = color(oklchL: 0.85, c: 0.13, h: 95)
     static let green = color(oklchL: 0.78, c: 0.14, h: 144)
     static let blue = color(oklchL: 0.70, c: 0.11, h: 246)
+    static let yellow = color(oklchL: 0.85, c: 0.13, h: 95)
 
     // Semantic tokens for a subtle sidebar gradient overlay.
     #if os(macOS)
@@ -29,9 +29,10 @@ enum MarkyTheme {
     #endif
 
     static let sidebarDarkOverlayGradientColors: [Color] = [
-        blue.opacity(0.38),
         red.opacity(0.28),
-        green.opacity(0.22)
+        blue.opacity(0.38),
+        green.opacity(0.22),
+        yellow.opacity(0.18)
     ]
 
     static let sidebarLightOverlayOpacity: Double = 0.24
