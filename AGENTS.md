@@ -89,6 +89,10 @@ Additional rule:
 
 ## 5. Coding Standards (Concrete)
 
+### 5.0 Design
+
+Refer and follow to the word [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/getting-started)
+
 ### 5.1 General
 
 - DRY principles

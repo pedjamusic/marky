@@ -9,6 +9,7 @@ Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder
 - Sidebar rows behave as full-width tappable blocks for easier file selection.
 - Folder rows in the sidebar toggle expand/collapse when clicked (not only via disclosure icon).
 - Active file is highlighted in theme blue with bold text while preserving native macOS text rendering.
+- Branding assets are now integrated: custom app icon, mascot artwork, and Fraunces wordmark font for the launch title.
 - Auto-restore of the last opened project via bookmark persistence.
 - Security-scoped file access handling for sandbox-safe reads.
 - Reader-first markdown rendering with tuned typography for headings, lists, checkboxes, quotes, links, bold, and inline code.
@@ -51,3 +52,7 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' 
 ## Notes
 
 - This repository follows a solo workflow with versioned changelog entries (no `Unreleased` section).
+
+## Credits
+
+- Icon set generation support: [icns-creator](https://github.com/alptugan/icns-creator) by alptugan.

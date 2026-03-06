@@ -14,6 +14,7 @@ import AppKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
+    @Environment(\.colorScheme) private var colorScheme
 
     private func presentFilePanel() {
         #if os(macOS)
@@ -144,31 +145,44 @@ struct ContentView: View {
                     .ignoresSafeArea()
 
                     VStack(spacing: 20) {
-                        Text("Marky")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [MarkyTheme.red, MarkyTheme.yellow, MarkyTheme.green, MarkyTheme.blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                        Image("MarkyMascot")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: MarkyTheme.wordmarkMascotMaxWidth)
+                            .shadow(
+                                color: colorScheme == .dark ? MarkyTheme.launchMascotGlowColorDark : MarkyTheme.launchMascotGlowColorLight,
+                                radius: colorScheme == .dark ? MarkyTheme.launchMascotGlowRadiusDark : MarkyTheme.launchMascotGlowRadiusLight
                             )
+                            .accessibilityHidden(true)
 
-                        HStack(spacing: 12) {
-                            Button {
-                                presentFilePanel()
-                            } label: {
-                                Label("Open File", systemImage: "doc")
-                            }
-                            .buttonStyle(.borderedProminent)
+                        VStack(spacing: 20) {
+                            Text("Marky")
+                                .font(.custom(MarkyTheme.wordmarkFontName, size: MarkyTheme.wordmarkSize))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [MarkyTheme.red, MarkyTheme.yellow, MarkyTheme.green, MarkyTheme.blue],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
 
-                            Button {
-                                presentFolderPanel()
-                            } label: {
-                                Label("Open Folder", systemImage: "folder")
+                            HStack(spacing: 12) {
+                                Button {
+                                    presentFilePanel()
+                                } label: {
+                                    Label("Open File", systemImage: "doc")
+                                }
+                                .buttonStyle(.borderedProminent)
+
+                                Button {
+                                    presentFolderPanel()
+                                } label: {
+                                    Label("Open Folder", systemImage: "folder")
+                                }
+                                .buttonStyle(.bordered)
                             }
-                            .buttonStyle(.bordered)
                         }
+                        .padding(.top, -64)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)

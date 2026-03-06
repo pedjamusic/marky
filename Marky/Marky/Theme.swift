@@ -50,6 +50,15 @@ enum MarkyTheme {
     static let sidebarControlsTint: Color = .primary
     static let sidebarSearchBackgroundMaterial: Material = .regularMaterial
 
+    // Brand typography tokens
+    static let wordmarkFontName = "Fraunces"
+    static let wordmarkSize: CGFloat = 38
+    static let wordmarkMascotMaxWidth: CGFloat = 512
+    static let launchMascotGlowColorDark: Color = .white.opacity(0.26)
+    static let launchMascotGlowRadiusDark: CGFloat = 22
+    static let launchMascotGlowColorLight: Color = .clear
+    static let launchMascotGlowRadiusLight: CGFloat = 0
+
     #if os(macOS)
     static let nsRed = nsColor(oklchL: 0.66, c: 0.16, h: 22)
     static let nsYellow = nsColor(oklchL: 0.85, c: 0.13, h: 95)

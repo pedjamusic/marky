@@ -7,6 +7,10 @@
 
 import SwiftUI
 import SwiftData
+import CoreText
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct MarkyApp: App {
@@ -31,6 +35,11 @@ struct MarkyApp: App {
 
     var sharedModelContainer: ModelContainer = Self.makeModelContainer()
 
+    init() {
+        Self.registerBundledFontsIfNeeded()
+        Self.applyDockIconFallbackIfNeeded()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -40,4 +49,25 @@ struct MarkyApp: App {
         .windowToolbarStyle(.unified(showsTitle: true))
         #endif
     }
+
+    private static func registerBundledFontsIfNeeded() {
+        guard let fontURL = Bundle.main.url(
+            forResource: "Fraunces[SOFT,WONK,opsz,wght]",
+            withExtension: "ttf"
+        ) else {
+            return
+        }
+
+        var registrationError: Unmanaged<CFError>?
+        CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, &registrationError)
+    }
+
+    private static func applyDockIconFallbackIfNeeded() {
+        #if os(macOS)
+        if let iconImage = NSImage(named: "AppIcon") ?? Bundle.main.image(forResource: "AppIcon") {
+            NSApplication.shared.applicationIconImage = iconImage
+        }
+        #endif
+    }
+
 }
