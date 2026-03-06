@@ -27,8 +27,8 @@ final class ContentViewModel: ObservableObject {
         return types
     }()
 
-    init(projectSessionService: ProjectSessionServicing = ProjectSessionService()) {
-        self.projectSessionService = projectSessionService
+    init(projectSessionService: ProjectSessionServicing? = nil) {
+        self.projectSessionService = projectSessionService ?? ProjectSessionService()
     }
 
     deinit {
@@ -60,8 +60,8 @@ final class ContentViewModel: ObservableObject {
 
             if restored.url.startAccessingSecurityScopedResource() {
                 securityScopedURL = restored.url
-                let values = try? restored.url.resourceValues(forKeys: [.isDirectoryKey])
-                if values?.isDirectory == true {
+                let values = try restored.url.resourceValues(forKeys: [.isDirectoryKey])
+                if values.isDirectory == true {
                     root = FileNode.buildProjectTree(at: restored.url)
                 } else {
                     let parent = restored.url.deletingLastPathComponent()
@@ -72,13 +72,15 @@ final class ContentViewModel: ObservableObject {
                 }
                 splitViewVisibility = .all
                 if restored.isStale {
-                    projectSessionService.saveBookmark(for: restored.url)
+                    try projectSessionService.saveBookmark(for: restored.url)
                 }
             } else {
                 projectSessionService.clearBookmark()
+                errorMessage = "Couldn't access the previously opened location."
             }
         } catch {
             projectSessionService.clearBookmark()
+            errorMessage = userSafeErrorMessage(for: error)
         }
     }
 
@@ -96,7 +98,7 @@ final class ContentViewModel: ObservableObject {
         let folderAccess = folderURL.startAccessingSecurityScopedResource()
         if folderAccess {
             securityScopedURL = folderURL
-            projectSessionService.saveBookmark(for: folderURL)
+            persistBookmarkOrReportError(for: folderURL)
             root = FileNode.buildProjectTree(at: folderURL)
             selectedURL = fileURL
             splitViewVisibility = .all
@@ -107,7 +109,7 @@ final class ContentViewModel: ObservableObject {
         if fileAccess {
             securityScopedURL = fileURL
         }
-        projectSessionService.saveBookmark(for: fileURL)
+        persistBookmarkOrReportError(for: fileURL)
         root = FileNode(url: folderURL, name: folderURL.lastPathComponent, isDirectory: true, children: [
             FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
         ])
@@ -121,7 +123,7 @@ final class ContentViewModel: ObservableObject {
         if needsAccess {
             securityScopedURL = folderURL
         }
-        projectSessionService.saveBookmark(for: folderURL)
+        persistBookmarkOrReportError(for: folderURL)
         root = FileNode.buildProjectTree(at: folderURL)
         selectedURL = nil
         splitViewVisibility = .all
@@ -154,6 +156,25 @@ final class ContentViewModel: ObservableObject {
                 return nil
             }
             return node.name.lowercased().contains(q) ? node : nil
+        }
+    }
+
+    private func persistBookmarkOrReportError(for url: URL) {
+        do {
+            try projectSessionService.saveBookmark(for: url)
+        } catch {
+            errorMessage = userSafeErrorMessage(for: error)
+        }
+    }
+
+    private func userSafeErrorMessage(for error: Error) -> String {
+        switch error {
+        case ProjectSessionError.bookmarkEncodingFailed:
+            return "Couldn't save project access. You may need to reopen this location next time."
+        case ProjectSessionError.bookmarkResolutionFailed:
+            return "Couldn't restore the last opened project."
+        default:
+            return "An unexpected project access error occurred."
         }
     }
 

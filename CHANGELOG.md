@@ -14,4 +14,5 @@ All notable changes to this project are documented in this file.
 - Updated active-file sidebar styling to theme blue + bold using native text rendering to avoid glyph squish.
 - Refactored project/session and sidebar/file-import state handling from `ContentView` into a dedicated ViewModel + service layer.
 - Added deterministic UI tests for sidebar key flows (seeded open state, search/filter, file selection, collapse action state change).
+- Replaced bookmark/session silent failures with typed error handling and user-safe messages, with new unit tests for failure mapping.
 - Refined viewer visuals by removing top-line masking edge fade.

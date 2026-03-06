@@ -273,7 +273,7 @@ struct ContentView: View {
                     viewModel.openPickedFolder(pickedURL)
                 }
             case .failure(let error):
-                viewModel.errorMessage = error.localizedDescription
+                viewModel.errorMessage = "Couldn't import the selected item. \(error.localizedDescription)"
             }
             viewModel.importMode = nil
         }

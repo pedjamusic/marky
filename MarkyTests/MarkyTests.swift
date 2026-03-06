@@ -13,6 +13,26 @@ import AppKit
 #endif
 
 struct MarkyTests {
+    private final class ThrowingProjectSessionService: ProjectSessionServicing {
+        let saveError: Error?
+        let restoreError: Error?
+
+        init(saveError: Error? = nil, restoreError: Error? = nil) {
+            self.saveError = saveError
+            self.restoreError = restoreError
+        }
+
+        func saveBookmark(for url: URL) throws {
+            if let saveError { throw saveError }
+        }
+
+        func restoreBookmarkedURL() throws -> RestoredProjectBookmark? {
+            if let restoreError { throw restoreError }
+            return nil
+        }
+
+        func clearBookmark() {}
+    }
 
     @Test("buildProjectTree keeps markdown files and directories that contain them")
     func buildProjectTreeFiltersNonMarkdownFiles() throws {
@@ -38,6 +58,31 @@ struct MarkyTests {
             #expect(docsNode?.children?.contains(where: { $0.name == "notes.txt" }) == false)
             #expect(docsNode?.children?.contains(where: { $0.name == "nested" && $0.isDirectory }) == true)
         }
+    }
+
+    @MainActor
+    @Test("restoreBookmarkIfNeeded maps typed bookmark resolution failures to user-safe message")
+    func restoreBookmarkIfNeededMapsBookmarkResolutionFailure() {
+        let service = ThrowingProjectSessionService(restoreError: ProjectSessionError.bookmarkResolutionFailed)
+        let viewModel = ContentViewModel(projectSessionService: service)
+
+        viewModel.restoreBookmarkIfNeeded()
+
+        #expect(viewModel.errorMessage == "Couldn't restore the last opened project.")
+    }
+
+    @MainActor
+    @Test("openPickedFolder maps typed bookmark encoding failures to user-safe message")
+    func openPickedFolderMapsBookmarkEncodingFailure() throws {
+        let service = ThrowingProjectSessionService(saveError: ProjectSessionError.bookmarkEncodingFailed)
+        let viewModel = ContentViewModel(projectSessionService: service)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("A3-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        viewModel.openPickedFolder(folder)
+
+        #expect(viewModel.errorMessage == "Couldn't save project access. You may need to reopen this location next time.")
     }
 
     @Test("buildProjectTree skips symbolic-link directories to prevent recursive cycles")
