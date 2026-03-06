@@ -332,9 +332,6 @@ struct MarkdownViewer: View {
     let url: URL
     @StateObject private var doc = MarkdownDoc()
 
-    private let topFadeOpacity: Double = 0.9
-    private let bottomFadeOpacity: Double = 0.96
-
     var body: some View {
         ZStack {
             LinearGradient(
@@ -370,9 +367,6 @@ struct MarkdownViewer: View {
                 Text(rendered)
                     .textSelection(.enabled)
             }
-            .overlay {
-                ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
-            }
         } else if !doc.rawText.isEmpty {
             ReaderScrollContainer {
                 Text(doc.rawText)
@@ -380,9 +374,6 @@ struct MarkdownViewer: View {
                     .lineSpacing(8)
                     .kerning(0.15)
                     .textSelection(.enabled)
-            }
-            .overlay {
-                ReaderEdgeFadeOverlay(topOpacity: topFadeOpacity, bottomOpacity: bottomFadeOpacity)
             }
         } else {
             Text("No content")
@@ -407,38 +398,6 @@ private struct ReaderScrollContainer<Content: View>: View {
             .padding(.vertical, ReaderLayout.verticalPadding)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-    }
-}
-
-private struct ReaderEdgeFadeOverlay: View {
-    let topOpacity: Double
-    let bottomOpacity: Double
-
-    var body: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor).opacity(topOpacity),
-                    Color(nsColor: .windowBackgroundColor).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 72)
-
-            Spacer(minLength: 0)
-
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor).opacity(0),
-                    Color(nsColor: .windowBackgroundColor).opacity(bottomOpacity)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 76)
-        }
-        .allowsHitTesting(false)
     }
 }
 
