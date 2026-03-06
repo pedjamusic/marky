@@ -23,10 +23,10 @@ struct ContentView: View {
         panel.canChooseDirectories = false
         panel.allowedContentTypes = ContentViewModel.markdownFileTypes
         if panel.runModal() == .OK, let fileURL = panel.url {
-            viewModel.openPickedFile(fileURL)
+            viewModel.handlePickedURL(fileURL, mode: .file)
         }
         #else
-        viewModel.importMode = .file
+        viewModel.requestFileImport()
         #endif
     }
 
@@ -37,10 +37,10 @@ struct ContentView: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         if panel.runModal() == .OK, let folderURL = panel.url {
-            viewModel.openPickedFolder(folderURL)
+            viewModel.handlePickedURL(folderURL, mode: .folder)
         }
         #else
-        viewModel.importMode = .folder
+        viewModel.requestFolderImport()
         #endif
     }
 
@@ -259,23 +259,7 @@ struct ContentView: View {
             allowedContentTypes: fileImporterContentTypes,
             allowsMultipleSelection: false
         ) { result in
-            guard let mode = viewModel.importMode else { return }
-            switch result {
-            case .success(let urls):
-                guard let pickedURL = urls.first else {
-                    viewModel.importMode = nil
-                    return
-                }
-
-                if mode == .file {
-                    viewModel.openPickedFile(pickedURL)
-                } else {
-                    viewModel.openPickedFolder(pickedURL)
-                }
-            case .failure(let error):
-                viewModel.errorMessage = "Couldn't import the selected item. \(error.localizedDescription)"
-            }
-            viewModel.importMode = nil
+            viewModel.handleFileImporterResult(result)
         }
     }
 }

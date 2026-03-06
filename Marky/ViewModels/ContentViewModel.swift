@@ -43,6 +43,14 @@ final class ContentViewModel: ObservableObject {
         return filterNodes(nodes, query: query)
     }
 
+    func requestFileImport() {
+        importMode = .file
+    }
+
+    func requestFolderImport() {
+        importMode = .folder
+    }
+
     func restoreBookmarkIfNeeded() {
         if bootstrapSidebarForUITestingIfRequested() {
             return
@@ -127,6 +135,28 @@ final class ContentViewModel: ObservableObject {
         root = FileNode.buildProjectTree(at: folderURL)
         selectedURL = nil
         splitViewVisibility = .all
+    }
+
+    func handlePickedURL(_ pickedURL: URL, mode: ImportMode) {
+        switch mode {
+        case .file:
+            openPickedFile(pickedURL)
+        case .folder:
+            openPickedFolder(pickedURL)
+        }
+    }
+
+    func handleFileImporterResult(_ result: Result<[URL], Error>) {
+        guard let mode = importMode else { return }
+        defer { importMode = nil }
+
+        switch result {
+        case .success(let urls):
+            guard let pickedURL = urls.first else { return }
+            handlePickedURL(pickedURL, mode: mode)
+        case .failure(let error):
+            errorMessage = "Couldn't import the selected item. \(error.localizedDescription)"
+        }
     }
 
     func collapseAllSidebarFolders() {

@@ -15,4 +15,5 @@ All notable changes to this project are documented in this file.
 - Refactored project/session and sidebar/file-import state handling from `ContentView` into a dedicated ViewModel + service layer.
 - Added deterministic UI tests for sidebar key flows (seeded open state, search/filter, file selection, collapse action state change).
 - Replaced bookmark/session silent failures with typed error handling and user-safe messages, with new unit tests for failure mapping.
+- Deduplicated file/folder import-open handling by routing panel and fileImporter paths through shared ViewModel import handlers.
 - Refined viewer visuals by removing top-line masking edge fade.

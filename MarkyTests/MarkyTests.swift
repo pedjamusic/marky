@@ -85,6 +85,38 @@ struct MarkyTests {
         #expect(viewModel.errorMessage == "Couldn't save project access. You may need to reopen this location next time.")
     }
 
+    @MainActor
+    @Test("handleFileImporterResult routes picked URL by mode and clears import mode")
+    func handleFileImporterResultRoutesAndClearsMode() throws {
+        let service = ThrowingProjectSessionService()
+        let viewModel = ContentViewModel(projectSessionService: service)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("A4-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        viewModel.importMode = .folder
+        viewModel.handleFileImporterResult(.success([folder]))
+
+        #expect(viewModel.importMode == nil)
+        #expect(viewModel.root?.url == folder)
+        #expect(viewModel.selectedURL == nil)
+    }
+
+    @MainActor
+    @Test("handleFileImporterResult maps failures and clears import mode")
+    func handleFileImporterResultMapsFailureAndClearsMode() {
+        enum ImportFailure: Error { case failed }
+
+        let service = ThrowingProjectSessionService()
+        let viewModel = ContentViewModel(projectSessionService: service)
+        viewModel.importMode = .file
+
+        viewModel.handleFileImporterResult(.failure(ImportFailure.failed))
+
+        #expect(viewModel.importMode == nil)
+        #expect(viewModel.errorMessage?.contains("Couldn't import the selected item.") == true)
+    }
+
     @Test("buildProjectTree skips symbolic-link directories to prevent recursive cycles")
     func buildProjectTreeSkipsDirectorySymlinks() throws {
         try Self.withTemporaryDirectory { root in
