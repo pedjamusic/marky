@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var selectedURL: URL?
     @State private var importMode: ImportMode?
     @State private var sidebarSearchText = ""
+    @State private var sidebarListRefreshID = UUID()
     @State private var splitViewVisibility: NavigationSplitViewVisibility = .automatic
     @State private var errorMessage: String?
     @State private var securityScopedURL: URL?
@@ -187,6 +188,11 @@ struct ContentView: View {
         }
     }
 
+    private func collapseAllSidebarFolders() {
+        // Recreate the outline list to reset expansion state.
+        sidebarListRefreshID = UUID()
+    }
+
     private struct SidebarGradientOverlay: View {
         @Environment(\.colorScheme) private var colorScheme
 
@@ -257,31 +263,57 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 NavigationSplitView(columnVisibility: $splitViewVisibility) {
-                    List {
-                        OutlineGroup(displayedNodes, children: \.children) { node in
-                            HStack(spacing: 8) {
-                                Image(systemName: node.isDirectory ? "folder" : "doc.text")
-                                    .symbolRenderingMode(.hierarchical)
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "magnifyingglass")
                                     .foregroundStyle(.secondary)
-                                sidebarNodeTitle(for: node)
-                                Spacer(minLength: 0)
+                                TextField("Search files", text: $sidebarSearchText)
+                                    .textFieldStyle(.plain)
                             }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if !node.isDirectory {
-                                    selectedURL = node.url
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                            Button {
+                                collapseAllSidebarFolders()
+                            } label: {
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .tint(.primary)
+                            .help("Collapse Folders")
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 6)
+
+                        List {
+                            OutlineGroup(displayedNodes, children: \.children) { node in
+                                HStack(spacing: 8) {
+                                    Image(systemName: node.isDirectory ? "folder" : "doc.text")
+                                        .symbolRenderingMode(.hierarchical)
+                                        .foregroundStyle(.secondary)
+                                    sidebarNodeTitle(for: node)
+                                    Spacer(minLength: 0)
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if !node.isDirectory {
+                                        selectedURL = node.url
+                                    }
                                 }
                             }
                         }
+                        .id(sidebarListRefreshID)
+                        .listStyle(.sidebar)
                     }
-                    .listStyle(.sidebar)
                     .overlay {
                         SidebarGradientOverlay()
                             .allowsHitTesting(false)
                             .ignoresSafeArea()
                     }
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 420)
-                    .searchable(text: $sidebarSearchText, placement: .sidebar, prompt: "Search files")
                     .navigationTitle("")
                     .toolbar {
                         ToolbarItemGroup(placement: .primaryAction) {

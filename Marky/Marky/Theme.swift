@@ -15,9 +15,10 @@ enum MarkyTheme {
     // Semantic tokens for a subtle sidebar gradient overlay.
     #if os(macOS)
     static let sidebarLightOverlayGradientColors: [Color] = [
-        Color(nsColor: nsBlue).opacity(0.34),
-        Color(nsColor: nsGreen).opacity(0.24),
-        Color(nsColor: nsYellow).opacity(0.18)
+        Color(nsColor: nsRed).opacity(0.33),
+        Color(nsColor: nsGreen).opacity(0.33),
+        Color(nsColor: nsBlue).opacity(0.33),
+        Color(nsColor: nsYellow).opacity(0.33)
     ]
     #else
     static let sidebarLightOverlayGradientColors: [Color] = [
