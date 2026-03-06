@@ -117,7 +117,7 @@ struct ContentView: View {
         panel.allowsMultipleSelection = false
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
-        panel.allowedFileTypes = ["md", "markdown", "mdown", "mkd", "txt"]
+        panel.allowedContentTypes = ContentView.markdownFileTypes
         if panel.runModal() == .OK, let fileURL = panel.url {
             // Manage security-scoped access for the parent folder
             if let current = securityScopedURL { current.stopAccessingSecurityScopedResource(); securityScopedURL = nil }

@@ -18,15 +18,23 @@ public extension FileNode {
         _ = fm.fileExists(atPath: rootURL.path, isDirectory: &isDir)
         let rootName = rootURL.lastPathComponent
 
-        let children = isDir.boolValue ? childNodes(for: rootURL) : []
+        var visitedDirectories: Set<String> = []
+        if isDir.boolValue {
+            visitedDirectories.insert(canonicalDirectoryPath(for: rootURL))
+        }
+        let children = isDir.boolValue ? childNodes(for: rootURL, visitedDirectories: &visitedDirectories) : []
         return FileNode(url: rootURL, name: rootName, isDirectory: true, children: children)
     }
 }
 
 private extension FileNode {
-    static func childNodes(for directoryURL: URL) -> [FileNode] {
+    static func childNodes(for directoryURL: URL, visitedDirectories: inout Set<String>) -> [FileNode] {
         let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey], options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants]) else {
+        guard let contents = try? fm.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
+            options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants]
+        ) else {
             return []
         }
 
@@ -34,13 +42,20 @@ private extension FileNode {
         for url in contents {
             if isHidden(url) { continue }
 
-            var isDir: ObjCBool = false
-            fm.fileExists(atPath: url.path, isDirectory: &isDir)
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+            let isDir = values?.isDirectory == true
+            let isSymLink = values?.isSymbolicLink == true
             let name = url.lastPathComponent
 
-            if isDir.boolValue {
+            if isDir {
+                // Avoid symlink cycles (for example, a child symlink that points back to an ancestor).
+                if isSymLink { continue }
+                let canonicalPath = canonicalDirectoryPath(for: url)
+                guard visitedDirectories.insert(canonicalPath).inserted else { continue }
+
                 // Recursively build children for subdirectory
-                let childChildren = childNodes(for: url)
+                let childChildren = childNodes(for: url, visitedDirectories: &visitedDirectories)
+                visitedDirectories.remove(canonicalPath)
                 // Include directory only if it contains markdown files (directly or nested)
                 if !childChildren.isEmpty {
                     nodes.append(FileNode(url: url, name: name, isDirectory: true, children: childChildren))
@@ -68,5 +83,9 @@ private extension FileNode {
     static func isMarkdownFile(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         return ["md", "markdown", "mdown", "mkd"].contains(ext)
+    }
+
+    static func canonicalDirectoryPath(for url: URL) -> String {
+        url.resolvingSymlinksInPath().standardizedFileURL.path
     }
 }

@@ -10,18 +10,26 @@ import SwiftData
 
 @main
 struct MarkyApp: App {
-    var sharedModelContainer: ModelContainer = {
+    private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let persistentConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [persistentConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            assertionFailure("Persistent ModelContainer init failed: \(error). Falling back to in-memory store.")
+            let inMemoryConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [inMemoryConfiguration])
+            } catch {
+                fatalError("Could not create in-memory ModelContainer fallback: \(error)")
+            }
         }
-    }()
+    }
+
+    var sharedModelContainer: ModelContainer = Self.makeModelContainer()
 
     var body: some Scene {
         WindowGroup {
