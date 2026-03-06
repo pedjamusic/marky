@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var selectedURL: URL?
     @State private var importMode: ImportMode?
     @State private var sidebarSearchText = ""
+    @State private var splitViewVisibility: NavigationSplitViewVisibility = .automatic
     @State private var errorMessage: String?
     @State private var securityScopedURL: URL?
 
@@ -88,6 +89,7 @@ struct ContentView: View {
                     ])
                     selectedURL = restoredURL
                 }
+                splitViewVisibility = .all
                 if stale { saveBookmark(for: restoredURL) }
             } else {
                 UserDefaults.standard.removeObject(forKey: Self.lastProjectBookmarkKey)
@@ -128,6 +130,7 @@ struct ContentView: View {
                 saveBookmark(for: folderURL)
                 root = FileNode.buildProjectTree(at: folderURL)
                 selectedURL = fileURL
+                splitViewVisibility = .all
             } else {
                 let fileAccess = fileURL.startAccessingSecurityScopedResource()
                 if fileAccess { securityScopedURL = fileURL }
@@ -137,6 +140,7 @@ struct ContentView: View {
                     FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
                 ])
                 selectedURL = fileURL
+                splitViewVisibility = .all
             }
         }
         #else
@@ -157,6 +161,7 @@ struct ContentView: View {
             saveBookmark(for: folderURL)
             root = FileNode.buildProjectTree(at: folderURL)
             selectedURL = nil
+            splitViewVisibility = .all
         }
         #else
         importMode = .folder
@@ -230,7 +235,7 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
-                NavigationSplitView {
+                NavigationSplitView(columnVisibility: $splitViewVisibility) {
                     List {
                         OutlineGroup(displayedNodes, children: \.children) { node in
                             HStack(spacing: 8) {
@@ -250,6 +255,7 @@ struct ContentView: View {
                         }
                     }
                     .listStyle(.sidebar)
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 420)
                     .searchable(text: $sidebarSearchText, placement: .sidebar, prompt: "Search files")
                     .navigationTitle("")
                     .toolbar {
@@ -346,6 +352,7 @@ struct ContentView: View {
                         saveBookmark(for: folderURL)
                         root = FileNode.buildProjectTree(at: folderURL)
                         selectedURL = fileURL
+                        splitViewVisibility = .all
                     } else {
                         let fileAccess = fileURL.startAccessingSecurityScopedResource()
                         if fileAccess { securityScopedURL = fileURL }
@@ -355,6 +362,7 @@ struct ContentView: View {
                             FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
                         ])
                         selectedURL = fileURL
+                        splitViewVisibility = .all
                     }
                 } else {
                     let folderURL = pickedURL
@@ -364,6 +372,7 @@ struct ContentView: View {
                     saveBookmark(for: folderURL)
                     root = FileNode.buildProjectTree(at: folderURL)
                     selectedURL = nil
+                    splitViewVisibility = .all
                 }
             case .failure(let error):
                 errorMessage = error.localizedDescription
