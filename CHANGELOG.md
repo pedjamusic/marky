@@ -12,4 +12,5 @@ All notable changes to this project are documented in this file.
 - Updated sidebar icons to use neutral system styling instead of accent coloring.
 - Made sidebar rows full-width tappable while keeping native list interaction feel.
 - Updated active-file sidebar styling to theme blue + bold using native text rendering to avoid glyph squish.
+- Refactored project/session and sidebar/file-import state handling from `ContentView` into a dedicated ViewModel + service layer.
 - Refined viewer visuals by removing top-line masking edge fade.

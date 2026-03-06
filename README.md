@@ -12,6 +12,7 @@ Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder
 - Security-scoped file access handling for sandbox-safe reads.
 - Reader-first markdown rendering with tuned typography for headings, lists, checkboxes, quotes, links, bold, and inline code.
 - Theme-driven sidebar gradient overlay that adapts to Light and Dark appearance.
+- MVVM-oriented app state flow for the main screen (`ContentViewModel`) with a dedicated bookmark/session service layer.
 
 ## Requirements
 
