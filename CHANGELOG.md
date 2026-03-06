@@ -16,4 +16,5 @@ All notable changes to this project are documented in this file.
 - Added deterministic UI tests for sidebar key flows (seeded open state, search/filter, file selection, collapse action state change).
 - Replaced bookmark/session silent failures with typed error handling and user-safe messages, with new unit tests for failure mapping.
 - Deduplicated file/folder import-open handling by routing panel and fileImporter paths through shared ViewModel import handlers.
+- Tokenized sidebar search/collapse control layout and visuals (spacing, paddings, radius, icon/tint, and material) via `MarkyTheme` to remove hardcoded UI constants.
 - Refined viewer visuals by removing top-line masking edge fade.

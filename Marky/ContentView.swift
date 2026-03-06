@@ -140,33 +140,36 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 NavigationSplitView(columnVisibility: $viewModel.splitViewVisibility) {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            HStack(spacing: 6) {
+                    VStack(spacing: MarkyTheme.sidebarControlRowSpacing) {
+                        HStack(spacing: MarkyTheme.sidebarControlRowSpacing) {
+                            HStack(spacing: MarkyTheme.sidebarSearchFieldSpacing) {
                                 Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
                                 TextField("Search files", text: $viewModel.sidebarSearchText)
                                     .textFieldStyle(.plain)
                                     .accessibilityIdentifier("sidebar-search-field")
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .padding(.horizontal, MarkyTheme.sidebarSearchHorizontalPadding)
+                            .padding(.vertical, MarkyTheme.sidebarSearchVerticalPadding)
+                            .background(
+                                MarkyTheme.sidebarSearchBackgroundMaterial,
+                                in: RoundedRectangle(cornerRadius: MarkyTheme.sidebarSearchCornerRadius, style: .continuous)
+                            )
 
                             Button {
                                 viewModel.collapseAllSidebarFolders()
                             } label: {
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
                             }
                             .buttonStyle(.borderless)
-                            .tint(.primary)
+                            .tint(MarkyTheme.sidebarControlsTint)
                             .help("Collapse Folders")
                             .accessibilityIdentifier("collapse-folders-button")
                             .accessibilityValue(viewModel.sidebarListRefreshID.uuidString)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.top, 6)
+                        .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+                        .padding(.top, MarkyTheme.sidebarControlsTopPadding)
 
                         List {
                             OutlineGroup(viewModel.displayedNodes, children: \.children) { node in

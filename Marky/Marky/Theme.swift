@@ -38,6 +38,18 @@ enum MarkyTheme {
     static let sidebarLightOverlayOpacity: Double = 0.24
     static let sidebarDarkOverlayOpacity: Double = 0.32
 
+    // Sidebar control tokens
+    static let sidebarControlRowSpacing: CGFloat = 8
+    static let sidebarSearchFieldSpacing: CGFloat = 6
+    static let sidebarSearchHorizontalPadding: CGFloat = 10
+    static let sidebarSearchVerticalPadding: CGFloat = 7
+    static let sidebarControlsHorizontalPadding: CGFloat = 8
+    static let sidebarControlsTopPadding: CGFloat = 6
+    static let sidebarSearchCornerRadius: CGFloat = 9
+    static let sidebarControlsIconColor: Color = .secondary
+    static let sidebarControlsTint: Color = .primary
+    static let sidebarSearchBackgroundMaterial: Material = .regularMaterial
+
     #if os(macOS)
     static let nsRed = nsColor(oklchL: 0.66, c: 0.16, h: 22)
     static let nsYellow = nsColor(oklchL: 0.85, c: 0.13, h: 95)
