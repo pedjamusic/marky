@@ -15,6 +15,7 @@ final class ContentViewModel: ObservableObject {
     @Published var importMode: ImportMode?
     @Published var sidebarSearchText = ""
     @Published var sidebarListRefreshID = UUID()
+    @Published private(set) var expandedFolderURLs: Set<URL> = []
     @Published var splitViewVisibility: NavigationSplitViewVisibility = .automatic
     @Published var errorMessage: String?
 
@@ -78,6 +79,7 @@ final class ContentViewModel: ObservableObject {
                     ])
                     selectedURL = restored.url
                 }
+                expandedFolderURLs.removeAll()
                 splitViewVisibility = .all
                 if restored.isStale {
                     try projectSessionService.saveBookmark(for: restored.url)
@@ -97,6 +99,7 @@ final class ContentViewModel: ObservableObject {
         projectSessionService.clearBookmark()
         selectedURL = nil
         root = nil
+        expandedFolderURLs.removeAll()
     }
 
     func openPickedFile(_ fileURL: URL) {
@@ -109,6 +112,7 @@ final class ContentViewModel: ObservableObject {
             persistBookmarkOrReportError(for: folderURL)
             root = FileNode.buildProjectTree(at: folderURL)
             selectedURL = fileURL
+            expandedFolderURLs.removeAll()
             splitViewVisibility = .all
             return
         }
@@ -122,6 +126,7 @@ final class ContentViewModel: ObservableObject {
             FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
         ])
         selectedURL = fileURL
+        expandedFolderURLs.removeAll()
         splitViewVisibility = .all
     }
 
@@ -134,6 +139,7 @@ final class ContentViewModel: ObservableObject {
         persistBookmarkOrReportError(for: folderURL)
         root = FileNode.buildProjectTree(at: folderURL)
         selectedURL = nil
+        expandedFolderURLs.removeAll()
         splitViewVisibility = .all
     }
 
@@ -160,12 +166,32 @@ final class ContentViewModel: ObservableObject {
     }
 
     func collapseAllSidebarFolders() {
+        expandedFolderURLs.removeAll()
         sidebarListRefreshID = UUID()
     }
 
     func selectNode(_ node: FileNode) {
-        guard !node.isDirectory else { return }
+        guard !node.isDirectory else {
+            toggleFolderExpansion(node)
+            return
+        }
         selectedURL = node.url
+    }
+
+    func folderExpansionBinding(for node: FileNode) -> Binding<Bool> {
+        Binding(
+            get: { [weak self] in
+                guard let self else { return false }
+                return self.isFolderExpanded(node)
+            },
+            set: { [weak self] isExpanded in
+                self?.setFolder(node, expanded: isExpanded)
+            }
+        )
+    }
+
+    func toggleFolderExpansion(for node: FileNode) {
+        toggleFolderExpansion(node)
     }
 
     private func stopCurrentSecurityScopeIfNeeded() {
@@ -186,6 +212,36 @@ final class ContentViewModel: ObservableObject {
                 return nil
             }
             return node.name.lowercased().contains(q) ? node : nil
+        }
+    }
+
+    private var hasActiveSidebarSearchQuery: Bool {
+        !sidebarSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func isFolderExpanded(_ node: FileNode) -> Bool {
+        guard node.isDirectory else { return false }
+        if hasActiveSidebarSearchQuery {
+            return true
+        }
+        return expandedFolderURLs.contains(node.url)
+    }
+
+    private func setFolder(_ node: FileNode, expanded: Bool) {
+        guard node.isDirectory else { return }
+        if expanded {
+            expandedFolderURLs.insert(node.url)
+        } else {
+            expandedFolderURLs.remove(node.url)
+        }
+    }
+
+    private func toggleFolderExpansion(_ node: FileNode) {
+        guard node.isDirectory else { return }
+        if expandedFolderURLs.contains(node.url) {
+            expandedFolderURLs.remove(node.url)
+        } else {
+            expandedFolderURLs.insert(node.url)
         }
     }
 
@@ -229,6 +285,7 @@ final class ContentViewModel: ObservableObject {
             children: fixtures
         )
         selectedURL = nil
+        expandedFolderURLs.removeAll()
         splitViewVisibility = .all
         return true
     }

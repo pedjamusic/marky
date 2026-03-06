@@ -69,6 +69,40 @@ struct ContentView: View {
         }
     }
 
+    private func sidebarNodeRow(for node: FileNode) -> AnyView {
+        if node.isDirectory {
+            return AnyView(DisclosureGroup(isExpanded: viewModel.folderExpansionBinding(for: node)) {
+                ForEach(node.children ?? []) { child in
+                    sidebarNodeRow(for: child)
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "folder")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                    sidebarNodeTitle(for: node)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    viewModel.toggleFolderExpansion(for: node)
+                }
+            })
+        } else {
+            return AnyView(HStack(spacing: 8) {
+                Image(systemName: "doc.text")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
+                sidebarNodeTitle(for: node)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                viewModel.selectNode(node)
+            })
+        }
+    }
+
     private var isErrorPresented: Binding<Bool> {
         Binding(
             get: { viewModel.errorMessage != nil },
@@ -172,18 +206,8 @@ struct ContentView: View {
                         .padding(.top, MarkyTheme.sidebarControlsTopPadding)
 
                         List {
-                            OutlineGroup(viewModel.displayedNodes, children: \.children) { node in
-                                HStack(spacing: 8) {
-                                    Image(systemName: node.isDirectory ? "folder" : "doc.text")
-                                        .symbolRenderingMode(.hierarchical)
-                                        .foregroundStyle(.secondary)
-                                    sidebarNodeTitle(for: node)
-                                    Spacer(minLength: 0)
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    viewModel.selectNode(node)
-                                }
+                            ForEach(viewModel.displayedNodes) { node in
+                                sidebarNodeRow(for: node)
                             }
                         }
                         .id(viewModel.sidebarListRefreshID)

@@ -117,6 +117,26 @@ struct MarkyTests {
         #expect(viewModel.errorMessage?.contains("Couldn't import the selected item.") == true)
     }
 
+    @MainActor
+    @Test("selectNode toggles folder expansion and collapseAll clears expanded folders")
+    func selectNodeTogglesFolderExpansion() {
+        let service = ThrowingProjectSessionService()
+        let viewModel = ContentViewModel(projectSessionService: service)
+        let folderURL = URL(fileURLWithPath: "/tmp/a5-folder", isDirectory: true)
+        let folder = FileNode(url: folderURL, name: "a5-folder", isDirectory: true, children: [])
+
+        #expect(viewModel.expandedFolderURLs.contains(folderURL) == false)
+        viewModel.selectNode(folder)
+        #expect(viewModel.expandedFolderURLs.contains(folderURL) == true)
+        viewModel.selectNode(folder)
+        #expect(viewModel.expandedFolderURLs.contains(folderURL) == false)
+
+        viewModel.selectNode(folder)
+        #expect(viewModel.expandedFolderURLs.contains(folderURL) == true)
+        viewModel.collapseAllSidebarFolders()
+        #expect(viewModel.expandedFolderURLs.isEmpty)
+    }
+
     @Test("buildProjectTree skips symbolic-link directories to prevent recursive cycles")
     func buildProjectTreeSkipsDirectorySymlinks() throws {
         try Self.withTemporaryDirectory { root in

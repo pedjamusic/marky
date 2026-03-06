@@ -65,6 +65,21 @@ final class MarkyUITests: XCTestCase {
     }
 
     @MainActor
+    func testFolderRowTapExpandsChildren() throws {
+        let app = makeSeededApp()
+        app.launch()
+
+        let docsRow = app.staticTexts["docs"]
+        XCTAssertTrue(docsRow.waitForExistence(timeout: 2))
+
+        let guide = app.staticTexts["GUIDE.md"]
+        XCTAssertFalse(guide.exists)
+
+        docsRow.click()
+        XCTAssertTrue(guide.waitForExistence(timeout: 2))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
