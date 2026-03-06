@@ -147,6 +147,7 @@ struct ContentView: View {
                                     .foregroundStyle(.secondary)
                                 TextField("Search files", text: $viewModel.sidebarSearchText)
                                     .textFieldStyle(.plain)
+                                    .accessibilityIdentifier("sidebar-search-field")
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)
@@ -161,6 +162,8 @@ struct ContentView: View {
                             .buttonStyle(.borderless)
                             .tint(.primary)
                             .help("Collapse Folders")
+                            .accessibilityIdentifier("collapse-folders-button")
+                            .accessibilityValue(viewModel.sidebarListRefreshID.uuidString)
                         }
                         .padding(.horizontal, 8)
                         .padding(.top, 6)

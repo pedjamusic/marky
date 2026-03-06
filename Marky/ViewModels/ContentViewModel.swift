@@ -44,6 +44,9 @@ final class ContentViewModel: ObservableObject {
     }
 
     func restoreBookmarkIfNeeded() {
+        if bootstrapSidebarForUITestingIfRequested() {
+            return
+        }
         guard root == nil else { return }
 
         do {
@@ -152,5 +155,30 @@ final class ContentViewModel: ObservableObject {
             }
             return node.name.lowercased().contains(q) ? node : nil
         }
+    }
+
+    @discardableResult
+    private func bootstrapSidebarForUITestingIfRequested() -> Bool {
+        guard root == nil else { return false }
+        let env = ProcessInfo.processInfo.environment
+        guard env["MARKY_UI_TEST_SEED"] == "1" else { return false }
+
+        let fixtures = [
+            FileNode(url: URL(fileURLWithPath: "/tmp/README.md"), name: "README.md", isDirectory: false, children: nil),
+            FileNode(url: URL(fileURLWithPath: "/tmp/MEMORY.md"), name: "MEMORY.md", isDirectory: false, children: nil),
+            FileNode(url: URL(fileURLWithPath: "/tmp/docs"), name: "docs", isDirectory: true, children: [
+                FileNode(url: URL(fileURLWithPath: "/tmp/docs/GUIDE.md"), name: "GUIDE.md", isDirectory: false, children: nil)
+            ])
+        ]
+
+        root = FileNode(
+            url: URL(fileURLWithPath: "/tmp/marky-ui-seed-root"),
+            name: "marky-ui-seed-root",
+            isDirectory: true,
+            children: fixtures
+        )
+        selectedURL = nil
+        splitViewVisibility = .all
+        return true
     }
 }

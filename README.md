@@ -31,6 +31,12 @@ CLI build:
 xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' build
 ```
 
+CLI UI tests (example focused run):
+
+```bash
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' test -only-testing:MarkyUITests/MarkyUITests/testSidebarSeedSearchAndSelectFlow -only-testing:MarkyUITests/MarkyUITests/testCollapseButtonUpdatesStateToken
+```
+
 ## Repository Layout
 
 - `Marky/`: app source code (SwiftUI app, views, theme, markdown rendering)
