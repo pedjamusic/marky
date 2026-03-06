@@ -1,6 +1,8 @@
 import SwiftUI
 #if os(macOS)
 import AppKit
+#else
+import UIKit
 #endif
 
 enum MarkyTheme {
@@ -9,6 +11,30 @@ enum MarkyTheme {
     static let yellow = color(oklchL: 0.85, c: 0.13, h: 95)
     static let green = color(oklchL: 0.78, c: 0.14, h: 144)
     static let blue = color(oklchL: 0.70, c: 0.11, h: 246)
+
+    // Semantic tokens for a subtle sidebar gradient overlay.
+    #if os(macOS)
+    static let sidebarLightOverlayGradientColors: [Color] = [
+        Color(nsColor: nsBlue).opacity(0.34),
+        Color(nsColor: nsGreen).opacity(0.24),
+        Color(nsColor: nsYellow).opacity(0.18)
+    ]
+    #else
+    static let sidebarLightOverlayGradientColors: [Color] = [
+        blue.opacity(0.34),
+        green.opacity(0.24),
+        yellow.opacity(0.18)
+    ]
+    #endif
+
+    static let sidebarDarkOverlayGradientColors: [Color] = [
+        blue.opacity(0.38),
+        red.opacity(0.28),
+        green.opacity(0.22)
+    ]
+
+    static let sidebarLightOverlayOpacity: Double = 0.24
+    static let sidebarDarkOverlayOpacity: Double = 0.32
 
     #if os(macOS)
     static let nsRed = nsColor(oklchL: 0.66, c: 0.16, h: 22)
@@ -33,6 +59,7 @@ enum MarkyTheme {
         let rgb = oklchToSRGB(l: l, c: c, h: h)
         return NSColor(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1.0)
     }
+
     #endif
 
     private static func oklchToSRGB(l: Double, c: Double, h: Double) -> SRGBColor {

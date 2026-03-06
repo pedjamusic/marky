@@ -191,6 +191,19 @@ struct ContentView: View {
         }
     }
 
+    private struct SidebarGradientOverlay: View {
+        @Environment(\.colorScheme) private var colorScheme
+
+        var body: some View {
+            LinearGradient(
+                colors: colorScheme == .dark ? MarkyTheme.sidebarDarkOverlayGradientColors : MarkyTheme.sidebarLightOverlayGradientColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .opacity(colorScheme == .dark ? MarkyTheme.sidebarDarkOverlayOpacity : MarkyTheme.sidebarLightOverlayOpacity)
+        }
+    }
+
     var body: some View {
         Group {
             if root == nil {
@@ -255,6 +268,11 @@ struct ContentView: View {
                         }
                     }
                     .listStyle(.sidebar)
+                    .overlay {
+                        SidebarGradientOverlay()
+                            .allowsHitTesting(false)
+                            .ignoresSafeArea()
+                    }
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 420)
                     .searchable(text: $sidebarSearchText, placement: .sidebar, prompt: "Search files")
                     .navigationTitle("")
