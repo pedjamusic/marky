@@ -34,10 +34,6 @@ struct ContentView: View {
 
     private static let lastProjectBookmarkKey = "LastProjectBookmarkKey"
 
-    private func nodeIconColor(for node: FileNode) -> Color {
-        node.isDirectory ? MarkyTheme.yellow : MarkyTheme.blue
-    }
-
     private func saveBookmark(for url: URL) {
         // Persist bookmark opportunistically: security-scoped when available, plain bookmark as fallback.
         if let securityScopedData = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
@@ -204,6 +200,18 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private func sidebarNodeTitle(for node: FileNode) -> some View {
+        if selectedURL == node.url {
+            Text(node.name)
+                .bold()
+                .foregroundStyle(MarkyTheme.blue)
+        } else {
+            Text(node.name)
+                .foregroundStyle(.primary)
+        }
+    }
+
     var body: some View {
         Group {
             if root == nil {
@@ -254,10 +262,9 @@ struct ContentView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: node.isDirectory ? "folder" : "doc.text")
                                     .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(nodeIconColor(for: node))
-                                Text(node.name)
-                                    .font(.system(size: 13, weight: selectedURL == node.url ? .semibold : .regular))
-                                    .foregroundStyle(selectedURL == node.url ? MarkyTheme.green : .primary)
+                                    .foregroundStyle(.secondary)
+                                sidebarNodeTitle(for: node)
+                                Spacer(minLength: 0)
                             }
                             .contentShape(Rectangle())
                             .onTapGesture {
