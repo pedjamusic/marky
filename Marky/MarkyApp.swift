@@ -14,6 +14,9 @@ import AppKit
 
 @main
 struct MarkyApp: App {
+    @AppStorage(AppPreferenceKeys.appearanceMode)
+    private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
+
     private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
@@ -43,11 +46,29 @@ struct MarkyApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                #if os(macOS)
+                .onAppear {
+                    Self.applyAppAppearance(selectedAppearanceMode)
+                }
+                .onChange(of: appearanceModeRawValue) { _ in
+                    Self.applyAppAppearance(selectedAppearanceMode)
+                }
+                #endif
         }
         .modelContainer(sharedModelContainer)
         #if os(macOS)
         .windowToolbarStyle(.unified(showsTitle: true))
         #endif
+
+        #if os(macOS)
+        Settings {
+            MarkySettingsView()
+        }
+        #endif
+    }
+
+    private var selectedAppearanceMode: AppAppearanceMode {
+        AppAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
     }
 
     private static func registerBundledFontsIfNeeded() {
@@ -69,5 +90,27 @@ struct MarkyApp: App {
         }
         #endif
     }
+
+    #if os(macOS)
+    private static func applyAppAppearance(_ mode: AppAppearanceMode) {
+        let resolvedAppearance: NSAppearance?
+        switch mode {
+        case .system:
+            resolvedAppearance = nil
+        case .light:
+            resolvedAppearance = NSAppearance(named: .aqua)
+        case .dark:
+            resolvedAppearance = NSAppearance(named: .darkAqua)
+        }
+
+        NSApplication.shared.appearance = resolvedAppearance
+        for window in NSApplication.shared.windows {
+            window.appearance = resolvedAppearance
+            window.contentView?.needsLayout = true
+            window.contentView?.needsDisplay = true
+            window.invalidateShadow()
+        }
+    }
+    #endif
 
 }

@@ -7,6 +7,7 @@
 
 import Foundation
 import Testing
+import SwiftUI
 @testable import Marky
 #if os(macOS)
 import AppKit
@@ -117,6 +118,13 @@ struct MarkyTests {
         #expect(viewModel.errorMessage?.contains("Couldn't import the selected item.") == true)
     }
 
+    @Test("appearance mode maps to expected color scheme override")
+    func appearanceModeMapsToColorScheme() {
+        #expect(AppAppearanceMode.system.colorScheme == nil)
+        #expect(AppAppearanceMode.light.colorScheme == .light)
+        #expect(AppAppearanceMode.dark.colorScheme == .dark)
+    }
+
     @MainActor
     @Test("selectNode toggles folder expansion and collapseAll clears expanded folders")
     func selectNodeTogglesFolderExpansion() {
@@ -194,6 +202,66 @@ struct MarkyTests {
 
         let codeBackground = rendered.attribute(.backgroundColor, at: codeRange.location, effectiveRange: nil)
         #expect(codeBackground != nil)
+    }
+
+    @MainActor
+    @Test("markdown typography modes remain explicit and complete")
+    func markdownTypographyModesAreComplete() {
+        #expect(MarkdownTypographyMode.allCases.count == 3)
+        #expect(MarkdownTypographyMode.allCases.contains(.allSystem))
+        #expect(MarkdownTypographyMode.allCases.contains(.serifHeadingsSystemBody))
+        #expect(MarkdownTypographyMode.allCases.contains(.systemHeadingsSerifBody))
+    }
+
+    @MainActor
+    @Test("serif body mode increases body point size")
+    func markdownTypographySerifBodyModeIncreasesBodyPointSize() {
+        let systemRendered = MarkdownRenderer.render(from: "Body", mode: .allSystem)
+        let serifBodyRendered = MarkdownRenderer.render(from: "Body", mode: .systemHeadingsSerifBody)
+
+        let systemFont = systemRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let serifBodyFont = serifBodyRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+
+        #expect(systemFont != nil)
+        #expect(serifBodyFont != nil)
+        #expect((serifBodyFont?.pointSize ?? 0) > (systemFont?.pointSize ?? 0))
+    }
+
+    @MainActor
+    @Test("markdown heading scale keeps descending hierarchy")
+    func markdownHeadingScaleIsDescending() {
+        let rendered = MarkdownRenderer.render(from: "# H1\n## H2\n### H3", mode: .allSystem)
+        let text = rendered.string as NSString
+        let h1Range = text.range(of: "H1")
+        let h2Range = text.range(of: "H2")
+        let h3Range = text.range(of: "H3")
+
+        #expect(h1Range.location != NSNotFound)
+        #expect(h2Range.location != NSNotFound)
+        #expect(h3Range.location != NSNotFound)
+
+        let h1Font = rendered.attribute(.font, at: h1Range.location, effectiveRange: nil) as? NSFont
+        let h2Font = rendered.attribute(.font, at: h2Range.location, effectiveRange: nil) as? NSFont
+        let h3Font = rendered.attribute(.font, at: h3Range.location, effectiveRange: nil) as? NSFont
+
+        #expect(h1Font != nil)
+        #expect(h2Font != nil)
+        #expect(h3Font != nil)
+        #expect((h1Font?.pointSize ?? 0) > (h2Font?.pointSize ?? 0))
+        #expect((h2Font?.pointSize ?? 0) > (h3Font?.pointSize ?? 0))
+    }
+
+    @MainActor
+    @Test("markdown renderer handles fenced code blocks as literal monospaced content")
+    func markdownRendererHandlesFencedCodeBlocks() {
+        let rendered = MarkdownRenderer.render(from: "```swift\nlet x = **1**\n```")
+        #expect(rendered.string == "let x = **1**")
+
+        let font = rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let background = rendered.attribute(.backgroundColor, at: 0, effectiveRange: nil)
+        #expect(font != nil)
+        #expect(background != nil)
+        #expect((font?.fontName.contains("Mono") ?? false) || (font?.fontName.contains("Menlo") ?? false))
     }
     #endif
 

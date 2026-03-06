@@ -22,3 +22,9 @@ All notable changes to this project are documented in this file.
 - Refined viewer visuals by removing top-line masking edge fade.
 - Increased launch mascot size and set high-quality interpolation to reduce gritty edges and preserve glasses detail.
 - Added icon tooling credit for `icns-creator` (alptugan) in project documentation.
+- Added a tokenized markdown typography mode system with three combinations: all-system, serif-headings/system-body, and system-headings/serif-body.
+- Updated markdown hierarchy/rhythm defaults (line length handling, heading scale/spacing, list/quote rhythm) and moved key style constants into explicit typography tokens.
+- Added fenced code block rendering with literal-content protection and monospaced block styling.
+- Added App Settings support for markdown typography mode and global appearance mode (System/Light/Dark), available via `Cmd+,`.
+- Fixed appearance switching edge cases for immediate System reversion and reduced mode-switch flicker by rerendering from cached markdown text.
+- Stabilized inline/code-block highlight background colors across appearance switches with explicit light/dark tokens.
