@@ -93,6 +93,7 @@ enum MarkdownContentBlocks {
     static func render(
         from text: String,
         mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool
     ) -> [MarkdownRenderedBlock] {
         var renderedBlocks: [MarkdownRenderedBlock] = []
@@ -108,21 +109,43 @@ enum MarkdownContentBlocks {
                         kind = .heading(
                             level: level,
                             text: AttributedString(
-                                MarkdownRenderer.render(from: source, mode: mode, isDarkMode: isDarkMode)
+                                MarkdownRenderer.render(
+                                    from: source,
+                                    mode: mode,
+                                    textSizePreset: textSizePreset,
+                                    isDarkMode: isDarkMode
+                                )
                             )
                         )
                     case .paragraph(let source):
                         kind = .paragraph(
                             AttributedString(
-                                MarkdownRenderer.render(from: source, mode: mode, isDarkMode: isDarkMode)
+                                MarkdownRenderer.render(
+                                    from: source,
+                                    mode: mode,
+                                    textSizePreset: textSizePreset,
+                                    isDarkMode: isDarkMode
+                                )
                             )
                         )
                     case .list(let source):
-                        kind = .list(renderListItems(from: source, mode: mode, isDarkMode: isDarkMode))
+                        kind = .list(
+                            renderListItems(
+                                from: source,
+                                mode: mode,
+                                textSizePreset: textSizePreset,
+                                isDarkMode: isDarkMode
+                            )
+                        )
                     case .quote(let source):
                         kind = .quote(
                             AttributedString(
-                                MarkdownRenderer.render(from: source, mode: mode, isDarkMode: isDarkMode)
+                                MarkdownRenderer.render(
+                                    from: source,
+                                    mode: mode,
+                                    textSizePreset: textSizePreset,
+                                    isDarkMode: isDarkMode
+                                )
                             )
                         )
                     }
@@ -204,6 +227,7 @@ enum MarkdownContentBlocks {
     private static func renderListItems(
         from source: String,
         mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset,
         isDarkMode: Bool
     ) -> [MarkdownListItem] {
         source
@@ -212,7 +236,12 @@ enum MarkdownContentBlocks {
             .compactMap { index, line in
                 guard let item = parseListItem(from: line) else { return nil }
                 let body = AttributedString(
-                    MarkdownRenderer.render(from: item.body, mode: mode, isDarkMode: isDarkMode)
+                    MarkdownRenderer.render(
+                        from: item.body,
+                        mode: mode,
+                        textSizePreset: textSizePreset,
+                        isDarkMode: isDarkMode
+                    )
                 )
                 return MarkdownListItem(
                     id: index,

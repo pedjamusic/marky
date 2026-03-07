@@ -214,6 +214,15 @@ struct MarkyTests {
     }
 
     @MainActor
+    @Test("markdown reader text size presets remain explicit and complete")
+    func markdownReaderTextSizePresetsAreComplete() {
+        #expect(MarkdownReaderTextSizePreset.allCases.count == 3)
+        #expect(MarkdownReaderTextSizePreset.allCases.contains(.slightlySmaller))
+        #expect(MarkdownReaderTextSizePreset.allCases.contains(.default))
+        #expect(MarkdownReaderTextSizePreset.allCases.contains(.slightlyBigger))
+    }
+
+    @MainActor
     @Test("serif body mode increases body point size")
     func markdownTypographySerifBodyModeIncreasesBodyPointSize() {
         let systemRendered = MarkdownRenderer.render(from: "Body", mode: .allSystem)
@@ -249,6 +258,37 @@ struct MarkyTests {
         #expect(h3Font != nil)
         #expect((h1Font?.pointSize ?? 0) > (h2Font?.pointSize ?? 0))
         #expect((h2Font?.pointSize ?? 0) > (h3Font?.pointSize ?? 0))
+    }
+
+    @MainActor
+    @Test("reader text size presets scale body typography up and down subtly")
+    func markdownReaderTextSizePresetsScaleBodyTypography() {
+        let smallerRendered = MarkdownRenderer.render(
+            from: "Body",
+            mode: .allSystem,
+            textSizePreset: .slightlySmaller
+        )
+        let defaultRendered = MarkdownRenderer.render(
+            from: "Body",
+            mode: .allSystem,
+            textSizePreset: .default
+        )
+        let biggerRendered = MarkdownRenderer.render(
+            from: "Body",
+            mode: .allSystem,
+            textSizePreset: .slightlyBigger
+        )
+
+        let smallerFont = smallerRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let defaultFont = defaultRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let biggerFont = biggerRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+
+        #expect(smallerFont != nil)
+        #expect(defaultFont != nil)
+        #expect(biggerFont != nil)
+        #expect((smallerFont?.pointSize ?? 0) < (defaultFont?.pointSize ?? 0))
+        #expect((defaultFont?.pointSize ?? 0) < (biggerFont?.pointSize ?? 0))
+        #expect(abs((defaultFont?.pointSize ?? 0) - 16) < 0.01)
     }
 
     @MainActor

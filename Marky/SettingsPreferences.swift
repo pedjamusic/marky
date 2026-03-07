@@ -3,6 +3,7 @@ import SwiftUI
 enum AppPreferenceKeys {
     static let appearanceMode = "settings.appearanceMode"
     static let markdownTypographyMode = "settings.markdownTypographyMode"
+    static let markdownReaderTextSizePreset = "settings.markdownReaderTextSizePreset"
 }
 
 enum AppAppearanceMode: String, CaseIterable, Identifiable {
@@ -43,6 +44,9 @@ struct MarkySettingsView: View {
     @AppStorage(AppPreferenceKeys.markdownTypographyMode)
     private var markdownTypographyModeRawValue = MarkdownTypographyMode.allSystem.rawValue
 
+    @AppStorage(AppPreferenceKeys.markdownReaderTextSizePreset)
+    private var markdownReaderTextSizePresetRawValue = MarkdownReaderTextSizePreset.default.rawValue
+
     private var appearanceMode: Binding<AppAppearanceMode> {
         Binding(
             get: { AppAppearanceMode(rawValue: appearanceModeRawValue) ?? .system },
@@ -54,6 +58,15 @@ struct MarkySettingsView: View {
         Binding(
             get: { MarkdownTypographyMode(rawValue: markdownTypographyModeRawValue) ?? .allSystem },
             set: { markdownTypographyModeRawValue = $0.rawValue }
+        )
+    }
+
+    private var textSizePreset: Binding<MarkdownReaderTextSizePreset> {
+        Binding(
+            get: {
+                MarkdownReaderTextSizePreset(rawValue: markdownReaderTextSizePresetRawValue) ?? .default
+            },
+            set: { markdownReaderTextSizePresetRawValue = $0.rawValue }
         )
     }
 
@@ -69,6 +82,13 @@ struct MarkySettingsView: View {
             Picker("Markdown Typography", selection: typographyMode) {
                 ForEach(MarkdownTypographyMode.allCases) { mode in
                     Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.menu)
+
+            Picker("Reader Text Size", selection: textSizePreset) {
+                ForEach(MarkdownReaderTextSizePreset.allCases) { preset in
+                    Text(preset.title).tag(preset)
                 }
             }
             .pickerStyle(.menu)

@@ -23,6 +23,36 @@ enum MarkdownTypographyMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum MarkdownReaderTextSizePreset: String, CaseIterable, Identifiable {
+    case slightlySmaller
+    case `default`
+    case slightlyBigger
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .slightlySmaller:
+            return "Slightly Smaller"
+        case .default:
+            return "Default"
+        case .slightlyBigger:
+            return "Slightly Bigger"
+        }
+    }
+
+    var scale: CGFloat {
+        switch self {
+        case .slightlySmaller:
+            return 0.94
+        case .default:
+            return 1.0
+        case .slightlyBigger:
+            return 1.08
+        }
+    }
+}
+
 private enum MarkdownTypographyFontFamily {
     case systemSans
     case literataSerif
@@ -75,26 +105,28 @@ private struct MarkdownTypographyProfile {
     let linkColor: NSColor
     let linkUnderlineStyle: NSUnderlineStyle
 
-    static func forMode(_ mode: MarkdownTypographyMode) -> Self {
+    static func forMode(_ mode: MarkdownTypographyMode, textSizePreset: MarkdownReaderTextSizePreset) -> Self {
+        let resolvedProfile: Self
         switch mode {
         case .allSystem:
-            return baseProfile(
+            resolvedProfile = baseProfile(
                 headingFamily: .systemSans,
                 bodyFamily: .systemSans
             )
         case .serifHeadingsSystemBody:
-            return baseProfile(
+            resolvedProfile = baseProfile(
                 headingFamily: .literataSerif,
                 bodyFamily: .systemSans
             )
         case .systemHeadingsSerifBody:
-            return baseProfile(
+            resolvedProfile = baseProfile(
                 headingFamily: .systemSans,
                 bodyFamily: .literataSerif,
                 bodyFontSize: 17,
                 bodyLineHeightMultiple: 1.42
             )
         }
+        return resolvedProfile.scaled(by: textSizePreset.scale)
     }
 
     private static func baseProfile(
@@ -148,6 +180,57 @@ private struct MarkdownTypographyProfile {
             linkUnderlineStyle: .single
         )
     }
+
+    func scaled(by scale: CGFloat) -> Self {
+        func scaledFontSize(_ value: CGFloat) -> CGFloat {
+            value * scale
+        }
+
+        return Self(
+            headingFamily: headingFamily,
+            bodyFamily: bodyFamily,
+            bodyFontSize: scaledFontSize(bodyFontSize),
+            bodyLineHeightMultiple: bodyLineHeightMultiple,
+            bodyParagraphSpacing: scaledFontSize(bodyParagraphSpacing),
+            bodyTracking: bodyTracking * scale,
+            paragraphBreakSpacingBefore: scaledFontSize(paragraphBreakSpacingBefore),
+            paragraphBlockSpacing: scaledFontSize(paragraphBlockSpacing),
+            headingScales: headingScales,
+            headingLineHeights: headingLineHeights,
+            headingSpacingBeforeMultipliers: headingSpacingBeforeMultipliers,
+            headingSpacingAfterMultipliers: headingSpacingAfterMultipliers,
+            headingTracking: headingTracking * scale,
+            listIndent: scaledFontSize(listIndent),
+            listParagraphSpacing: scaledFontSize(listParagraphSpacing),
+            listBlockSpacing: scaledFontSize(listBlockSpacing),
+            listItemSpacing: scaledFontSize(listItemSpacing),
+            listMarkerGap: scaledFontSize(listMarkerGap),
+            listMarkerColumnWidth: scaledFontSize(listMarkerColumnWidth),
+            listMarkerScale: listMarkerScale,
+            listBulletMarkerScale: listBulletMarkerScale,
+            nestedListSpacing: scaledFontSize(nestedListSpacing),
+            listLineHeightMultiple: listLineHeightMultiple,
+            quoteLineHeightMultiple: quoteLineHeightMultiple,
+            quoteObliqueness: quoteObliqueness,
+            quoteBlockSpacing: scaledFontSize(quoteBlockSpacing),
+            checkboxUncheckedSymbol: checkboxUncheckedSymbol,
+            checkboxCheckedSymbol: checkboxCheckedSymbol,
+            codeFontScale: codeFontScale,
+            codeMinimumFontSize: scaledFontSize(codeMinimumFontSize),
+            codeBackgroundLightColor: codeBackgroundLightColor,
+            codeBackgroundDarkColor: codeBackgroundDarkColor,
+            codeForegroundLightColor: codeForegroundLightColor,
+            codeForegroundDarkColor: codeForegroundDarkColor,
+            codeBlockLineHeightMultiple: codeBlockLineHeightMultiple,
+            codeBlockParagraphSpacingBefore: scaledFontSize(codeBlockParagraphSpacingBefore),
+            codeBlockParagraphSpacingAfter: scaledFontSize(codeBlockParagraphSpacingAfter),
+            codeBlockHorizontalInset: scaledFontSize(codeBlockHorizontalInset),
+            codeBlockVerticalInset: scaledFontSize(codeBlockVerticalInset),
+            codeBlockCornerRadius: scaledFontSize(codeBlockCornerRadius),
+            linkColor: linkColor,
+            linkUnderlineStyle: linkUnderlineStyle
+        )
+    }
 }
 
 struct MarkdownTypography {
@@ -192,8 +275,11 @@ struct MarkdownTypography {
     var linkColor: NSColor { profile.linkColor }
     var linkUnderlineStyle: NSUnderlineStyle { profile.linkUnderlineStyle }
 
-    init(mode: MarkdownTypographyMode) {
-        self.profile = MarkdownTypographyProfile.forMode(mode)
+    init(
+        mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset = .default
+    ) {
+        self.profile = MarkdownTypographyProfile.forMode(mode, textSizePreset: textSizePreset)
     }
 
     func codeBackgroundColor(isDarkMode: Bool) -> NSColor {

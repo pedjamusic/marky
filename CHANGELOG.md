@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## [0.2.0] - 2026-03-07
 
 - Completed the first markdown typography system pass with three reader modes: All System, Serif Headings + System Body, and System Headings + Serif Body.
+- Added three subtle reader text-size presets (Slightly Smaller, Default, Slightly Bigger) that scale the markdown typography token system consistently across headings, body copy, lists, quotes, and code blocks.
 - Moved markdown typography decisions into explicit token-driven configuration via dedicated typography/content block modules instead of keeping style constants in the viewer.
 - Improved markdown reading rhythm with restrained heading scale, clearer paragraph spacing, shared body/list leading, tighter list alignment, and safer left-rail marker layout.
 - Restored fenced code block rendering as dedicated literal-content blocks with monospaced styling, padding, radius, and horizontal scrolling without line wrapping.

@@ -10,9 +10,10 @@ enum MarkdownRenderer {
     static func render(
         from text: String,
         mode: MarkdownTypographyMode = .allSystem,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool = false
     ) -> NSAttributedString {
-        let typography = MarkdownTypography(mode: mode)
+        let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = source.components(separatedBy: "\n")
         var displayLines: [String] = []
@@ -340,6 +341,7 @@ final class MarkdownDoc: ObservableObject {
     func load(
         from url: URL,
         mode: MarkdownTypographyMode = .allSystem,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool = false
     ) {
         loadTask?.cancel()
@@ -377,7 +379,12 @@ final class MarkdownDoc: ObservableObject {
 
                 #if os(macOS)
                 let blocks = await MainActor.run {
-                    MarkdownContentBlocks.render(from: text, mode: mode, isDarkMode: isDarkMode)
+                    MarkdownContentBlocks.render(
+                        from: text,
+                        mode: mode,
+                        textSizePreset: textSizePreset,
+                        isDarkMode: isDarkMode
+                    )
                 }
                 #else
                 let rendered = try? AttributedString(markdown: text)
@@ -417,10 +424,19 @@ final class MarkdownDoc: ObservableObject {
     }
 
     @MainActor
-    func rerenderFromCachedText(mode: MarkdownTypographyMode, isDarkMode: Bool) {
+    func rerenderFromCachedText(
+        mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset,
+        isDarkMode: Bool
+    ) {
         guard !rawText.isEmpty else { return }
         #if os(macOS)
-        blocks = MarkdownContentBlocks.render(from: rawText, mode: mode, isDarkMode: isDarkMode)
+        blocks = MarkdownContentBlocks.render(
+            from: rawText,
+            mode: mode,
+            textSizePreset: textSizePreset,
+            isDarkMode: isDarkMode
+        )
         #else
         if let rendered = try? AttributedString(markdown: rawText) {
             blocks = [MarkdownRenderedBlock(id: 0, kind: .markdown(rendered))]
@@ -443,11 +459,17 @@ struct MarkdownViewer: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(AppPreferenceKeys.markdownTypographyMode)
     private var typographyModeRawValue = MarkdownTypographyMode.allSystem.rawValue
+    @AppStorage(AppPreferenceKeys.markdownReaderTextSizePreset)
+    private var textSizePresetRawValue = MarkdownReaderTextSizePreset.default.rawValue
     @AppStorage(AppPreferenceKeys.appearanceMode)
     private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
     private var typographyMode: MarkdownTypographyMode {
         MarkdownTypographyMode(rawValue: typographyModeRawValue) ?? .allSystem
+    }
+
+    private var textSizePreset: MarkdownReaderTextSizePreset {
+        MarkdownReaderTextSizePreset(rawValue: textSizePresetRawValue) ?? .default
     }
 
     var body: some View {
@@ -465,16 +487,40 @@ struct MarkdownViewer: View {
             content
         }
         .task(id: url) {
-            doc.load(from: url, mode: typographyMode, isDarkMode: colorScheme == .dark)
+            doc.load(
+                from: url,
+                mode: typographyMode,
+                textSizePreset: textSizePreset,
+                isDarkMode: colorScheme == .dark
+            )
         }
-        .onChange(of: typographyModeRawValue) { _ in
-            doc.rerenderFromCachedText(mode: typographyMode, isDarkMode: colorScheme == .dark)
+        .onChange(of: typographyModeRawValue) {
+            doc.rerenderFromCachedText(
+                mode: typographyMode,
+                textSizePreset: textSizePreset,
+                isDarkMode: colorScheme == .dark
+            )
         }
-        .onChange(of: appearanceModeRawValue) { _ in
-            doc.rerenderFromCachedText(mode: typographyMode, isDarkMode: colorScheme == .dark)
+        .onChange(of: textSizePresetRawValue) {
+            doc.rerenderFromCachedText(
+                mode: typographyMode,
+                textSizePreset: textSizePreset,
+                isDarkMode: colorScheme == .dark
+            )
         }
-        .onChange(of: colorScheme) { newScheme in
-            doc.rerenderFromCachedText(mode: typographyMode, isDarkMode: newScheme == .dark)
+        .onChange(of: appearanceModeRawValue) {
+            doc.rerenderFromCachedText(
+                mode: typographyMode,
+                textSizePreset: textSizePreset,
+                isDarkMode: colorScheme == .dark
+            )
+        }
+        .onChange(of: colorScheme) {
+            doc.rerenderFromCachedText(
+                mode: typographyMode,
+                textSizePreset: textSizePreset,
+                isDarkMode: colorScheme == .dark
+            )
         }
         .transaction { transaction in
             transaction.animation = nil
@@ -497,6 +543,7 @@ struct MarkdownViewer: View {
                 MarkdownDocumentBlocks(
                     blocks: doc.blocks,
                     typographyMode: typographyMode,
+                    textSizePreset: textSizePreset,
                     isDarkMode: colorScheme == .dark
                 )
             }
@@ -509,10 +556,11 @@ struct MarkdownViewer: View {
 private struct MarkdownDocumentBlocks: View {
     let blocks: [MarkdownRenderedBlock]
     let typographyMode: MarkdownTypographyMode
+    let textSizePreset: MarkdownReaderTextSizePreset
     let isDarkMode: Bool
 
     private var typography: MarkdownTypography {
-        MarkdownTypography(mode: typographyMode)
+        MarkdownTypography(mode: typographyMode, textSizePreset: textSizePreset)
     }
 
     var body: some View {

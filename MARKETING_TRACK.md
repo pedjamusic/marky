@@ -11,3 +11,4 @@
 
 - Markdown documents now read more like a polished native reader, with cleaner hierarchy, calmer paragraph rhythm, and list markers that align to the reading rail instead of floating in a gutter.
 - Code samples now render as proper scrollable code blocks, making technical docs easier to scan without wrapping or visual noise.
+- Reader settings now include three subtle text-size presets, so users can nudge the reading scale smaller or bigger without breaking the calm typography balance.
