@@ -6,240 +6,13 @@ import AppKit
 #endif
 
 #if os(macOS)
-enum MarkdownTypographyMode: String, CaseIterable, Identifiable {
-    case allSystem
-    case serifHeadingsSystemBody
-    case systemHeadingsSerifBody
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .allSystem:
-            return "All System"
-        case .serifHeadingsSystemBody:
-            return "Serif Headings + System Body"
-        case .systemHeadingsSerifBody:
-            return "System Headings + Serif Body"
-        }
-    }
-}
-
 enum MarkdownRenderer {
-    private enum FontFamily {
-        case systemSans
-        case literataSerif
-    }
-
-    private struct ModeProfile {
-        let headingFamily: FontFamily
-        let bodyFamily: FontFamily
-        let bodyFontSize: CGFloat
-        let bodyLineHeightMultiple: CGFloat
-        let bodyParagraphSpacing: CGFloat
-        let bodyTracking: CGFloat
-        let paragraphBreakSpacingBefore: CGFloat
-
-        let headingScales: [CGFloat]
-        let headingLineHeights: [CGFloat]
-        let headingSpacingBeforeMultipliers: [CGFloat]
-        let headingSpacingAfterMultipliers: [CGFloat]
-        let headingTracking: CGFloat
-
-        let listIndent: CGFloat
-        let listParagraphSpacing: CGFloat
-        let listLineHeightMultiple: CGFloat
-        let quoteLineHeightMultiple: CGFloat
-        let quoteObliqueness: CGFloat
-        let checkboxUncheckedSymbol: String
-        let checkboxCheckedSymbol: String
-
-        let codeFontScale: CGFloat
-        let codeMinimumFontSize: CGFloat
-        let codeBackgroundLightColor: NSColor
-        let codeBackgroundDarkColor: NSColor
-        let codeForegroundLightColor: NSColor
-        let codeForegroundDarkColor: NSColor
-        let codeBlockLineHeightMultiple: CGFloat
-        let codeBlockParagraphSpacingBefore: CGFloat
-        let codeBlockParagraphSpacingAfter: CGFloat
-        let codeBlockHorizontalInset: CGFloat
-        let linkColor: NSColor
-        let linkUnderlineStyle: NSUnderlineStyle
-
-        static func forMode(_ mode: MarkdownTypographyMode) -> Self {
-            switch mode {
-            case .allSystem:
-                return baseProfile(
-                    headingFamily: .systemSans,
-                    bodyFamily: .systemSans,
-                )
-            case .serifHeadingsSystemBody:
-                return baseProfile(
-                    headingFamily: .literataSerif,
-                    bodyFamily: .systemSans
-                )
-            case .systemHeadingsSerifBody:
-                return baseProfile(
-                    headingFamily: .systemSans,
-                    bodyFamily: .literataSerif,
-                    bodyFontSize: 17,
-                    bodyLineHeightMultiple: 1.58
-                )
-            }
-        }
-
-        private static func baseProfile(
-            headingFamily: FontFamily,
-            bodyFamily: FontFamily,
-            bodyFontSize: CGFloat = 16,
-            bodyLineHeightMultiple: CGFloat = 1.45
-        ) -> Self {
-            Self(
-                headingFamily: headingFamily,
-                bodyFamily: bodyFamily,
-                bodyFontSize: bodyFontSize,
-                bodyLineHeightMultiple: bodyLineHeightMultiple,
-                bodyParagraphSpacing: 0,
-                bodyTracking: 0.12,
-                paragraphBreakSpacingBefore: bodyFontSize * 0.85,
-                headingScales: [1.90, 1.50, 1.25, 1.10, 1.00, 0.95],
-                headingLineHeights: [1.12, 1.16, 1.20, 1.24, 1.26, 1.28],
-                headingSpacingBeforeMultipliers: [2.20, 2.00, 1.70, 1.50, 1.35, 1.20],
-                headingSpacingAfterMultipliers: [0.60, 0.50, 0.40, 0.35, 0.30, 0.28],
-                headingTracking: -0.16,
-                listIndent: bodyFontSize * 1.40,
-                listParagraphSpacing: bodyFontSize * 0.30,
-                listLineHeightMultiple: max(1.42, bodyLineHeightMultiple),
-                quoteLineHeightMultiple: bodyLineHeightMultiple,
-                quoteObliqueness: 0.06,
-                checkboxUncheckedSymbol: "☐",
-                checkboxCheckedSymbol: "☑",
-                codeFontScale: 0.9,
-                codeMinimumFontSize: 13,
-                codeBackgroundLightColor: NSColor(srgbRed: 0.90, green: 0.90, blue: 0.93, alpha: 1.0),
-                codeBackgroundDarkColor: NSColor(srgbRed: 0.20, green: 0.22, blue: 0.26, alpha: 1.0),
-                codeForegroundLightColor: NSColor.labelColor,
-                codeForegroundDarkColor: NSColor.labelColor,
-                codeBlockLineHeightMultiple: 1.5,
-                codeBlockParagraphSpacingBefore: bodyFontSize * 1.1,
-                codeBlockParagraphSpacingAfter: bodyFontSize * 1.1,
-                codeBlockHorizontalInset: 14,
-                linkColor: NSColor.labelColor.withAlphaComponent(0.86),
-                linkUnderlineStyle: .single
-            )
-        }
-    }
-
-    private struct Typography {
-        private let profile: ModeProfile
-
-        var bodyFontSize: CGFloat { profile.bodyFontSize }
-        var bodyLineHeightMultiple: CGFloat { profile.bodyLineHeightMultiple }
-        var bodyParagraphSpacing: CGFloat { profile.bodyParagraphSpacing }
-        var bodyTracking: CGFloat { profile.bodyTracking }
-        var paragraphBreakSpacingBefore: CGFloat { profile.paragraphBreakSpacingBefore }
-
-        var headingScales: [CGFloat] { profile.headingScales }
-        var headingLineHeights: [CGFloat] { profile.headingLineHeights }
-        var headingTracking: CGFloat { profile.headingTracking }
-
-        var listIndent: CGFloat { profile.listIndent }
-        var listParagraphSpacing: CGFloat { profile.listParagraphSpacing }
-        var listLineHeightMultiple: CGFloat { profile.listLineHeightMultiple }
-        var quoteLineHeightMultiple: CGFloat { profile.quoteLineHeightMultiple }
-        var quoteObliqueness: CGFloat { profile.quoteObliqueness }
-        var checkboxUncheckedSymbol: String { profile.checkboxUncheckedSymbol }
-        var checkboxCheckedSymbol: String { profile.checkboxCheckedSymbol }
-
-        var codeFontScale: CGFloat { profile.codeFontScale }
-        var codeMinimumFontSize: CGFloat { profile.codeMinimumFontSize }
-        var codeBlockLineHeightMultiple: CGFloat { profile.codeBlockLineHeightMultiple }
-        var codeBlockParagraphSpacingBefore: CGFloat { profile.codeBlockParagraphSpacingBefore }
-        var codeBlockParagraphSpacingAfter: CGFloat { profile.codeBlockParagraphSpacingAfter }
-        var codeBlockHorizontalInset: CGFloat { profile.codeBlockHorizontalInset }
-        var linkColor: NSColor { profile.linkColor }
-        var linkUnderlineStyle: NSUnderlineStyle { profile.linkUnderlineStyle }
-
-        func codeBackgroundColor(isDarkMode: Bool) -> NSColor {
-            isDarkMode ? profile.codeBackgroundDarkColor : profile.codeBackgroundLightColor
-        }
-
-        func codeForegroundColor(isDarkMode: Bool) -> NSColor {
-            isDarkMode ? profile.codeForegroundDarkColor : profile.codeForegroundLightColor
-        }
-
-        init(mode: MarkdownTypographyMode) {
-            self.profile = ModeProfile.forMode(mode)
-        }
-
-        func headingFont(for level: Int) -> NSFont {
-            let clamped = min(max(level, 1), 6)
-            let scale = headingScales[clamped - 1]
-            let size = bodyFontSize * scale
-            let weight: NSFont.Weight = clamped <= 2 ? .bold : .semibold
-            return makeFont(family: profile.headingFamily, size: size, weight: weight)
-        }
-
-        func headingLineHeight(for level: Int) -> CGFloat {
-            let clamped = min(max(level, 1), 6)
-            return headingLineHeights[clamped - 1]
-        }
-
-        func headingSpacingBefore(for level: Int) -> CGFloat {
-            let clamped = min(max(level, 1), 6)
-            return bodyFontSize * profile.headingSpacingBeforeMultipliers[clamped - 1]
-        }
-
-        func headingSpacingAfter(for level: Int) -> CGFloat {
-            let clamped = min(max(level, 1), 6)
-            return bodyFontSize * profile.headingSpacingAfterMultipliers[clamped - 1]
-        }
-
-        func bodyFont() -> NSFont {
-            makeFont(family: profile.bodyFamily, size: bodyFontSize, weight: .regular)
-        }
-
-        private func makeFont(family: FontFamily, size: CGFloat, weight: NSFont.Weight) -> NSFont {
-            switch family {
-            case .systemSans:
-                return NSFont.systemFont(ofSize: size, weight: weight)
-            case .literataSerif:
-                return literataFont(size: size, weight: weight)
-            }
-        }
-
-        private func literataFont(size: CGFloat, weight: NSFont.Weight) -> NSFont {
-            let preferredPostScriptNames: [String]
-            if weight >= .semibold {
-                preferredPostScriptNames = ["Literata-SemiBold", "Literata-Bold", "Literata"]
-            } else {
-                preferredPostScriptNames = ["Literata-Regular", "Literata"]
-            }
-
-            for name in preferredPostScriptNames {
-                if let font = NSFont(name: name, size: size) {
-                    return font
-                }
-            }
-
-            let base = NSFont.systemFont(ofSize: size, weight: weight)
-            if
-                let descriptor = base.fontDescriptor.withDesign(.serif),
-                let serifFont = NSFont(descriptor: descriptor, size: size)
-            {
-                return serifFont
-            }
-            return base
-        }
-    }
-
     static func render(
         from text: String,
         mode: MarkdownTypographyMode = .allSystem,
         isDarkMode: Bool = false
     ) -> NSAttributedString {
-        let typography = Typography(mode: mode)
+        let typography = MarkdownTypography(mode: mode)
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = source.components(separatedBy: "\n")
         var displayLines: [String] = []
@@ -275,6 +48,14 @@ enum MarkdownRenderer {
             }
 
             if trimmedContent.isEmpty {
+                displayLines.append("")
+                lineStyles.append((
+                    headingLevel: nil,
+                    isList: false,
+                    isQuote: false,
+                    isCodeBlock: false,
+                    startsAfterBlankLine: false
+                ))
                 pendingParagraphBreak = true
                 continue
             }
@@ -293,10 +74,18 @@ enum MarkdownRenderer {
                 isList = true
                 let checkbox = taskItem.isChecked ? typography.checkboxCheckedSymbol : typography.checkboxUncheckedSymbol
                 renderedLine = indent + checkbox + " " + taskItem.body
-            } else if content.hasPrefix("- ") || content.hasPrefix("* ") || content.hasPrefix("+ ") {
+            } else if content.hasPrefix("- ")
+                || content.hasPrefix("* ")
+                || content.hasPrefix("+ ")
+                || content.hasPrefix("• ")
+            {
                 isList = true
-                let body = String(content.dropFirst(2))
-                renderedLine = indent + "• " + body
+                if content.hasPrefix("• ") {
+                    renderedLine = indent + content
+                } else {
+                    let body = String(content.dropFirst(2))
+                    renderedLine = indent + "• " + body
+                }
             } else if content.hasPrefix("> ") {
                 isQuote = true
                 let body = String(content.dropFirst(2))
@@ -463,7 +252,7 @@ enum MarkdownRenderer {
 
     private static func applyInlineStyles(
         to styled: NSMutableAttributedString,
-        typography: Typography,
+        typography: MarkdownTypography,
         protectedRanges: [NSRange],
         isDarkMode: Bool
     ) {
@@ -536,7 +325,7 @@ enum MarkdownRenderer {
 #endif
 
 final class MarkdownDoc: ObservableObject {
-    @Published var rendered: AttributedString?
+    @Published var blocks: [MarkdownRenderedBlock] = []
     @Published var rawText: String = ""
     @Published var isLoading: Bool = false
     @Published var error: String?
@@ -559,7 +348,7 @@ final class MarkdownDoc: ObservableObject {
 
         isLoading = true
         error = nil
-        rendered = nil
+        blocks = []
         rawText = ""
 
         loadTask = Task.detached(priority: .userInitiated) { [weak self] in
@@ -587,8 +376,8 @@ final class MarkdownDoc: ObservableObject {
                 }
 
                 #if os(macOS)
-                let rendered = await MainActor.run {
-                    AttributedString(MarkdownRenderer.render(from: text, mode: mode, isDarkMode: isDarkMode))
+                let blocks = await MainActor.run {
+                    MarkdownContentBlocks.render(from: text, mode: mode, isDarkMode: isDarkMode)
                 }
                 #else
                 let rendered = try? AttributedString(markdown: text)
@@ -598,7 +387,15 @@ final class MarkdownDoc: ObservableObject {
                 await MainActor.run { [weak self] in
                     guard let self, generation == self.loadGeneration else { return }
                     self.rawText = text
-                    self.rendered = rendered
+                    #if os(macOS)
+                    self.blocks = blocks
+                    #else
+                    if let rendered {
+                        self.blocks = [MarkdownRenderedBlock(id: 0, kind: .markdown(rendered))]
+                    } else {
+                        self.blocks = []
+                    }
+                    #endif
                     self.isLoading = false
                     self.loadTask = nil
                 }
@@ -623,9 +420,13 @@ final class MarkdownDoc: ObservableObject {
     func rerenderFromCachedText(mode: MarkdownTypographyMode, isDarkMode: Bool) {
         guard !rawText.isEmpty else { return }
         #if os(macOS)
-        rendered = AttributedString(MarkdownRenderer.render(from: rawText, mode: mode, isDarkMode: isDarkMode))
+        blocks = MarkdownContentBlocks.render(from: rawText, mode: mode, isDarkMode: isDarkMode)
         #else
-        rendered = try? AttributedString(markdown: rawText)
+        if let rendered = try? AttributedString(markdown: rawText) {
+            blocks = [MarkdownRenderedBlock(id: 0, kind: .markdown(rendered))]
+        } else {
+            blocks = []
+        }
         #endif
     }
 }
@@ -675,6 +476,9 @@ struct MarkdownViewer: View {
         .onChange(of: colorScheme) { newScheme in
             doc.rerenderFromCachedText(mode: typographyMode, isDarkMode: newScheme == .dark)
         }
+        .transaction { transaction in
+            transaction.animation = nil
+        }
     }
 
     @ViewBuilder
@@ -688,22 +492,159 @@ struct MarkdownViewer: View {
                 Text(error)
             }
             .padding()
-        } else if let rendered = doc.rendered {
+        } else if !doc.blocks.isEmpty {
             ReaderScrollContainer {
-                Text(rendered)
-                    .textSelection(.enabled)
-            }
-        } else if !doc.rawText.isEmpty {
-            ReaderScrollContainer {
-                Text(doc.rawText)
-                    .font(.system(.body, design: .monospaced))
-                    .lineSpacing(8)
-                    .kerning(0.15)
-                    .textSelection(.enabled)
+                MarkdownDocumentBlocks(
+                    blocks: doc.blocks,
+                    typographyMode: typographyMode,
+                    isDarkMode: colorScheme == .dark
+                )
             }
         } else {
             Text("No content")
         }
+    }
+}
+
+private struct MarkdownDocumentBlocks: View {
+    let blocks: [MarkdownRenderedBlock]
+    let typographyMode: MarkdownTypographyMode
+    let isDarkMode: Bool
+
+    private var typography: MarkdownTypography {
+        MarkdownTypography(mode: typographyMode)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(blocks) { block in
+                switch block.kind {
+                case .heading(let level, let rendered):
+                    Text(rendered)
+                        .textSelection(.enabled)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.headingSpacingAfter(for: level))
+                case .paragraph(let rendered):
+                    Text(rendered)
+                        .lineSpacing(typography.bodyLineSpacing)
+                        .textSelection(.enabled)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.paragraphBlockSpacing)
+                case .list(let items):
+                    MarkdownListBlock(items: items, typography: typography)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.listBlockSpacing)
+                case .quote(let rendered):
+                    Text(rendered)
+                        .lineSpacing(typography.bodyLineSpacing)
+                        .textSelection(.enabled)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.quoteBlockSpacing)
+                case .code(let code):
+                    MarkdownCodeBlock(code: code, typography: typography, isDarkMode: isDarkMode)
+                        .padding(.top, topSpacing(for: block))
+                }
+            }
+        }
+    }
+
+    private func topSpacing(for block: MarkdownRenderedBlock) -> CGFloat {
+        guard let previous = blocks[safe: block.id - 1] else { return 0 }
+
+        switch block.kind {
+        case .heading(let level, _):
+            return typography.headingSpacingBefore(for: level)
+        case .paragraph:
+            if case .heading = previous.kind {
+                return 0
+            }
+            return 0
+        case .list:
+            if case .heading = previous.kind {
+                return 0
+            }
+            return typography.paragraphBlockSpacing * 0.25
+        case .quote:
+            if case .heading = previous.kind {
+                return typography.paragraphBlockSpacing * 0.15
+            }
+            return typography.paragraphBlockSpacing * 0.25
+        case .code:
+            return 0
+        }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
+    }
+}
+
+private struct MarkdownListBlock: View {
+    let items: [MarkdownListItem]
+    let typography: MarkdownTypography
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                HStack(alignment: .firstTextBaseline, spacing: typography.listMarkerGap) {
+                    Text(item.marker)
+                        .font(Font(typography.listMarkerFont(for: item.marker)))
+                        .frame(width: typography.listMarkerColumnWidth, alignment: .leading)
+                    Text(item.body)
+                        .lineSpacing(typography.bodyLineSpacing)
+                        .textSelection(.enabled)
+                }
+                .padding(.leading, CGFloat(item.nestingLevel) * typography.listIndent)
+                .padding(.top, topSpacing(for: index))
+            }
+        }
+    }
+
+    private func topSpacing(for index: Int) -> CGFloat {
+        guard index > 0 else { return 0 }
+        let previous = items[index - 1]
+        let current = items[index]
+        if current.nestingLevel != previous.nestingLevel {
+            return typography.nestedListSpacing
+        }
+        return typography.listItemSpacing
+    }
+}
+
+private struct MarkdownCodeBlock: View {
+    let code: String
+    let typography: MarkdownTypography
+    let isDarkMode: Bool
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: true) {
+            Text(verbatim: code)
+                .font(
+                    .system(
+                        size: max(
+                            typography.codeMinimumFontSize,
+                            typography.bodyFontSize * typography.codeFontScale
+                        ),
+                        design: .monospaced
+                    )
+                )
+                .foregroundStyle(Color(nsColor: typography.codeForegroundColor(isDarkMode: isDarkMode)))
+                .lineSpacing(
+                    typography.bodyFontSize * max(0, typography.codeBlockLineHeightMultiple - 1.0)
+                )
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, typography.codeBlockHorizontalInset)
+                .padding(.vertical, typography.codeBlockVerticalInset)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .background(Color(nsColor: typography.codeBackgroundColor(isDarkMode: isDarkMode)))
+        .clipShape(RoundedRectangle(cornerRadius: typography.codeBlockCornerRadius, style: .continuous))
+        .padding(.top, typography.codeBlockParagraphSpacingBefore)
+        .padding(.bottom, typography.codeBlockParagraphSpacingAfter)
     }
 }
 

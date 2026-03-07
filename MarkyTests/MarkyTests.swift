@@ -167,10 +167,10 @@ struct MarkyTests {
 
     #if os(macOS)
     @MainActor
-    @Test("markdown renderer keeps first heading flush without top paragraph spacing")
-    func markdownRendererFirstHeadingHasNoLeadingParagraphSpacing() {
+    @Test("markdown renderer preserves paragraph breaks and keeps first heading flush")
+    func markdownRendererPreservesParagraphBreaksAndKeepsFirstHeadingFlush() {
         let rendered = MarkdownRenderer.render(from: "# Title\n\nBody")
-        #expect(rendered.string == "Title\nBody")
+        #expect(rendered.string == "Title\n\nBody")
 
         let paragraph = rendered.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
         #expect(paragraph != nil)
@@ -180,8 +180,8 @@ struct MarkyTests {
     @MainActor
     @Test("markdown renderer converts task/bullet list markers")
     func markdownRendererConvertsTaskAndBulletMarkers() {
-        let rendered = MarkdownRenderer.render(from: "- [x] Done\n- [ ] Todo\n* Bullet")
-        #expect(rendered.string == "☑ Done\n☐ Todo\n• Bullet")
+        let rendered = MarkdownRenderer.render(from: "- [x] Done\n- [ ] Todo\n* Bullet\n• Existing")
+        #expect(rendered.string == "☑ Done\n☐ Todo\n• Bullet\n• Existing")
     }
 
     @MainActor
@@ -262,6 +262,69 @@ struct MarkyTests {
         #expect(font != nil)
         #expect(background != nil)
         #expect((font?.fontName.contains("Mono") ?? false) || (font?.fontName.contains("Menlo") ?? false))
+    }
+
+    @Test("markdown content blocks split prose and fenced code without parsing code markup")
+    func markdownContentBlocksSplitFencedCode() {
+        let blocks = MarkdownContentBlocks.parse(from: "Before\n\n```swift\nlet x = **1**\n```\n\nAfter")
+        #expect(blocks.count == 3)
+
+        if case .markdown(let before) = blocks[0] {
+            #expect(before == "Before")
+        } else {
+            Issue.record("Expected markdown block before code fence")
+        }
+
+        if case .code(let code) = blocks[1] {
+            #expect(code == "let x = **1**")
+        } else {
+            Issue.record("Expected code block between markdown blocks")
+        }
+
+        if case .markdown(let after) = blocks[2] {
+            #expect(after == "After")
+        } else {
+            Issue.record("Expected markdown block after code fence")
+        }
+    }
+
+    @MainActor
+    @Test("markdown content blocks split prose into heading paragraph list and quote blocks")
+    func markdownContentBlocksSplitProseRhythmBlocks() {
+        let blocks = MarkdownContentBlocks.render(
+            from: "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n2. two\n\n> quoted",
+            mode: .allSystem,
+            isDarkMode: false
+        )
+
+        #expect(blocks.count == 4)
+
+        if case .heading(let level, _) = blocks[0].kind {
+            #expect(level == 1)
+        } else {
+            Issue.record("Expected heading block first")
+        }
+
+        if case .paragraph(let text) = blocks[1].kind {
+            #expect(String(text.characters) == "Body line 1 Body line 2")
+        } else {
+            Issue.record("Expected paragraph block second")
+        }
+
+        if case .list(let items) = blocks[2].kind {
+            #expect(items.count == 3)
+            #expect(items[0].marker == "1.")
+            #expect(items[1].marker == "•")
+            #expect(items[1].nestingLevel > items[0].nestingLevel)
+            #expect(items[2].marker == "2.")
+        } else {
+            Issue.record("Expected list block third")
+        }
+
+        if case .quote = blocks[3].kind {
+        } else {
+            Issue.record("Expected quote block fourth")
+        }
     }
     #endif
 

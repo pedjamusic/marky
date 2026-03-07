@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] - 2026-03-07
+
+- Completed the first markdown typography system pass with three reader modes: All System, Serif Headings + System Body, and System Headings + Serif Body.
+- Moved markdown typography decisions into explicit token-driven configuration via dedicated typography/content block modules instead of keeping style constants in the viewer.
+- Improved markdown reading rhythm with restrained heading scale, clearer paragraph spacing, shared body/list leading, tighter list alignment, and safer left-rail marker layout.
+- Restored fenced code block rendering as dedicated literal-content blocks with monospaced styling, padding, radius, and horizontal scrolling without line wrapping.
+- Added stable markdown block parsing/rendering primitives for prose, lists, quotes, and code blocks while preserving the previously validated SwiftUI viewer behavior.
+- Added and updated typography-focused renderer tests covering modes, heading scale, list handling, and fenced code block splitting.
+
 ## [0.1.0] - 2026-03-06
 
 - Introduced a native SwiftUI markdown reader experience with local file/folder importing and split-view navigation.
