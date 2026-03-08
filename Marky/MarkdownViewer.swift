@@ -440,6 +440,7 @@ private enum ReaderLayout {
     static let maxReadableWidth: CGFloat = 700
     static let horizontalPadding: CGFloat = 24
     static let verticalPadding: CGFloat = 42
+    static let edgeFadeHeight: CGFloat = 34
 }
 
 struct MarkdownViewer: View {
@@ -689,6 +690,23 @@ private struct ReaderScrollContainer<Content: View>: View {
             .padding(.horizontal, ReaderLayout.horizontalPadding)
             .padding(.vertical, ReaderLayout.verticalPadding)
             .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .mask {
+            GeometryReader { geometry in
+                let height = max(geometry.size.height, 1)
+                let normalizedFade = min(ReaderLayout.edgeFadeHeight / height, 0.45)
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: normalizedFade),
+                        .init(color: .black, location: 1 - normalizedFade),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
         }
     }
 }

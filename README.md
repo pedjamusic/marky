@@ -15,6 +15,7 @@ Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder
 - Reader-first markdown rendering with tuned typography for headings, lists, checkboxes, quotes, links, bold, and inline code.
 - Reader typography system now supports three markdown modes: All System, Serif Headings + System Body, and System Headings + Serif Body.
 - Markdown list markers now align to the reader rail and fenced code blocks render as dedicated scrollable code surfaces.
+- Reader content now eases into view with subtle top and bottom edge fades while preserving the native titlebar/title behavior.
 - Bundled Literata reader font files are now loaded from app resources for serif markdown modes.
 - Fenced code blocks now render as literal monospaced blocks with markdown-safe styling.
 - App Settings (`Cmd+,`) now includes appearance (System/Light/Dark) and markdown typography controls.
