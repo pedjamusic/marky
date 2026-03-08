@@ -24,7 +24,7 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
         }
     }
 
-    var colorScheme: ColorScheme? {
+    nonisolated var colorScheme: ColorScheme? {
         switch self {
         case .system:
             return nil

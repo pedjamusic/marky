@@ -70,40 +70,6 @@ struct ContentView: View {
         }
     }
 
-    private func sidebarNodeRow(for node: FileNode) -> AnyView {
-        if node.isDirectory {
-            return AnyView(DisclosureGroup(isExpanded: viewModel.folderExpansionBinding(for: node)) {
-                ForEach(node.children ?? []) { child in
-                    sidebarNodeRow(for: child)
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "folder")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
-                    sidebarNodeTitle(for: node)
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    viewModel.toggleFolderExpansion(for: node)
-                }
-            })
-        } else {
-            return AnyView(HStack(spacing: 8) {
-                Image(systemName: "doc.text")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
-                sidebarNodeTitle(for: node)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                viewModel.selectNode(node)
-            })
-        }
-    }
-
     private var isErrorPresented: Binding<Bool> {
         Binding(
             get: { viewModel.errorMessage != nil },
@@ -221,7 +187,13 @@ struct ContentView: View {
 
                         List {
                             ForEach(viewModel.displayedNodes) { node in
-                                sidebarNodeRow(for: node)
+                                SidebarNodeRow(
+                                    node: node,
+                                    expansionBinding: viewModel.folderExpansionBinding(for:),
+                                    onToggleFolder: viewModel.toggleFolderExpansion(for:),
+                                    title: sidebarNodeTitle(for:),
+                                    onSelectNode: viewModel.selectNode
+                                )
                             }
                         }
                         .id(viewModel.sidebarListRefreshID)
@@ -301,6 +273,54 @@ struct ContentView: View {
             allowsMultipleSelection: false
         ) { result in
             viewModel.handleFileImporterResult(result)
+        }
+    }
+}
+
+private struct SidebarNodeRow<Title: View>: View {
+    let node: FileNode
+    let expansionBinding: (FileNode) -> Binding<Bool>
+    let onToggleFolder: (FileNode) -> Void
+    let title: (FileNode) -> Title
+    let onSelectNode: (FileNode) -> Void
+
+    var body: some View {
+        if node.isDirectory {
+            DisclosureGroup(isExpanded: expansionBinding(node)) {
+                ForEach(node.children ?? []) { child in
+                    SidebarNodeRow(
+                        node: child,
+                        expansionBinding: expansionBinding,
+                        onToggleFolder: onToggleFolder,
+                        title: title,
+                        onSelectNode: onSelectNode
+                    )
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "folder")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                    title(node)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onToggleFolder(node)
+                }
+            }
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: "doc.text")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
+                title(node)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onSelectNode(node)
+            }
         }
     }
 }

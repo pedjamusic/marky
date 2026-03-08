@@ -7,6 +7,26 @@ enum MarkdownSourceBlock {
     case code(String)
 }
 
+struct MarkdownPreparedListItem: Identifiable, Sendable {
+    nonisolated let id: Int
+    nonisolated let nestingLevel: Int
+    nonisolated let marker: String
+    nonisolated let body: String
+}
+
+struct MarkdownPreparedBlock: Identifiable, Sendable {
+    enum Kind: Sendable {
+        case heading(level: Int, source: String)
+        case paragraph(String)
+        case list([MarkdownPreparedListItem])
+        case quote(String)
+        case code(String)
+    }
+
+    nonisolated let id: Int
+    nonisolated let kind: Kind
+}
+
 struct MarkdownListItem: Identifiable {
     let id: Int
     let nestingLevel: Int
@@ -35,7 +55,7 @@ enum MarkdownContentBlocks {
         case quote(String)
     }
 
-    static func parse(from text: String) -> [MarkdownSourceBlock] {
+    nonisolated static func parse(from text: String) -> [MarkdownSourceBlock] {
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = source.components(separatedBy: "\n")
 
@@ -89,6 +109,37 @@ enum MarkdownContentBlocks {
         return blocks
     }
 
+    nonisolated static func prepare(from text: String) -> [MarkdownPreparedBlock] {
+        var preparedBlocks: [MarkdownPreparedBlock] = []
+        var nextID = 0
+
+        for block in parse(from: text) {
+            switch block {
+            case .markdown(let markdown):
+                for proseBlock in proseBlocks(from: markdown) {
+                    let kind: MarkdownPreparedBlock.Kind
+                    switch proseBlock {
+                    case .heading(let level, let source):
+                        kind = .heading(level: level, source: source)
+                    case .paragraph(let source):
+                        kind = .paragraph(source)
+                    case .list(let source):
+                        kind = .list(preparedListItems(from: source))
+                    case .quote(let source):
+                        kind = .quote(source)
+                    }
+                    preparedBlocks.append(MarkdownPreparedBlock(id: nextID, kind: kind))
+                    nextID += 1
+                }
+            case .code(let code):
+                preparedBlocks.append(MarkdownPreparedBlock(id: nextID, kind: .code(code)))
+                nextID += 1
+            }
+        }
+
+        return preparedBlocks
+    }
+
     @MainActor
     static func render(
         from text: String,
@@ -96,72 +147,75 @@ enum MarkdownContentBlocks {
         textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool
     ) -> [MarkdownRenderedBlock] {
-        var renderedBlocks: [MarkdownRenderedBlock] = []
-        var nextID = 0
-
-        for block in parse(from: text) {
-            switch block {
-            case .markdown(let markdown):
-                for proseBlock in proseBlocks(from: markdown) {
-                    let kind: MarkdownRenderedBlock.Kind
-                    switch proseBlock {
-                    case .heading(let level, let source):
-                        kind = .heading(
-                            level: level,
-                            text: AttributedString(
-                                MarkdownRenderer.render(
-                                    from: source,
-                                    mode: mode,
-                                    textSizePreset: textSizePreset,
-                                    isDarkMode: isDarkMode
-                                )
-                            )
-                        )
-                    case .paragraph(let source):
-                        kind = .paragraph(
-                            AttributedString(
-                                MarkdownRenderer.render(
-                                    from: source,
-                                    mode: mode,
-                                    textSizePreset: textSizePreset,
-                                    isDarkMode: isDarkMode
-                                )
-                            )
-                        )
-                    case .list(let source):
-                        kind = .list(
-                            renderListItems(
-                                from: source,
-                                mode: mode,
-                                textSizePreset: textSizePreset,
-                                isDarkMode: isDarkMode
-                            )
-                        )
-                    case .quote(let source):
-                        kind = .quote(
-                            AttributedString(
-                                MarkdownRenderer.render(
-                                    from: source,
-                                    mode: mode,
-                                    textSizePreset: textSizePreset,
-                                    isDarkMode: isDarkMode
-                                )
-                            )
-                        )
-                    }
-                    renderedBlocks.append(MarkdownRenderedBlock(id: nextID, kind: kind))
-                    nextID += 1
-                }
-            case .code(let code):
-                renderedBlocks.append(MarkdownRenderedBlock(id: nextID, kind: .code(code)))
-                nextID += 1
-            }
-        }
-
-        return renderedBlocks
+        render(
+            preparedBlocks: prepare(from: text),
+            mode: mode,
+            textSizePreset: textSizePreset,
+            isDarkMode: isDarkMode
+        )
     }
 
-    private static func proseBlocks(from markdown: String) -> [MarkdownTextBlock] {
+    @MainActor
+    static func render(
+        preparedBlocks: [MarkdownPreparedBlock],
+        mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
+        isDarkMode: Bool
+    ) -> [MarkdownRenderedBlock] {
+        preparedBlocks.map { block in
+            let kind: MarkdownRenderedBlock.Kind
+            switch block.kind {
+            case .heading(let level, let source):
+                kind = .heading(
+                    level: level,
+                    text: AttributedString(
+                        MarkdownRenderer.render(
+                            from: source,
+                            mode: mode,
+                            textSizePreset: textSizePreset,
+                            isDarkMode: isDarkMode
+                        )
+                    )
+                )
+            case .paragraph(let source):
+                kind = .paragraph(
+                    AttributedString(
+                        MarkdownRenderer.render(
+                            from: source,
+                            mode: mode,
+                            textSizePreset: textSizePreset,
+                            isDarkMode: isDarkMode
+                        )
+                    )
+                )
+            case .list(let items):
+                kind = .list(
+                    renderListItems(
+                        from: items,
+                        mode: mode,
+                        textSizePreset: textSizePreset,
+                        isDarkMode: isDarkMode
+                    )
+                )
+            case .quote(let source):
+                kind = .quote(
+                    AttributedString(
+                        MarkdownRenderer.render(
+                            from: source,
+                            mode: mode,
+                            textSizePreset: textSizePreset,
+                            isDarkMode: isDarkMode
+                        )
+                    )
+                )
+            case .code(let code):
+                kind = .code(code)
+            }
+            return MarkdownRenderedBlock(id: block.id, kind: kind)
+        }
+    }
+
+    nonisolated private static func proseBlocks(from markdown: String) -> [MarkdownTextBlock] {
         let lines = markdown.components(separatedBy: "\n")
         var blocks: [MarkdownTextBlock] = []
         var currentKind: ProseKind?
@@ -224,46 +278,57 @@ enum MarkdownContentBlocks {
         return blocks
     }
 
-    private static func renderListItems(
-        from source: String,
-        mode: MarkdownTypographyMode,
-        textSizePreset: MarkdownReaderTextSizePreset,
-        isDarkMode: Bool
-    ) -> [MarkdownListItem] {
+    nonisolated private static func preparedListItems(from source: String) -> [MarkdownPreparedListItem] {
         source
             .components(separatedBy: "\n")
             .enumerated()
             .compactMap { index, line in
                 guard let item = parseListItem(from: line) else { return nil }
-                let body = AttributedString(
-                    MarkdownRenderer.render(
-                        from: item.body,
-                        mode: mode,
-                        textSizePreset: textSizePreset,
-                        isDarkMode: isDarkMode
-                    )
-                )
-                return MarkdownListItem(
+                return MarkdownPreparedListItem(
                     id: index,
                     nestingLevel: item.nestingLevel,
                     marker: item.marker,
-                    body: body
+                    body: item.body
                 )
             }
     }
 
-    private static func headingLevel(in line: String) -> Int? {
+    private static func renderListItems(
+        from items: [MarkdownPreparedListItem],
+        mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset,
+        isDarkMode: Bool
+    ) -> [MarkdownListItem] {
+        items.map { item in
+            let body = AttributedString(
+                MarkdownRenderer.render(
+                    from: item.body,
+                    mode: mode,
+                    textSizePreset: textSizePreset,
+                    isDarkMode: isDarkMode
+                )
+            )
+            return MarkdownListItem(
+                id: item.id,
+                nestingLevel: item.nestingLevel,
+                marker: item.marker,
+                body: body
+            )
+        }
+    }
+
+    nonisolated private static func headingLevel(in line: String) -> Int? {
         guard line.hasPrefix("#") else { return nil }
         let hashes = line.prefix(while: { $0 == "#" }).count
         guard (1...6).contains(hashes), line.dropFirst(hashes).hasPrefix(" ") else { return nil }
         return hashes
     }
 
-    private static func isListLine(_ line: String) -> Bool {
+    nonisolated private static func isListLine(_ line: String) -> Bool {
         parseListItem(from: line) != nil
     }
 
-    private static func parseListItem(from line: String) -> (nestingLevel: Int, marker: String, body: String)? {
+    nonisolated private static func parseListItem(from line: String) -> (nestingLevel: Int, marker: String, body: String)? {
         let leadingWhitespaceCount = line.prefix(while: { $0 == " " || $0 == "\t" }).count
         let content = String(line.dropFirst(leadingWhitespaceCount))
 
@@ -306,7 +371,7 @@ enum MarkdownContentBlocks {
         return nil
     }
 
-    private static func orderedListItem(in line: String) -> (marker: String, body: String)? {
+    nonisolated private static func orderedListItem(in line: String) -> (marker: String, body: String)? {
         var digits = ""
         var index = line.startIndex
         while index < line.endIndex, line[index].isNumber {
@@ -321,7 +386,7 @@ enum MarkdownContentBlocks {
         return ("\(digits).", body)
     }
 
-    private static func nestingLevel(fromLeadingWhitespace count: Int) -> Int {
+    nonisolated private static func nestingLevel(fromLeadingWhitespace count: Int) -> Int {
         max(0, count / 2)
     }
 }

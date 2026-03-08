@@ -325,12 +325,24 @@ enum MarkdownRenderer {
 }
 #endif
 
+private enum MarkdownDocumentLoadError: LocalizedError {
+    case unsupportedTextEncoding
+
+    var errorDescription: String? {
+        switch self {
+        case .unsupportedTextEncoding:
+            return "Unable to decode file as UTF-8/UTF-16 text"
+        }
+    }
+}
+
+@MainActor
 final class MarkdownDoc: ObservableObject {
     @Published var blocks: [MarkdownRenderedBlock] = []
-    @Published var rawText: String = ""
     @Published var isLoading: Bool = false
     @Published var error: String?
 
+    private var preparedBlocks: [MarkdownPreparedBlock] = []
     private var loadTask: Task<Void, Never>?
     private var loadGeneration: UInt64 = 0
 
@@ -351,99 +363,76 @@ final class MarkdownDoc: ObservableObject {
         isLoading = true
         error = nil
         blocks = []
-        rawText = ""
+        preparedBlocks = []
 
-        loadTask = Task.detached(priority: .userInitiated) { [weak self] in
+        loadTask = Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
-            let needsAccess = url.startAccessingSecurityScopedResource()
-            defer {
-                if needsAccess {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
 
             do {
-                let data = try Data(contentsOf: url)
+                let preparedBlocks = try await Self.loadPreparedBlocks(from: url)
                 try Task.checkCancellation()
-
-                let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16)
-                guard let text else {
-                    await MainActor.run { [weak self] in
-                        guard let self, generation == self.loadGeneration else { return }
-                        self.isLoading = false
-                        self.error = "Unable to decode file as UTF-8/UTF-16 text"
-                        self.loadTask = nil
-                    }
-                    return
-                }
 
                 #if os(macOS)
-                let blocks = await MainActor.run {
-                    MarkdownContentBlocks.render(
-                        from: text,
-                        mode: mode,
-                        textSizePreset: textSizePreset,
-                        isDarkMode: isDarkMode
-                    )
-                }
+                let blocks = MarkdownContentBlocks.render(
+                    preparedBlocks: preparedBlocks,
+                    mode: mode,
+                    textSizePreset: textSizePreset,
+                    isDarkMode: isDarkMode
+                )
                 #else
-                let rendered = try? AttributedString(markdown: text)
+                let blocks = []
                 #endif
 
-                try Task.checkCancellation()
-                await MainActor.run { [weak self] in
-                    guard let self, generation == self.loadGeneration else { return }
-                    self.rawText = text
-                    #if os(macOS)
-                    self.blocks = blocks
-                    #else
-                    if let rendered {
-                        self.blocks = [MarkdownRenderedBlock(id: 0, kind: .markdown(rendered))]
-                    } else {
-                        self.blocks = []
-                    }
-                    #endif
-                    self.isLoading = false
-                    self.loadTask = nil
-                }
+                guard generation == self.loadGeneration else { return }
+                self.preparedBlocks = preparedBlocks
+                self.blocks = blocks
+                self.isLoading = false
+                self.loadTask = nil
             } catch is CancellationError {
-                await MainActor.run { [weak self] in
-                    guard let self, generation == self.loadGeneration else { return }
-                    self.isLoading = false
-                    self.loadTask = nil
-                }
+                guard generation == self.loadGeneration else { return }
+                self.isLoading = false
+                self.loadTask = nil
             } catch {
-                await MainActor.run { [weak self] in
-                    guard let self, generation == self.loadGeneration else { return }
-                    self.isLoading = false
-                    self.error = error.localizedDescription
-                    self.loadTask = nil
-                }
+                guard generation == self.loadGeneration else { return }
+                self.isLoading = false
+                self.error = error.localizedDescription
+                self.loadTask = nil
             }
         }
     }
 
-    @MainActor
-    func rerenderFromCachedText(
+    func rerenderFromPreparedBlocks(
         mode: MarkdownTypographyMode,
         textSizePreset: MarkdownReaderTextSizePreset,
         isDarkMode: Bool
     ) {
-        guard !rawText.isEmpty else { return }
+        guard !preparedBlocks.isEmpty else { return }
         #if os(macOS)
         blocks = MarkdownContentBlocks.render(
-            from: rawText,
+            preparedBlocks: preparedBlocks,
             mode: mode,
             textSizePreset: textSizePreset,
             isDarkMode: isDarkMode
         )
         #else
-        if let rendered = try? AttributedString(markdown: rawText) {
-            blocks = [MarkdownRenderedBlock(id: 0, kind: .markdown(rendered))]
-        } else {
-            blocks = []
-        }
+        blocks = []
         #endif
+    }
+
+    private nonisolated static func loadPreparedBlocks(from url: URL) async throws -> [MarkdownPreparedBlock] {
+        let needsAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if needsAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+        try Task.checkCancellation()
+        guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16) else {
+            throw MarkdownDocumentLoadError.unsupportedTextEncoding
+        }
+        return MarkdownContentBlocks.prepare(from: text)
     }
 }
 
@@ -461,8 +450,6 @@ struct MarkdownViewer: View {
     private var typographyModeRawValue = MarkdownTypographyMode.allSystem.rawValue
     @AppStorage(AppPreferenceKeys.markdownReaderTextSizePreset)
     private var textSizePresetRawValue = MarkdownReaderTextSizePreset.default.rawValue
-    @AppStorage(AppPreferenceKeys.appearanceMode)
-    private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
     private var typographyMode: MarkdownTypographyMode {
         MarkdownTypographyMode(rawValue: typographyModeRawValue) ?? .allSystem
@@ -495,28 +482,21 @@ struct MarkdownViewer: View {
             )
         }
         .onChange(of: typographyModeRawValue) {
-            doc.rerenderFromCachedText(
+            doc.rerenderFromPreparedBlocks(
                 mode: typographyMode,
                 textSizePreset: textSizePreset,
                 isDarkMode: colorScheme == .dark
             )
         }
         .onChange(of: textSizePresetRawValue) {
-            doc.rerenderFromCachedText(
-                mode: typographyMode,
-                textSizePreset: textSizePreset,
-                isDarkMode: colorScheme == .dark
-            )
-        }
-        .onChange(of: appearanceModeRawValue) {
-            doc.rerenderFromCachedText(
+            doc.rerenderFromPreparedBlocks(
                 mode: typographyMode,
                 textSizePreset: textSizePreset,
                 isDarkMode: colorScheme == .dark
             )
         }
         .onChange(of: colorScheme) {
-            doc.rerenderFromCachedText(
+            doc.rerenderFromPreparedBlocks(
                 mode: typographyMode,
                 textSizePreset: textSizePreset,
                 isDarkMode: colorScheme == .dark

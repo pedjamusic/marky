@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 import CoreText
 #if os(macOS)
 import AppKit
@@ -16,27 +15,6 @@ import AppKit
 struct MarkyApp: App {
     @AppStorage(AppPreferenceKeys.appearanceMode)
     private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
-
-    private static func makeModelContainer() -> ModelContainer {
-        let schema = Schema([
-            Item.self,
-        ])
-        let persistentConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [persistentConfiguration])
-        } catch {
-            assertionFailure("Persistent ModelContainer init failed: \(error). Falling back to in-memory store.")
-            let inMemoryConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            do {
-                return try ModelContainer(for: schema, configurations: [inMemoryConfiguration])
-            } catch {
-                fatalError("Could not create in-memory ModelContainer fallback: \(error)")
-            }
-        }
-    }
-
-    var sharedModelContainer: ModelContainer = Self.makeModelContainer()
 
     init() {
         Self.registerBundledFontsIfNeeded()
@@ -50,12 +28,11 @@ struct MarkyApp: App {
                 .onAppear {
                     Self.applyAppAppearance(selectedAppearanceMode)
                 }
-                .onChange(of: appearanceModeRawValue) { _ in
+                .onChange(of: appearanceModeRawValue) {
                     Self.applyAppAppearance(selectedAppearanceMode)
                 }
                 #endif
         }
-        .modelContainer(sharedModelContainer)
         #if os(macOS)
         .windowToolbarStyle(.unified(showsTitle: true))
         #endif
@@ -110,12 +87,16 @@ struct MarkyApp: App {
             resolvedAppearance = NSAppearance(named: .darkAqua)
         }
 
+        if NSApplication.shared.appearance == resolvedAppearance {
+            return
+        }
+
         NSApplication.shared.appearance = resolvedAppearance
         for window in NSApplication.shared.windows {
-            window.appearance = resolvedAppearance
-            window.contentView?.needsLayout = true
-            window.contentView?.needsDisplay = true
-            window.invalidateShadow()
+            if window.appearance != resolvedAppearance {
+                window.appearance = resolvedAppearance
+                window.invalidateShadow()
+            }
         }
     }
     #endif

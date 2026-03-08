@@ -1,18 +1,18 @@
 import Foundation
 
-public struct FileNode: Identifiable, Hashable, Equatable {
-    public let url: URL
-    public let name: String
-    public let isDirectory: Bool
-    public var children: [FileNode]?
+public struct FileNode: Identifiable, Hashable, Equatable, Sendable {
+    public nonisolated let url: URL
+    public nonisolated let name: String
+    public nonisolated let isDirectory: Bool
+    public nonisolated var children: [FileNode]?
 
-    public var id: URL { url }
+    public nonisolated var id: URL { url }
 }
 
 public extension FileNode {
     /// Build a project tree rooted at `rootURL`, including only directories that contain
     /// markdown files (recursively) and markdown files themselves.
-    static func buildProjectTree(at rootURL: URL) -> FileNode {
+    nonisolated static func buildProjectTree(at rootURL: URL) -> FileNode {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         _ = fm.fileExists(atPath: rootURL.path, isDirectory: &isDir)
@@ -28,7 +28,7 @@ public extension FileNode {
 }
 
 private extension FileNode {
-    static func childNodes(for directoryURL: URL, visitedDirectories: inout Set<String>) -> [FileNode] {
+    nonisolated static func childNodes(for directoryURL: URL, visitedDirectories: inout Set<String>) -> [FileNode] {
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(
             at: directoryURL,
@@ -75,17 +75,17 @@ private extension FileNode {
         return nodes
     }
 
-    static func isHidden(_ url: URL) -> Bool {
+    nonisolated static func isHidden(_ url: URL) -> Bool {
         let values = try? url.resourceValues(forKeys: [.isHiddenKey])
         return values?.isHidden == true || url.lastPathComponent.hasPrefix(".")
     }
 
-    static func isMarkdownFile(_ url: URL) -> Bool {
+    nonisolated static func isMarkdownFile(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         return ["md", "markdown", "mdown", "mkd"].contains(ext)
     }
 
-    static func canonicalDirectoryPath(for url: URL) -> String {
+    nonisolated static func canonicalDirectoryPath(for url: URL) -> String {
         url.resolvingSymlinksInPath().standardizedFileURL.path
     }
 }

@@ -145,6 +145,35 @@ struct MarkyTests {
         #expect(viewModel.expandedFolderURLs.isEmpty)
     }
 
+    @MainActor
+    @Test("displayedNodes updates only from root and search query changes")
+    func displayedNodesTracksRootAndSearchQuery() {
+        let service = ThrowingProjectSessionService()
+        let viewModel = ContentViewModel(projectSessionService: service)
+
+        let readme = FileNode(url: URL(fileURLWithPath: "/tmp/README.md"), name: "README.md", isDirectory: false, children: nil)
+        let guide = FileNode(url: URL(fileURLWithPath: "/tmp/docs/GUIDE.md"), name: "GUIDE.md", isDirectory: false, children: nil)
+        let docs = FileNode(url: URL(fileURLWithPath: "/tmp/docs"), name: "docs", isDirectory: true, children: [guide])
+
+        viewModel.root = FileNode(
+            url: URL(fileURLWithPath: "/tmp/root"),
+            name: "root",
+            isDirectory: true,
+            children: [readme, docs]
+        )
+
+        #expect(viewModel.displayedNodes.count == 2)
+
+        viewModel.sidebarSearchText = "guide"
+        #expect(viewModel.displayedNodes.count == 1)
+        #expect(viewModel.displayedNodes.first?.name == "docs")
+        #expect(viewModel.displayedNodes.first?.children?.first?.name == "GUIDE.md")
+
+        let beforeSelection = viewModel.displayedNodes
+        viewModel.selectedURL = readme.url
+        #expect(viewModel.displayedNodes == beforeSelection)
+    }
+
     @Test("buildProjectTree skips symbolic-link directories to prevent recursive cycles")
     func buildProjectTreeSkipsDirectorySymlinks() throws {
         try Self.withTemporaryDirectory { root in
@@ -325,6 +354,43 @@ struct MarkyTests {
             #expect(after == "After")
         } else {
             Issue.record("Expected markdown block after code fence")
+        }
+    }
+
+    @Test("markdown content blocks prepare lightweight parsed blocks for rerendering")
+    func markdownContentBlocksPrepareLightweightBlocks() {
+        let blocks = MarkdownContentBlocks.prepare(
+            from: "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n\n```swift\nlet x = 1\n```"
+        )
+
+        #expect(blocks.count == 4)
+
+        if case .heading(let level, let source) = blocks[0].kind {
+            #expect(level == 1)
+            #expect(source == "# Title")
+        } else {
+            Issue.record("Expected heading block first")
+        }
+
+        if case .paragraph(let source) = blocks[1].kind {
+            #expect(source == "Body line 1 Body line 2")
+        } else {
+            Issue.record("Expected paragraph block second")
+        }
+
+        if case .list(let items) = blocks[2].kind {
+            #expect(items.count == 2)
+            #expect(items[0].marker == "1.")
+            #expect(items[1].marker == "•")
+            #expect(items[1].nestingLevel > items[0].nestingLevel)
+        } else {
+            Issue.record("Expected list block third")
+        }
+
+        if case .code(let source) = blocks[3].kind {
+            #expect(source == "let x = 1")
+        } else {
+            Issue.record("Expected code block fourth")
         }
     }
 

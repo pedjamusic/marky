@@ -10,10 +10,19 @@ final class ContentViewModel: ObservableObject {
         case folder
     }
 
-    @Published var root: FileNode?
+    @Published var root: FileNode? {
+        didSet {
+            rebuildDisplayedNodes()
+        }
+    }
     @Published var selectedURL: URL?
     @Published var importMode: ImportMode?
-    @Published var sidebarSearchText = ""
+    @Published var sidebarSearchText = "" {
+        didSet {
+            rebuildDisplayedNodes()
+        }
+    }
+    @Published private(set) var displayedNodes: [FileNode] = []
     @Published var sidebarListRefreshID = UUID()
     @Published private(set) var expandedFolderURLs: Set<URL> = []
     @Published var splitViewVisibility: NavigationSplitViewVisibility = .automatic
@@ -34,14 +43,6 @@ final class ContentViewModel: ObservableObject {
 
     deinit {
         securityScopedURL?.stopAccessingSecurityScopedResource()
-    }
-
-    var displayedNodes: [FileNode] {
-        guard let root else { return [] }
-        let nodes = root.children ?? []
-        let query = sidebarSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return nodes }
-        return filterNodes(nodes, query: query)
     }
 
     func requestFileImport() {
@@ -201,20 +202,6 @@ final class ContentViewModel: ObservableObject {
         }
     }
 
-    private func filterNodes(_ nodes: [FileNode], query: String) -> [FileNode] {
-        let q = query.lowercased()
-        return nodes.compactMap { node in
-            if node.isDirectory {
-                let filteredChildren = filterNodes(node.children ?? [], query: query)
-                if node.name.lowercased().contains(q) || !filteredChildren.isEmpty {
-                    return FileNode(url: node.url, name: node.name, isDirectory: true, children: filteredChildren)
-                }
-                return nil
-            }
-            return node.name.lowercased().contains(q) ? node : nil
-        }
-    }
-
     private var hasActiveSidebarSearchQuery: Bool {
         !sidebarSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -288,5 +275,39 @@ final class ContentViewModel: ObservableObject {
         expandedFolderURLs.removeAll()
         splitViewVisibility = .all
         return true
+    }
+
+    private func rebuildDisplayedNodes() {
+        guard let root else {
+            displayedNodes = []
+            return
+        }
+
+        let nodes = root.children ?? []
+        let query = normalizedSidebarSearchQuery
+        guard !query.isEmpty else {
+            displayedNodes = nodes
+            return
+        }
+        displayedNodes = filterNodes(nodes, normalizedQuery: query)
+    }
+
+    private var normalizedSidebarSearchQuery: String {
+        sidebarSearchText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .localizedLowercase
+    }
+
+    private func filterNodes(_ nodes: [FileNode], normalizedQuery query: String) -> [FileNode] {
+        nodes.compactMap { node in
+            if node.isDirectory {
+                let filteredChildren = filterNodes(node.children ?? [], normalizedQuery: query)
+                if node.name.localizedLowercase.contains(query) || !filteredChildren.isEmpty {
+                    return FileNode(url: node.url, name: node.name, isDirectory: true, children: filteredChildren)
+                }
+                return nil
+            }
+            return node.name.localizedLowercase.contains(query) ? node : nil
+        }
     }
 }
