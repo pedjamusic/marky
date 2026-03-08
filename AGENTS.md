@@ -89,6 +89,8 @@ Additional rule:
 
 ## 5. Coding Standards (Concrete)
 
+_"Simplify, then add lightness"_, Colin Chapman of Lotus - this is the core of our design philosophy.
+
 ### 5.0 Design
 
 Refer and follow to the word [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/getting-started)

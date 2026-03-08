@@ -11,6 +11,8 @@ enum MarkyTheme {
     static let green = color(oklchL: 0.78, c: 0.14, h: 144)
     static let blue = color(oklchL: 0.70, c: 0.11, h: 246)
     static let yellow = color(oklchL: 0.85, c: 0.13, h: 95)
+    static let lightBackgroundBase = color(oklchL: 0.98, c: 0.0, h: 68)
+    static let darkBackgroundBase = color(oklchL: 0.24, c: 0.0, h: 245)
 
     // Semantic tokens for a subtle sidebar gradient overlay.
     #if os(macOS)
@@ -59,11 +61,71 @@ enum MarkyTheme {
     static let launchMascotGlowColorLight: Color = .clear
     static let launchMascotGlowRadiusLight: CGFloat = 0
 
+    static func backgroundGradientColors(for colorScheme: ColorScheme) -> [Color] {
+        if colorScheme == .dark {
+            #if os(macOS)
+            return [
+                Color(nsColor: .windowBackgroundColor),
+                Color(nsColor: .textBackgroundColor).opacity(0.92)
+            ]
+            #else
+            return [
+                Color(uiColor: .systemBackground),
+                Color(uiColor: .secondarySystemBackground).opacity(0.92)
+            ]
+            #endif
+        }
+
+        #if os(macOS)
+        return [
+            Color(nsColor: nsLightBackgroundBase),
+            Color(nsColor: nsLightBackgroundBase).opacity(0.92)
+        ]
+        #else
+        return [
+            lightBackgroundBase,
+            lightBackgroundBase.opacity(0.92)
+        ]
+        #endif
+    }
+
+    static func settingsBackgroundColor(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? darkBackgroundBase : lightBackgroundBase
+    }
+
     #if os(macOS)
     static let nsRed = nsColor(oklchL: 0.66, c: 0.16, h: 22)
     static let nsYellow = nsColor(oklchL: 0.85, c: 0.13, h: 95)
     static let nsGreen = nsColor(oklchL: 0.78, c: 0.14, h: 144)
     static let nsBlue = nsColor(oklchL: 0.70, c: 0.11, h: 246)
+    static let nsLightBackgroundBase = nsColor(oklchL: 0.98, c: 0.0, h: 68)
+    static let nsDarkBackgroundBase = nsColor(oklchL: 0.24, c: 0.0, h: 245)
+
+    static func settingsBackgroundColor(for colorScheme: ColorScheme) -> NSColor {
+        colorScheme == .dark ? nsDarkBackgroundBase : nsLightBackgroundBase
+    }
+
+    static func windowChromeStyle(
+        for role: MarkyWindowChromeRole,
+        colorScheme: ColorScheme
+    ) -> MarkyWindowChromeStyle {
+        switch role {
+        case .app:
+            return MarkyWindowChromeStyle(
+                backgroundColor: colorScheme == .dark ? nsDarkBackgroundBase : nsLightBackgroundBase,
+                toolbarBackgroundVisibility: .hidden,
+                titlebarAppearsTransparent: true,
+                showsToolbarBaselineSeparator: false
+            )
+        case .settings:
+            return MarkyWindowChromeStyle(
+                backgroundColor: settingsBackgroundColor(for: colorScheme),
+                toolbarBackgroundVisibility: .hidden,
+                titlebarAppearsTransparent: true,
+                showsToolbarBaselineSeparator: false
+            )
+        }
+    }
     #endif
 
     private struct SRGBColor {

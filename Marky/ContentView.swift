@@ -101,10 +101,7 @@ struct ContentView: View {
             if viewModel.root == nil {
                 ZStack {
                     LinearGradient(
-                        colors: [
-                            Color(nsColor: .windowBackgroundColor),
-                            Color(nsColor: .textBackgroundColor).opacity(0.92)
-                        ],
+                        colors: MarkyTheme.backgroundGradientColors(for: colorScheme),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -237,10 +234,7 @@ struct ContentView: View {
                         } else {
                             ZStack {
                                 LinearGradient(
-                                    colors: [
-                                        Color(nsColor: .windowBackgroundColor),
-                                        Color(nsColor: .textBackgroundColor).opacity(0.92)
-                                    ],
+                                    colors: MarkyTheme.backgroundGradientColors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -256,7 +250,7 @@ struct ContentView: View {
             }
         }
         #if os(macOS)
-        .toolbarBackground(.hidden, for: .windowToolbar)
+        .markyWindowChrome(.app, colorScheme: colorScheme)
         #endif
         .tint(MarkyTheme.blue)
         .alert("Error", isPresented: isErrorPresented) {

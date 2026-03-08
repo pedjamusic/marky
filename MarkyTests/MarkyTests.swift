@@ -432,6 +432,14 @@ struct MarkyTests {
             Issue.record("Expected quote block fourth")
         }
     }
+
+    @Test("light background token matches requested neutral OKLCH surface")
+    func lightBackgroundTokenMatchesRequestedSurface() throws {
+        let color = try #require(MarkyTheme.nsLightBackgroundBase.usingColorSpace(.sRGB))
+        #expect(abs(color.redComponent - 0.97369) < 0.0001)
+        #expect(abs(color.greenComponent - 0.97369) < 0.0001)
+        #expect(abs(color.blueComponent - 0.97369) < 0.0001)
+    }
     #endif
 
     private static func withTemporaryDirectory(_ body: (URL) throws -> Void) throws {

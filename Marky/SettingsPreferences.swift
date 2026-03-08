@@ -38,6 +38,7 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
 
 #if os(macOS)
 struct MarkySettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage(AppPreferenceKeys.appearanceMode)
     private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
@@ -93,6 +94,9 @@ struct MarkySettingsView: View {
             }
             .pickerStyle(.menu)
         }
+        .scrollContentBackground(.hidden)
+        .background(MarkyTheme.settingsBackgroundColor(for: colorScheme))
+        .markyWindowChrome(.settings, colorScheme: colorScheme)
         .padding(16)
         .frame(width: 420)
     }

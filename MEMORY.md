@@ -1,5 +1,44 @@
 # MEMORY
 
+## 2026-03-08 Window Chrome Consistency Pass
+
+- Active branch during implementation: `codex/light-bg-oklch`
+- Completed a focused window-chrome and background-token pass to make launch, main, and Settings windows visually consistent across Light and Dark appearance.
+
+## What Landed
+
+- Introduced shared light/dark surface tokens in [Theme.swift](/Users/pedja/Projects/Marky/Marky/Marky/Theme.swift).
+- Added a reusable macOS window chrome abstraction in [WindowChrome.swift](/Users/pedja/Projects/Marky/Marky/WindowChrome.swift) so window background color, toolbar background visibility, title bar transparency, and separator behavior are configured in one place.
+- Migrated the Settings window to the shared chrome path first, validated it manually, then migrated the main app window in a separate follow-up increment.
+- Updated the launch surface, empty-detail surface, and markdown reader canvas to consume shared background tokens instead of repeating system-color gradients inline.
+- Added a test that locks the requested light surface token to the expected rendered sRGB value.
+
+## Manual Validation Outcome
+
+- Manual validation in this session passed for:
+  - Settings window in Dark mode
+  - launch window in Dark mode
+  - main app window in Dark mode
+  - Settings window in Light mode
+  - launch window in Light mode
+  - main app window in Light mode
+- Validation explicitly included focus/unfocus and dragging behavior because title bar chrome had been regressing during window state changes.
+
+## Settled Window Model
+
+- Launch and main are not separate windows in this app.
+- They are two content states inside the same main `WindowGroup` window:
+  - launch state when `root == nil`
+  - main reader/split-view state when a project is open
+- Settings remains a separate scene/window and now consumes the same shared chrome style system.
+
+## Guardrails
+
+- Keep window chrome policy centralized in shared theme/chrome primitives; avoid reintroducing per-window AppKit patches when a role-based style can express the difference.
+- If future regressions appear, the safest rollback boundary from this session is:
+  - keep Settings on shared chrome
+  - revert only the app-window migration increment if needed
+
 ## 2026-03-08 Performance + Memory Audit
 
 - Active branch during implementation: `codex/perf-memory-audit-pass`

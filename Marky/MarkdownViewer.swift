@@ -462,10 +462,7 @@ struct MarkdownViewer: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .textBackgroundColor).opacity(0.92)
-                ],
+                colors: MarkyTheme.backgroundGradientColors(for: colorScheme),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
