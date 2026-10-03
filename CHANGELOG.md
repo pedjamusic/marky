@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] - 2026-03-08
+
+- Added a project-scoped Favorites feature for markdown files, including sidebar starring, a dedicated Favorites section, and per-project persistence using relative file paths under the opened root.
+- Integrated custom favorite-star artwork into the asset catalog and used it as the active favorite marker in the sidebar.
+- Added unit coverage for favorite persistence/restore and favorites-section search behavior.
+
 ## [0.2.0] - 2026-03-07
 
 - Completed the first markdown typography system pass with three reader modes: All System, Serif Headings + System Body, and System Headings + Serif Body.

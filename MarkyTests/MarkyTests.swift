@@ -35,6 +35,22 @@ struct MarkyTests {
         func clearBookmark() {}
     }
 
+    private final class InMemoryFavoritesStore: ProjectFavoritesStoring {
+        var favoritesByProject: [String: [String]] = [:]
+
+        func favoriteRelativePaths(for projectURL: URL) -> [String] {
+            favoritesByProject[projectURL.standardizedFileURL.path] ?? []
+        }
+
+        func saveFavoriteRelativePaths(_ relativePaths: [String], for projectURL: URL) {
+            favoritesByProject[projectURL.standardizedFileURL.path] = relativePaths
+        }
+
+        func clearFavorites(for projectURL: URL) {
+            favoritesByProject.removeValue(forKey: projectURL.standardizedFileURL.path)
+        }
+    }
+
     @Test("buildProjectTree keeps markdown files and directories that contain them")
     func buildProjectTreeFiltersNonMarkdownFiles() throws {
         try Self.withTemporaryDirectory { root in
@@ -146,6 +162,28 @@ struct MarkyTests {
     }
 
     @MainActor
+    @Test("sidebar sections can collapse and expand independently")
+    func sidebarSectionsToggleIndependently() {
+        let service = ThrowingProjectSessionService()
+        let viewModel = ContentViewModel(projectSessionService: service)
+
+        #expect(viewModel.isSidebarSectionCollapsed(.favorites) == false)
+        #expect(viewModel.isSidebarSectionCollapsed(.files) == false)
+
+        viewModel.toggleSidebarSection(.favorites)
+        #expect(viewModel.isSidebarSectionCollapsed(.favorites) == true)
+        #expect(viewModel.isSidebarSectionCollapsed(.files) == false)
+
+        viewModel.toggleSidebarSection(.files)
+        #expect(viewModel.isSidebarSectionCollapsed(.favorites) == true)
+        #expect(viewModel.isSidebarSectionCollapsed(.files) == true)
+
+        viewModel.toggleSidebarSection(.favorites)
+        #expect(viewModel.isSidebarSectionCollapsed(.favorites) == false)
+        #expect(viewModel.isSidebarSectionCollapsed(.files) == true)
+    }
+
+    @MainActor
     @Test("displayedNodes updates only from root and search query changes")
     func displayedNodesTracksRootAndSearchQuery() {
         let service = ThrowingProjectSessionService()
@@ -172,6 +210,97 @@ struct MarkyTests {
         let beforeSelection = viewModel.displayedNodes
         viewModel.selectedURL = readme.url
         #expect(viewModel.displayedNodes == beforeSelection)
+    }
+
+    @MainActor
+    @Test("favorites persist as project-relative paths and restore for reopened project")
+    func favoritesPersistAndRestoreForProject() throws {
+        let service = ThrowingProjectSessionService()
+        let favoritesStore = InMemoryFavoritesStore()
+
+        try Self.withTemporaryDirectory { root in
+            let docs = root.appendingPathComponent("docs", isDirectory: true)
+            try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
+
+            let readme = root.appendingPathComponent("README.md")
+            let guide = docs.appendingPathComponent("GUIDE.md")
+            try "# Readme".write(to: readme, atomically: true, encoding: .utf8)
+            try "# Guide".write(to: guide, atomically: true, encoding: .utf8)
+
+            let firstViewModel = ContentViewModel(projectSessionService: service, favoritesStore: favoritesStore)
+            firstViewModel.openPickedFolder(root)
+
+            let readmeNode = firstViewModel.displayedNodes.first(where: { $0.url == readme })
+            #expect(readmeNode != nil)
+            if let readmeNode {
+                firstViewModel.toggleFavorite(for: readmeNode)
+            }
+
+            #expect(favoritesStore.favoriteRelativePaths(for: root) == ["README.md"])
+
+            let restoredViewModel = ContentViewModel(projectSessionService: service, favoritesStore: favoritesStore)
+            restoredViewModel.openPickedFolder(root)
+
+            #expect(restoredViewModel.favoriteFileURLs.contains(readme))
+            #expect(restoredViewModel.displayedSections.first?.title == "Favorites")
+            #expect(restoredViewModel.displayedSections.first?.nodes.map(\.url) == [readme])
+
+            if let restoredReadme = restoredViewModel.displayedSections.first?.nodes.first {
+                restoredViewModel.toggleFavorite(for: restoredReadme)
+            }
+
+            #expect(restoredViewModel.favoriteFileURLs.isEmpty)
+            #expect(restoredViewModel.displayedSections.first?.nodes.isEmpty == true)
+            #expect(favoritesStore.favoriteRelativePaths(for: root).isEmpty)
+        }
+    }
+
+    @MainActor
+    @Test("missing favorite files are removed from persisted project favorites")
+    func missingFavoritesArePrunedWhenProjectOpens() throws {
+        let service = ThrowingProjectSessionService()
+        let favoritesStore = InMemoryFavoritesStore()
+
+        try Self.withTemporaryDirectory { root in
+            let readme = root.appendingPathComponent("README.md")
+            try "# Readme".write(to: readme, atomically: true, encoding: .utf8)
+            favoritesStore.saveFavoriteRelativePaths(["README.md", "REMOVED.md"], for: root)
+
+            let viewModel = ContentViewModel(projectSessionService: service, favoritesStore: favoritesStore)
+            viewModel.openPickedFolder(root)
+
+            #expect(viewModel.favoriteFileURLs == [readme])
+            #expect(favoritesStore.favoriteRelativePaths(for: root) == ["README.md"])
+        }
+    }
+
+    @MainActor
+    @Test("favorites section remains visible and filters by search query")
+    func favoritesSectionRemainsVisibleAndFiltersBySearch() throws {
+        let service = ThrowingProjectSessionService()
+        let favoritesStore = InMemoryFavoritesStore()
+
+        try Self.withTemporaryDirectory { root in
+            let guide = root.appendingPathComponent("GUIDE.md")
+            let notes = root.appendingPathComponent("NOTES.md")
+            try "# Guide".write(to: guide, atomically: true, encoding: .utf8)
+            try "# Notes".write(to: notes, atomically: true, encoding: .utf8)
+
+            favoritesStore.saveFavoriteRelativePaths(["GUIDE.md"], for: root)
+
+            let viewModel = ContentViewModel(projectSessionService: service, favoritesStore: favoritesStore)
+            viewModel.openPickedFolder(root)
+
+            #expect(viewModel.displayedSections.map(\.title) == ["Favorites", "Files"])
+            #expect(viewModel.displayedSections[0].nodes.map(\.url) == [guide])
+
+            viewModel.sidebarSearchText = "notes"
+
+            #expect(viewModel.displayedSections[0].title == "Favorites")
+            #expect(viewModel.displayedSections[0].nodes.isEmpty)
+            #expect(viewModel.displayedSections[1].nodes.count == 1)
+            #expect(viewModel.displayedSections[1].nodes.first?.url == notes)
+        }
     }
 
     @Test("buildProjectTree skips symbolic-link directories to prevent recursive cycles")
@@ -433,6 +562,7 @@ struct MarkyTests {
         }
     }
 
+    @MainActor
     @Test("light background token matches requested neutral OKLCH surface")
     func lightBackgroundTokenMatchesRequestedSurface() throws {
         let color = try #require(MarkyTheme.nsLightBackgroundBase.usingColorSpace(.sRGB))

@@ -5,6 +5,19 @@ import Combine
 
 @MainActor
 final class ContentViewModel: ObservableObject {
+    struct SidebarSection: Identifiable, Equatable {
+        enum Kind: String, Equatable, Hashable {
+            case favorites
+            case files
+        }
+
+        let kind: Kind
+        let title: String
+        let nodes: [FileNode]
+
+        var id: Kind { kind }
+    }
+
     enum ImportMode {
         case file
         case folder
@@ -23,13 +36,17 @@ final class ContentViewModel: ObservableObject {
         }
     }
     @Published private(set) var displayedNodes: [FileNode] = []
+    @Published private(set) var displayedSections: [SidebarSection] = []
     @Published var sidebarListRefreshID = UUID()
     @Published private(set) var expandedFolderURLs: Set<URL> = []
+    @Published private(set) var collapsedSectionKinds: Set<SidebarSection.Kind> = []
     @Published var splitViewVisibility: NavigationSplitViewVisibility = .automatic
     @Published var errorMessage: String?
+    @Published private(set) var favoriteFileURLs: Set<URL> = []
 
     private var securityScopedURL: URL?
     private let projectSessionService: ProjectSessionServicing
+    private let favoritesStore: ProjectFavoritesStoring
 
     static let markdownFileTypes: [UTType] = {
         var types = ["md", "markdown", "mdown", "mkd"].compactMap { UTType(filenameExtension: $0) }
@@ -37,8 +54,12 @@ final class ContentViewModel: ObservableObject {
         return types
     }()
 
-    init(projectSessionService: ProjectSessionServicing? = nil) {
+    init(
+        projectSessionService: ProjectSessionServicing? = nil,
+        favoritesStore: ProjectFavoritesStoring? = nil
+    ) {
         self.projectSessionService = projectSessionService ?? ProjectSessionService()
+        self.favoritesStore = favoritesStore ?? ProjectFavoritesStore()
     }
 
     deinit {
@@ -73,15 +94,14 @@ final class ContentViewModel: ObservableObject {
                 let values = try restored.url.resourceValues(forKeys: [.isDirectoryKey])
                 if values.isDirectory == true {
                     root = FileNode.buildProjectTree(at: restored.url)
+                    finishOpeningProject(selectedFileURL: nil)
                 } else {
                     let parent = restored.url.deletingLastPathComponent()
                     root = FileNode(url: parent, name: parent.lastPathComponent, isDirectory: true, children: [
                         FileNode(url: restored.url, name: restored.url.lastPathComponent, isDirectory: false, children: nil)
                     ])
-                    selectedURL = restored.url
+                    finishOpeningProject(selectedFileURL: restored.url)
                 }
-                expandedFolderURLs.removeAll()
-                splitViewVisibility = .all
                 if restored.isStale {
                     try projectSessionService.saveBookmark(for: restored.url)
                 }
@@ -101,6 +121,7 @@ final class ContentViewModel: ObservableObject {
         selectedURL = nil
         root = nil
         expandedFolderURLs.removeAll()
+        favoriteFileURLs.removeAll()
     }
 
     func openPickedFile(_ fileURL: URL) {
@@ -113,8 +134,7 @@ final class ContentViewModel: ObservableObject {
             persistBookmarkOrReportError(for: folderURL)
             root = FileNode.buildProjectTree(at: folderURL)
             selectedURL = fileURL
-            expandedFolderURLs.removeAll()
-            splitViewVisibility = .all
+            finishOpeningProject(selectedFileURL: fileURL)
             return
         }
 
@@ -127,8 +147,7 @@ final class ContentViewModel: ObservableObject {
             FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
         ])
         selectedURL = fileURL
-        expandedFolderURLs.removeAll()
-        splitViewVisibility = .all
+        finishOpeningProject(selectedFileURL: fileURL)
     }
 
     func openPickedFolder(_ folderURL: URL) {
@@ -140,8 +159,7 @@ final class ContentViewModel: ObservableObject {
         persistBookmarkOrReportError(for: folderURL)
         root = FileNode.buildProjectTree(at: folderURL)
         selectedURL = nil
-        expandedFolderURLs.removeAll()
-        splitViewVisibility = .all
+        finishOpeningProject(selectedFileURL: nil)
     }
 
     func handlePickedURL(_ pickedURL: URL, mode: ImportMode) {
@@ -171,6 +189,18 @@ final class ContentViewModel: ObservableObject {
         sidebarListRefreshID = UUID()
     }
 
+    func toggleSidebarSection(_ kind: SidebarSection.Kind) {
+        if collapsedSectionKinds.contains(kind) {
+            collapsedSectionKinds.remove(kind)
+        } else {
+            collapsedSectionKinds.insert(kind)
+        }
+    }
+
+    func isSidebarSectionCollapsed(_ kind: SidebarSection.Kind) -> Bool {
+        collapsedSectionKinds.contains(kind)
+    }
+
     func selectNode(_ node: FileNode) {
         guard !node.isDirectory else {
             toggleFolderExpansion(node)
@@ -193,6 +223,27 @@ final class ContentViewModel: ObservableObject {
 
     func toggleFolderExpansion(for node: FileNode) {
         toggleFolderExpansion(node)
+    }
+
+    func setFolderExpansion(for node: FileNode, isExpanded: Bool) {
+        setFolder(node, expanded: isExpanded)
+    }
+
+    func toggleFavorite(for node: FileNode) {
+        guard !node.isDirectory, let root else { return }
+
+        if favoriteFileURLs.contains(node.url) {
+            favoriteFileURLs.remove(node.url)
+        } else {
+            favoriteFileURLs.insert(node.url)
+        }
+
+        persistFavorites(for: root)
+        rebuildDisplayedNodes()
+    }
+
+    func isFavorite(_ node: FileNode) -> Bool {
+        favoriteFileURLs.contains(node.url)
     }
 
     private func stopCurrentSecurityScopeIfNeeded() {
@@ -240,6 +291,40 @@ final class ContentViewModel: ObservableObject {
         }
     }
 
+    private func finishOpeningProject(selectedFileURL: URL?) {
+        self.selectedURL = selectedFileURL
+        expandedFolderURLs.removeAll()
+        splitViewVisibility = .all
+        reloadFavoritesForCurrentProject()
+    }
+
+    private func reloadFavoritesForCurrentProject() {
+        guard let root else {
+            favoriteFileURLs.removeAll()
+            return
+        }
+
+        let allFilesByRelativePath = fileNodesByRelativePath(in: root)
+        let storedPaths = favoritesStore.favoriteRelativePaths(for: root.url)
+        favoriteFileURLs = Set(
+            storedPaths.compactMap { allFilesByRelativePath[$0]?.url }
+        )
+        persistFavorites(for: root)
+        rebuildDisplayedNodes()
+    }
+
+    private func persistFavorites(for root: FileNode) {
+        let relativePaths = favoriteFileURLs
+            .compactMap { relativePath(for: $0, in: root.url) }
+            .sorted()
+
+        if relativePaths.isEmpty {
+            favoritesStore.clearFavorites(for: root.url)
+        } else {
+            favoritesStore.saveFavoriteRelativePaths(relativePaths, for: root.url)
+        }
+    }
+
     private func userSafeErrorMessage(for error: Error) -> String {
         switch error {
         case ProjectSessionError.bookmarkEncodingFailed:
@@ -280,16 +365,20 @@ final class ContentViewModel: ObservableObject {
     private func rebuildDisplayedNodes() {
         guard let root else {
             displayedNodes = []
+            displayedSections = []
             return
         }
 
-        let nodes = root.children ?? []
         let query = normalizedSidebarSearchQuery
-        guard !query.isEmpty else {
-            displayedNodes = nodes
-            return
-        }
-        displayedNodes = filterNodes(nodes, normalizedQuery: query)
+        let nodes = root.children ?? []
+        let filteredNodes = query.isEmpty ? nodes : filterNodes(nodes, normalizedQuery: query)
+        displayedNodes = filteredNodes
+
+        let favoriteNodes = displayedFavoriteNodes(in: root, normalizedQuery: query)
+        displayedSections = [
+            SidebarSection(kind: .favorites, title: "Favorites", nodes: favoriteNodes),
+            SidebarSection(kind: .files, title: "Files", nodes: filteredNodes)
+        ]
     }
 
     private var normalizedSidebarSearchQuery: String {
@@ -309,5 +398,66 @@ final class ContentViewModel: ObservableObject {
             }
             return node.name.localizedLowercase.contains(query) ? node : nil
         }
+    }
+
+    private func displayedFavoriteNodes(in root: FileNode, normalizedQuery query: String) -> [FileNode] {
+        fileNodesByRelativePath(in: root)
+            .values
+            .filter { favoriteFileURLs.contains($0.url) }
+            .filter { query.isEmpty || favoriteMatchesQuery($0, normalizedQuery: query, rootURL: root.url) }
+            .sorted { lhs, rhs in
+                let nameComparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+                if nameComparison != .orderedSame {
+                    return nameComparison == .orderedAscending
+                }
+
+                let lhsPath = relativePath(for: lhs.url, in: root.url) ?? lhs.url.path
+                let rhsPath = relativePath(for: rhs.url, in: root.url) ?? rhs.url.path
+                return lhsPath.localizedCaseInsensitiveCompare(rhsPath) == .orderedAscending
+            }
+    }
+
+    private func favoriteMatchesQuery(_ node: FileNode, normalizedQuery query: String, rootURL: URL) -> Bool {
+        if node.name.localizedLowercase.contains(query) {
+            return true
+        }
+
+        guard let relativePath = relativePath(for: node.url, in: rootURL) else {
+            return false
+        }
+        return relativePath.localizedLowercase.contains(query)
+    }
+
+    private func fileNodesByRelativePath(in root: FileNode) -> [String: FileNode] {
+        var nodesByPath: [String: FileNode] = [:]
+        for fileNode in flattenedFileNodes(in: root.children ?? []) {
+            guard let relativePath = relativePath(for: fileNode.url, in: root.url) else { continue }
+            nodesByPath[relativePath] = fileNode
+        }
+        return nodesByPath
+    }
+
+    private func flattenedFileNodes(in nodes: [FileNode]) -> [FileNode] {
+        nodes.flatMap { node in
+            if node.isDirectory {
+                return flattenedFileNodes(in: node.children ?? [])
+            }
+            return [node]
+        }
+    }
+
+    private func relativePath(for fileURL: URL, in rootURL: URL) -> String? {
+        let rootPath = rootURL.standardizedFileURL.path
+        let filePath = fileURL.standardizedFileURL.path
+
+        guard filePath == rootPath || filePath.hasPrefix(rootPath + "/") else {
+            return nil
+        }
+
+        if filePath == rootPath {
+            return fileURL.lastPathComponent
+        }
+
+        return String(filePath.dropFirst(rootPath.count + 1))
     }
 }

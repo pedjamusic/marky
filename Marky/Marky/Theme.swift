@@ -51,6 +51,15 @@ enum MarkyTheme {
     static let sidebarControlsIconColor: Color = .secondary
     static let sidebarControlsTint: Color = .primary
     static let sidebarSearchBackgroundMaterial: Material = .regularMaterial
+    static let favoriteStarIconSize: CGFloat = 14
+    static let favoriteFilledStarContentScale: CGFloat = 1.45
+    static let sidebarSectionAccessoryTrailingInset: CGFloat = 14
+    static let sidebarListItemVerticalPadding: CGFloat = 8
+    static let sidebarFilesOutlineRowHeight: CGFloat = 20
+    static let sidebarFilesOutlineRowSpacing: CGFloat = 1
+    static let sidebarFilesOutlineLeadingInset: CGFloat = 6
+    static let sidebarFilesOutlineIndentPerLevel: CGFloat = 14
+    static let sidebarFilesOutlineDisclosureWidth: CGFloat = 10
 
     // Brand typography tokens
     static let wordmarkFontName = "Fraunces"

@@ -96,6 +96,87 @@ struct ContentView: View {
         viewModel.importMode == .folder ? [.folder] : ContentViewModel.markdownFileTypes
     }
 
+    private var favoritesSidebarSection: ContentViewModel.SidebarSection {
+        viewModel.displayedSections.first(where: { $0.kind == .favorites })
+            ?? ContentViewModel.SidebarSection(kind: .favorites, title: "Favorites", nodes: [])
+    }
+
+    private var filesSidebarSection: ContentViewModel.SidebarSection {
+        viewModel.displayedSections.first(where: { $0.kind == .files })
+            ?? ContentViewModel.SidebarSection(kind: .files, title: "Files", nodes: [])
+    }
+
+    private var isSidebarSearchActive: Bool {
+        !viewModel.sidebarSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @ViewBuilder
+    private var macSidebarSections: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SidebarSectionHeader(
+                section: favoritesSidebarSection,
+                isCollapsed: viewModel.isSidebarSectionCollapsed(.favorites),
+                sidebarListRefreshID: viewModel.sidebarListRefreshID,
+                onToggleSection: viewModel.toggleSidebarSection,
+                onCollapseFolders: viewModel.collapseAllSidebarFolders
+            )
+            .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+
+            if !viewModel.isSidebarSectionCollapsed(.favorites) {
+                if favoritesSidebarSection.nodes.isEmpty {
+                    Text("Star files to keep them close at hand.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+                        .padding(.vertical, MarkyTheme.sidebarListItemVerticalPadding)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(favoritesSidebarSection.nodes) { node in
+                            SidebarNodeRow(
+                                node: node,
+                                expansionBinding: viewModel.folderExpansionBinding(for:),
+                                onToggleFolder: viewModel.toggleFolderExpansion(for:),
+                                title: sidebarNodeTitle(for:),
+                                onSelectNode: viewModel.selectNode,
+                                isFavorite: viewModel.isFavorite,
+                                onToggleFavorite: viewModel.toggleFavorite(for:)
+                            )
+                            .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+                        }
+                    }
+                }
+            }
+
+            SidebarSectionHeader(
+                section: filesSidebarSection,
+                isCollapsed: viewModel.isSidebarSectionCollapsed(.files),
+                sidebarListRefreshID: viewModel.sidebarListRefreshID,
+                onToggleSection: viewModel.toggleSidebarSection,
+                onCollapseFolders: viewModel.collapseAllSidebarFolders
+            )
+            .padding(.top, MarkyTheme.sidebarControlRowSpacing)
+            .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+
+            if viewModel.isSidebarSectionCollapsed(.files) {
+                Spacer(minLength: 0)
+            } else {
+                FilesOutlineView(
+                    nodes: filesSidebarSection.nodes,
+                    selectedURL: viewModel.selectedURL,
+                    expandedFolderURLs: viewModel.expandedFolderURLs,
+                    favoriteFileURLs: viewModel.favoriteFileURLs,
+                    expandAllFolders: isSidebarSearchActive,
+                    onSelectNode: viewModel.selectNode,
+                    onSetFolderExpanded: viewModel.setFolderExpansion(for:isExpanded:),
+                    onToggleFavorite: viewModel.toggleFavorite(for:)
+                )
+                .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
     var body: some View {
         Group {
             if viewModel.root == nil {
@@ -166,35 +247,49 @@ struct ContentView: View {
                                 MarkyTheme.sidebarSearchBackgroundMaterial,
                                 in: RoundedRectangle(cornerRadius: MarkyTheme.sidebarSearchCornerRadius, style: .continuous)
                             )
-
-                            Button {
-                                viewModel.collapseAllSidebarFolders()
-                            } label: {
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
-                            }
-                            .buttonStyle(.borderless)
-                            .tint(MarkyTheme.sidebarControlsTint)
-                            .help("Collapse Folders")
-                            .accessibilityIdentifier("collapse-folders-button")
-                            .accessibilityValue(viewModel.sidebarListRefreshID.uuidString)
                         }
                         .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
                         .padding(.top, MarkyTheme.sidebarControlsTopPadding)
 
+                        #if os(macOS)
+                        macSidebarSections
+                        #else
                         List {
-                            ForEach(viewModel.displayedNodes) { node in
-                                SidebarNodeRow(
-                                    node: node,
-                                    expansionBinding: viewModel.folderExpansionBinding(for:),
-                                    onToggleFolder: viewModel.toggleFolderExpansion(for:),
-                                    title: sidebarNodeTitle(for:),
-                                    onSelectNode: viewModel.selectNode
-                                )
+                            ForEach(viewModel.displayedSections) { section in
+                                Section {
+                                    if viewModel.isSidebarSectionCollapsed(section.kind) {
+                                        EmptyView()
+                                    } else if section.kind == .favorites && section.nodes.isEmpty {
+                                        Text("Star files to keep them close at hand.")
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        ForEach(section.nodes) { node in
+                                            SidebarNodeRow(
+                                                node: node,
+                                                expansionBinding: viewModel.folderExpansionBinding(for:),
+                                                onToggleFolder: viewModel.toggleFolderExpansion(for:),
+                                                title: sidebarNodeTitle(for:),
+                                                onSelectNode: viewModel.selectNode,
+                                                isFavorite: viewModel.isFavorite,
+                                                onToggleFavorite: viewModel.toggleFavorite(for:)
+                                            )
+                                        }
+                                    }
+                                } header: {
+                                    SidebarSectionHeader(
+                                        section: section,
+                                        isCollapsed: viewModel.isSidebarSectionCollapsed(section.kind),
+                                        sidebarListRefreshID: viewModel.sidebarListRefreshID,
+                                        onToggleSection: viewModel.toggleSidebarSection,
+                                        onCollapseFolders: viewModel.collapseAllSidebarFolders
+                                    )
+                                }
                             }
                         }
                         .id(viewModel.sidebarListRefreshID)
                         .listStyle(.sidebar)
+                        #endif
                     }
                     .overlay {
                         SidebarGradientOverlay()
@@ -277,6 +372,10 @@ private struct SidebarNodeRow<Title: View>: View {
     let onToggleFolder: (FileNode) -> Void
     let title: (FileNode) -> Title
     let onSelectNode: (FileNode) -> Void
+    let isFavorite: (FileNode) -> Bool
+    let onToggleFavorite: (FileNode) -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
         if node.isDirectory {
@@ -287,7 +386,9 @@ private struct SidebarNodeRow<Title: View>: View {
                         expansionBinding: expansionBinding,
                         onToggleFolder: onToggleFolder,
                         title: title,
-                        onSelectNode: onSelectNode
+                        onSelectNode: onSelectNode,
+                        isFavorite: isFavorite,
+                        onToggleFavorite: onToggleFavorite
                     )
                 }
             } label: {
@@ -298,6 +399,7 @@ private struct SidebarNodeRow<Title: View>: View {
                     title(node)
                     Spacer(minLength: 0)
                 }
+                .padding(.vertical, MarkyTheme.sidebarListItemVerticalPadding)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     onToggleFolder(node)
@@ -310,10 +412,89 @@ private struct SidebarNodeRow<Title: View>: View {
                     .foregroundStyle(.secondary)
                 title(node)
                 Spacer(minLength: 0)
+                Button {
+                    onToggleFavorite(node)
+                } label: {
+                    FavoriteStarIcon(isFilled: isFavorite(node))
+                        .foregroundStyle(.secondary)
+                }
+                .opacity(isHovered || isFavorite(node) ? 1 : 0)
+                .buttonStyle(.plain)
+                .help(isFavorite(node) ? "Remove from Favorites" : "Add to Favorites")
+                .accessibilityLabel(isFavorite(node) ? "Remove from Favorites" : "Add to Favorites")
+            }
+            .padding(.vertical, MarkyTheme.sidebarListItemVerticalPadding)
+            .onHover { hovered in
+                isHovered = hovered
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 onSelectNode(node)
+            }
+        }
+    }
+}
+
+private struct FavoriteStarIcon: View {
+    let isFilled: Bool
+
+    var body: some View {
+        Group {
+            if isFilled {
+                Image("FavoriteStar")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .scaleEffect(MarkyTheme.favoriteFilledStarContentScale)
+                    .clipped()
+            } else {
+                Image(systemName: "star")
+                    .symbolRenderingMode(.hierarchical)
+            }
+        }
+        .frame(width: MarkyTheme.favoriteStarIconSize, height: MarkyTheme.favoriteStarIconSize)
+    }
+}
+
+private struct SidebarSectionHeader: View {
+    let section: ContentViewModel.SidebarSection
+    let isCollapsed: Bool
+    let sidebarListRefreshID: UUID
+    let onToggleSection: (ContentViewModel.SidebarSection.Kind) -> Void
+    let onCollapseFolders: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button {
+                onToggleSection(section.kind)
+            } label: {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
+                    .frame(width: 12, height: 12)
+            }
+            .buttonStyle(.plain)
+            .help(isCollapsed ? "Expand \(section.title)" : "Collapse \(section.title)")
+            .accessibilityIdentifier("\(section.kind.rawValue)-section-toggle")
+
+            Text(section.title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            if section.kind == .files {
+                Spacer(minLength: 0)
+                Button {
+                    onCollapseFolders()
+                } label: {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
+                }
+                .buttonStyle(.plain)
+                .help("Collapse Folders")
+                .accessibilityIdentifier("collapse-folders-button")
+                .accessibilityValue(sidebarListRefreshID.uuidString)
+                .frame(width: MarkyTheme.favoriteStarIconSize, alignment: .center)
+                .padding(.trailing, MarkyTheme.sidebarSectionAccessoryTrailingInset)
             }
         }
     }

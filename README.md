@@ -6,6 +6,7 @@ Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder
 
 - Open a single Markdown file or an entire folder from disk.
 - Sidebar tree navigation with search and folder/file icons.
+- Project-scoped Favorites section in the sidebar, with one-click starring for frequently visited markdown files.
 - Sidebar rows behave as full-width tappable blocks for easier file selection.
 - Folder rows in the sidebar toggle expand/collapse when clicked (not only via disclosure icon).
 - Active file is highlighted in theme blue with bold text while preserving native macOS text rendering.
