@@ -133,8 +133,8 @@ final class SidebarOutlineRowView: NSTableCellView {
             favoriteButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleField.trailingAnchor, constant: MarkyTheme.sidebarRowSpacing),
             favoriteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MarkyTheme.sidebarRowTrailingInset),
             favoriteButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            favoriteButton.widthAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize),
-            favoriteButton.heightAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize)
+            favoriteButton.widthAnchor.constraint(equalToConstant: MarkyTheme.favoriteStarIconSize),
+            favoriteButton.heightAnchor.constraint(equalToConstant: MarkyTheme.favoriteStarIconSize)
         ])
     }
 
@@ -174,31 +174,27 @@ final class SidebarOutlineRowView: NSTableCellView {
     }()
 
     private static let filledFavoriteStarImage: NSImage? = {
-        guard let sourceImage = NSImage(named: "FavoriteStar") else { return nil }
-
         let canvasSize = NSSize(
             width: MarkyTheme.favoriteStarIconSize,
             height: MarkyTheme.favoriteStarIconSize
         )
-        let scaledSize = NSSize(
-            width: canvasSize.width * MarkyTheme.favoriteFilledStarContentScale,
-            height: canvasSize.height * MarkyTheme.favoriteFilledStarContentScale
+        let attributedString = NSAttributedString(
+            string: "⭐",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: MarkyTheme.favoriteStarGlyphSize)
+            ]
         )
+        let stringSize = attributedString.size()
         let image = NSImage(size: canvasSize)
         image.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        sourceImage.draw(
-            in: NSRect(
-                x: (canvasSize.width - scaledSize.width) / 2,
-                y: (canvasSize.height - scaledSize.height) / 2,
-                width: scaledSize.width,
-                height: scaledSize.height
-            ),
-            from: NSRect(origin: .zero, size: sourceImage.size),
-            operation: .sourceOver,
-            fraction: 1
+        attributedString.draw(
+            at: NSPoint(
+                x: (canvasSize.width - stringSize.width) / 2,
+                y: (canvasSize.height - stringSize.height) / 2
+            )
         )
         image.unlockFocus()
+        image.isTemplate = false
         return image
     }()
 }

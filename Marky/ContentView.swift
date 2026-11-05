@@ -142,6 +142,7 @@ struct ContentView: View {
                                 onToggleFavorite: viewModel.toggleFavorite(for:)
                             )
                             .padding(.horizontal, MarkyTheme.sidebarControlsHorizontalPadding)
+                            .padding(.trailing, MarkyTheme.sidebarFavoriteAccessoryTrailingInset)
                         }
                     }
                 }
@@ -441,12 +442,9 @@ private struct FavoriteStarIcon: View {
     var body: some View {
         Group {
             if isFilled {
-                Image("FavoriteStar")
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .scaleEffect(MarkyTheme.favoriteFilledStarContentScale)
-                    .clipped()
+                Text("⭐")
+                    .font(.system(size: MarkyTheme.favoriteStarGlyphSize))
+                    .fixedSize()
             } else {
                 Image(systemName: "star")
                     .symbolRenderingMode(.hierarchical)

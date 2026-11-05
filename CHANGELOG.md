@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.3] - 2026-11-06
+
+Manual validation passed on 2026-11-06.
+
+- Updated active favorites marker to use native ⭐ star emoji in the sidebar.
+- Corrected star sizing and spacing to prevent clipping and align markers in Favorites and Files.
+
 ## [0.2.2] - 2026-11-05
 
 Manual validation passed, including the CodeRabbit fixes; merge approved.

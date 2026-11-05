@@ -51,8 +51,9 @@ enum MarkyTheme {
     static let sidebarControlsIconColor: Color = .secondary
     static let sidebarControlsTint: Color = .primary
     static let sidebarSearchBackgroundMaterial: Material = .regularMaterial
-    static let favoriteStarIconSize: CGFloat = 14
-    static let favoriteFilledStarContentScale: CGFloat = 1.45
+    static let favoriteStarIconSize: CGFloat = 18
+    static let favoriteStarGlyphSize: CGFloat = 12
+    static let sidebarFavoriteAccessoryTrailingInset: CGFloat = 22
     static let sidebarSectionAccessoryTrailingInset: CGFloat = 14
     static let sidebarListItemVerticalPadding: CGFloat = 8
     static let sidebarFilesOutlineRowHeight: CGFloat = 20
