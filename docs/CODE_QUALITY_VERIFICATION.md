@@ -86,7 +86,7 @@ Follow-up unit command uses the same signed test command above with only
 `-only-testing:MarkyTests`; the complete UI command uses
 `-only-testing:MarkyUITests`. Final UI result bundle:
 `/tmp/MarkyBugfixSigned/Logs/Test/Test-Marky-2026.11.05_23-55-44-+0100.xcresult`.
-Final manual acceptance and merge remain pending.
+Final manual acceptance passed; the user authorized merge and branch cleanup.
 
 ## Manual acceptance
 
@@ -117,9 +117,11 @@ isolation. The separately built Release candidate has no such exceptions.
 8. Check launch, reader, and Settings windows in Light, Dark, and System appearance,
    including focus changes, resizing, and closing the reader during a load.
 
-Manual result: **initial candidate PASS reported by the user on 2026-11-05**.
+Manual result: **initial and final candidates PASS reported by the user on
+2026-11-05**. The final PASS followed the verified CodeRabbit fixes; individual
+manual checklist steps were not reported separately.
 
 The user subsequently requested a GitHub PR and automatic fixes for actionable
-CodeRabbit feedback. Committing and pushing the review branch are authorized;
-merging and deleting the branch wait for the review fixes to be verified and a
-final user PASS.
+CodeRabbit feedback. All 11 inline review threads were resolved and acknowledged
+by CodeRabbit. After the updated unit/UI verification and final manual PASS, the
+user explicitly authorized commit, merge, push, and feature-branch deletion.
