@@ -14,11 +14,11 @@ enum MarkdownTypographyMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .allSystem:
-            return "All System"
+            return String(localized: "All System")
         case .serifHeadingsSystemBody:
-            return "Serif Headings + System Body"
+            return String(localized: "Serif Headings + System Body")
         case .systemHeadingsSerifBody:
-            return "System Headings + Serif Body"
+            return String(localized: "System Headings + Serif Body")
         }
     }
 }
@@ -33,11 +33,11 @@ enum MarkdownReaderTextSizePreset: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .slightlySmaller:
-            return "Slightly Smaller"
+            return String(localized: "Slightly Smaller")
         case .default:
-            return "Default"
+            return String(localized: "Default")
         case .slightlyBigger:
-            return "Slightly Bigger"
+            return String(localized: "Slightly Bigger")
         }
     }
 
@@ -249,6 +249,7 @@ struct MarkdownTypography {
     var headingTracking: CGFloat { profile.headingTracking }
 
     var listIndent: CGFloat { profile.listIndent }
+    var nestedListIndent: CGFloat { profile.listMarkerColumnWidth }
     var listParagraphSpacing: CGFloat { profile.listParagraphSpacing }
     var listBlockSpacing: CGFloat { profile.listBlockSpacing }
     var listItemSpacing: CGFloat { profile.listItemSpacing }

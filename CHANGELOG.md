@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.2] - 2026-11-05
+
+Manually validated; CodeRabbit review and final merge approval are pending.
+
+- Corrected project access restoration and favorite preservation for single-file and failed folder opens.
+- Moved project enumeration off the main actor, added cancellation, and made filesystem failures explicit.
+- Unified file identity handling for equivalent filesystem paths.
+- Corrected bundled font discovery and made registration failures observable.
+- Protected literal inline code and nested fenced examples during Markdown rendering.
+- Retained current reader settings during asynchronous loading and aligned document cancellation with the reader lifecycle.
+- Preserved serif bold styling and restored visible nested-list indentation.
+- Tightened shared UI tokens, localized runtime labels, and removed unused window-chrome configuration and avoidable force unwraps.
+- Restored reliable folder collapse by using AppKit's native disclosure controls and stable outline item identities.
+- Strengthened automated coverage for project access, favorites, Markdown, fonts, and visible sidebar/reader behavior.
+
 ## [0.2.1] - 2026-03-08
 
 - Added a project-scoped Favorites feature for markdown files, including sidebar starring, a dedicated Favorites section, and per-project persistence using relative file paths under the opened root.

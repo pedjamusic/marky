@@ -55,14 +55,42 @@ enum MarkdownContentBlocks {
         case quote(String)
     }
 
+    // Shared block recognition keeps literal fence contents identical in both render paths.
+    nonisolated static func sourceLines(from text: String) -> [(text: String, isCode: Bool, isFence: Bool)] {
+        var openingFence: (delimiter: Character, length: Int)?
+        return text.replacingOccurrences(of: "\r\n", with: "\n")
+            .components(separatedBy: "\n")
+            .map { line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if let opening = openingFence {
+                    let count = trimmed.prefix(while: { $0 == opening.delimiter }).count
+                    if count >= opening.length,
+                       trimmed.dropFirst(count).trimmingCharacters(in: .whitespaces).isEmpty {
+                        openingFence = nil
+                        return (line, false, true)
+                    }
+                    return (line, true, false)
+                }
+                if let delimiter = trimmed.first, delimiter == "`" || delimiter == "~" {
+                    let count = trimmed.prefix(while: { $0 == delimiter }).count
+                    let info = trimmed.dropFirst(count)
+                    if count >= 3, delimiter != "`" || !info.contains("`") {
+                        openingFence = (delimiter, count)
+                        return (line, false, true)
+                    }
+                }
+                return (line, false, false)
+            }
+    }
+
     nonisolated static func parse(from text: String) -> [MarkdownSourceBlock] {
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
-        let lines = source.components(separatedBy: "\n")
+        let lines = sourceLines(from: source)
 
         var blocks: [MarkdownSourceBlock] = []
         var markdownLines: [String] = []
         var codeLines: [String] = []
-        var inCodeFence = false
+        var hasCodeBlock = false
 
         func flushMarkdown() {
             let markdown = markdownLines
@@ -80,25 +108,22 @@ enum MarkdownContentBlocks {
         }
 
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.hasPrefix("```") {
-                if inCodeFence {
+            if line.isFence {
+                if hasCodeBlock {
                     flushCode()
+                    hasCodeBlock = false
                 } else {
                     flushMarkdown()
+                    hasCodeBlock = true
                 }
-                inCodeFence.toggle()
-                continue
-            }
-
-            if inCodeFence {
-                codeLines.append(line)
+            } else if line.isCode {
+                codeLines.append(line.text)
             } else {
-                markdownLines.append(line)
+                markdownLines.append(line.text)
             }
         }
 
-        if inCodeFence {
+        if hasCodeBlock {
             flushCode()
         }
         flushMarkdown()
@@ -267,7 +292,7 @@ enum MarkdownContentBlocks {
                 lineKind = .paragraph
             }
 
-            if currentKind == nil || currentKind! != lineKind {
+            if currentKind != lineKind {
                 flushCurrent()
                 currentKind = lineKind
             }
@@ -317,7 +342,7 @@ enum MarkdownContentBlocks {
         }
     }
 
-    nonisolated private static func headingLevel(in line: String) -> Int? {
+    nonisolated static func headingLevel(in line: String) -> Int? {
         guard line.hasPrefix("#") else { return nil }
         let hashes = line.prefix(while: { $0 == "#" }).count
         guard (1...6).contains(hashes), line.dropFirst(hashes).hasPrefix(" ") else { return nil }
@@ -328,7 +353,7 @@ enum MarkdownContentBlocks {
         parseListItem(from: line) != nil
     }
 
-    nonisolated private static func parseListItem(from line: String) -> (nestingLevel: Int, marker: String, body: String)? {
+    nonisolated static func parseListItem(from line: String) -> (nestingLevel: Int, marker: String, body: String)? {
         let leadingWhitespaceCount = line.prefix(while: { $0 == " " || $0 == "\t" }).count
         let content = String(line.dropFirst(leadingWhitespaceCount))
 

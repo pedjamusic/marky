@@ -16,11 +16,11 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .system:
-            return "System"
+            return String(localized: "System")
         case .light:
-            return "Light"
+            return String(localized: "Light")
         case .dark:
-            return "Dark"
+            return String(localized: "Dark")
         }
     }
 
@@ -97,8 +97,8 @@ struct MarkySettingsView: View {
         .scrollContentBackground(.hidden)
         .background(MarkyTheme.settingsBackgroundColor(for: colorScheme))
         .markyWindowChrome(.settings, colorScheme: colorScheme)
-        .padding(16)
-        .frame(width: 420)
+        .padding(MarkyTheme.settingsPadding)
+        .frame(width: MarkyTheme.settingsWidth)
     }
 }
 #endif

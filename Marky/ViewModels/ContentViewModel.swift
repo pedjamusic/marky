@@ -25,6 +25,7 @@ final class ContentViewModel: ObservableObject {
 
     @Published var root: FileNode? {
         didSet {
+            filesByRelativePath = root.map { fileNodesByRelativePath(in: $0) } ?? [:]
             rebuildDisplayedNodes()
         }
     }
@@ -45,25 +46,51 @@ final class ContentViewModel: ObservableObject {
     @Published private(set) var favoriteFileURLs: Set<URL> = []
 
     private var securityScopedURL: URL?
+    private var projectLoadTask: Task<Void, Never>?
+    private var projectLoadID = UUID()
+    private var completeProjectScope = false
+    private var storedFavoritePaths: Set<String> = []
+    private var filesByRelativePath: [String: FileNode] = [:]
+    private let ownedTestDefaultsSuite: String?
+    private let skipAutomaticRestoration: Bool
+    private let resourceAccess: ProjectResourceAccessing
+    private let scanProject: @Sendable (URL) async throws -> FileNode
     private let projectSessionService: ProjectSessionServicing
     private let favoritesStore: ProjectFavoritesStoring
 
     static let markdownFileTypes: [UTType] = {
-        var types = ["md", "markdown", "mdown", "mkd"].compactMap { UTType(filenameExtension: $0) }
+        var types = FileNode.markdownFileExtensions.compactMap { UTType(filenameExtension: $0) }
         types.append(.plainText)
         return types
     }()
 
     init(
         projectSessionService: ProjectSessionServicing? = nil,
-        favoritesStore: ProjectFavoritesStoring? = nil
+        favoritesStore: ProjectFavoritesStoring? = nil,
+        resourceAccess: ProjectResourceAccessing? = nil,
+        scanProject: @escaping @Sendable (URL) async throws -> FileNode = { try await FileNode.loadProjectTree(at: $0) }
     ) {
-        self.projectSessionService = projectSessionService ?? ProjectSessionService()
-        self.favoritesStore = favoritesStore ?? ProjectFavoritesStore()
+        let testDefaults: UserDefaults?
+        let environment = ProcessInfo.processInfo.environment
+        skipAutomaticRestoration = environment["XCTestConfigurationFilePath"] != nil && projectSessionService == nil
+        if environment["MARKY_UI_TEST_SEED"] == "1" || environment["XCTestConfigurationFilePath"] != nil || environment["MARKY_TEST_DEFAULTS_SUITE"] != nil {
+            let suite = environment["MARKY_TEST_DEFAULTS_SUITE"] ?? "Marky.Tests.\(UUID().uuidString)"
+            ownedTestDefaultsSuite = environment["MARKY_TEST_DEFAULTS_SUITE"] == nil ? suite : nil
+            testDefaults = UserDefaults(suiteName: suite)
+        } else {
+            ownedTestDefaultsSuite = nil
+            testDefaults = nil
+        }
+        self.projectSessionService = projectSessionService ?? ProjectSessionService(userDefaults: testDefaults ?? .standard)
+        self.favoritesStore = favoritesStore ?? ProjectFavoritesStore(userDefaults: testDefaults ?? .standard)
+        self.resourceAccess = resourceAccess ?? ProjectResourceAccess()
+        self.scanProject = scanProject
     }
 
-    deinit {
-        securityScopedURL?.stopAccessingSecurityScopedResource()
+    isolated deinit {
+        projectLoadTask?.cancel()
+        if let securityScopedURL { resourceAccess.stopAccessing(securityScopedURL) }
+        if let ownedTestDefaultsSuite { UserDefaults.standard.removePersistentDomain(forName: ownedTestDefaultsSuite) }
     }
 
     func requestFileImport() {
@@ -79,87 +106,142 @@ final class ContentViewModel: ObservableObject {
             return
         }
         guard root == nil else { return }
+        if skipAutomaticRestoration { return }
 
         do {
             guard let restored = try projectSessionService.restoreBookmarkedURL() else { return }
-            guard FileManager.default.fileExists(atPath: restored.url.path) else {
-                projectSessionService.clearBookmark()
-                return
-            }
-
-            stopCurrentSecurityScopeIfNeeded()
-
-            if restored.url.startAccessingSecurityScopedResource() {
-                securityScopedURL = restored.url
-                let values = try restored.url.resourceValues(forKeys: [.isDirectoryKey])
-                if values.isDirectory == true {
-                    root = FileNode.buildProjectTree(at: restored.url)
-                    finishOpeningProject(selectedFileURL: nil)
-                } else {
-                    let parent = restored.url.deletingLastPathComponent()
-                    root = FileNode(url: parent, name: parent.lastPathComponent, isDirectory: true, children: [
-                        FileNode(url: restored.url, name: restored.url.lastPathComponent, isDirectory: false, children: nil)
-                    ])
-                    finishOpeningProject(selectedFileURL: restored.url)
-                }
-                if restored.isStale {
-                    try projectSessionService.saveBookmark(for: restored.url)
-                }
-            } else {
-                projectSessionService.clearBookmark()
-                errorMessage = "Couldn't access the previously opened location."
-            }
+            beginOpening(restored.url, mode: nil, persistBookmark: restored.isStale)
         } catch {
-            projectSessionService.clearBookmark()
             errorMessage = userSafeErrorMessage(for: error)
         }
     }
 
     func closeProject() {
+        projectLoadTask?.cancel()
+        projectLoadID = UUID()
         stopCurrentSecurityScopeIfNeeded()
         projectSessionService.clearBookmark()
         selectedURL = nil
         root = nil
         expandedFolderURLs.removeAll()
         favoriteFileURLs.removeAll()
+        storedFavoritePaths.removeAll()
+        completeProjectScope = false
     }
 
     func openPickedFile(_ fileURL: URL) {
-        stopCurrentSecurityScopeIfNeeded()
-
-        let folderURL = fileURL.deletingLastPathComponent()
-        let folderAccess = folderURL.startAccessingSecurityScopedResource()
-        if folderAccess {
-            securityScopedURL = folderURL
-            persistBookmarkOrReportError(for: folderURL)
-            root = FileNode.buildProjectTree(at: folderURL)
-            selectedURL = fileURL
-            finishOpeningProject(selectedFileURL: fileURL)
-            return
+        let parent = fileURL.deletingLastPathComponent()
+        if resourceAccess.startAccessing(parent) {
+            beginOpening(parent, mode: .folder, persistBookmark: true, preactivatedAccess: true, selectedOverride: fileURL)
+        } else {
+            beginOpening(fileURL, mode: .file, persistBookmark: true)
         }
-
-        let fileAccess = fileURL.startAccessingSecurityScopedResource()
-        if fileAccess {
-            securityScopedURL = fileURL
-        }
-        persistBookmarkOrReportError(for: fileURL)
-        root = FileNode(url: folderURL, name: folderURL.lastPathComponent, isDirectory: true, children: [
-            FileNode(url: fileURL, name: fileURL.lastPathComponent, isDirectory: false, children: nil)
-        ])
-        selectedURL = fileURL
-        finishOpeningProject(selectedFileURL: fileURL)
     }
 
     func openPickedFolder(_ folderURL: URL) {
-        stopCurrentSecurityScopeIfNeeded()
-        let needsAccess = folderURL.startAccessingSecurityScopedResource()
-        if needsAccess {
-            securityScopedURL = folderURL
+        beginOpening(folderURL, mode: .folder, persistBookmark: true)
+    }
+
+    /// Waits for the current request; useful when callers need its published outcome.
+    func waitForProjectLoad() async {
+        await projectLoadTask?.value
+    }
+
+    private func beginOpening(_ grantedURL: URL, mode: ImportMode?, persistBookmark: Bool,
+                              preactivatedAccess: Bool? = nil, selectedOverride: URL? = nil) {
+        projectLoadTask?.cancel()
+        let requestID = UUID()
+        projectLoadID = requestID
+        errorMessage = nil
+        // Activate the original granted URL before any filesystem inspection. Canonical
+        // URLs are identities only; they must not replace the scope's lifetime URL.
+        let accessed = preactivatedAccess ?? resourceAccess.startAccessing(grantedURL)
+        let scanProject = self.scanProject
+        let resourceAccess = self.resourceAccess
+        projectLoadTask = Task { [weak self] in
+            var adoptedScope = false
+            var candidateURL = grantedURL
+            var candidateAccess = accessed
+            defer {
+                if candidateAccess && !adoptedScope { resourceAccess.stopAccessing(candidateURL) }
+            }
+            do {
+                let isDirectory: Bool
+                if let mode {
+                    isDirectory = mode == .folder
+                } else {
+                    // Resource inspection belongs off the main actor too.
+                    isDirectory = try await Task.detached {
+                        do {
+                            return try grantedURL.canonicalFileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
+                        } catch {
+                            throw ProjectScanError.resourceFailure(error)
+                        }
+                    }.value
+                }
+                let newRoot: FileNode
+                let selectedFile: URL?
+                var fullProjectScope = isDirectory
+                if isDirectory {
+                    do {
+                        newRoot = try await scanProject(grantedURL)
+                        selectedFile = selectedOverride?.canonicalDocumentURL
+                    } catch {
+                        try Task.checkCancellation()
+                        guard let selectedOverride else { throw error }
+                        // A picked file remains usable when its parent's sibling
+                        // subtree is unreadable. This fallback is explicitly partial.
+                        let fileAccess = resourceAccess.startAccessing(selectedOverride)
+                        do {
+                            newRoot = try await Self.singleFileRoot(at: selectedOverride)
+                        } catch {
+                            if fileAccess { resourceAccess.stopAccessing(selectedOverride) }
+                            throw error
+                        }
+                        if candidateAccess { resourceAccess.stopAccessing(candidateURL) }
+                        candidateURL = selectedOverride
+                        candidateAccess = fileAccess
+                        selectedFile = selectedOverride.canonicalDocumentURL
+                        fullProjectScope = false
+                    }
+                } else {
+                    newRoot = try await Self.singleFileRoot(at: grantedURL)
+                    selectedFile = grantedURL.canonicalDocumentURL
+                }
+                try Task.checkCancellation()
+                guard let self, requestID == self.projectLoadID else { return }
+                self.stopCurrentSecurityScopeIfNeeded()
+                if candidateAccess {
+                    self.securityScopedURL = candidateURL
+                    adoptedScope = true
+                }
+                self.completeProjectScope = fullProjectScope
+                self.root = newRoot
+                self.finishOpeningProject(selectedFileURL: selectedFile)
+                if persistBookmark { self.persistBookmarkOrReportError(for: candidateURL) }
+            } catch is CancellationError {
+                // Superseding/closing a request is not a user-facing access failure.
+            } catch {
+                guard let self, requestID == self.projectLoadID, !Task.isCancelled else { return }
+                self.errorMessage = self.userSafeErrorMessage(for: error)
+            }
         }
-        persistBookmarkOrReportError(for: folderURL)
-        root = FileNode.buildProjectTree(at: folderURL)
-        selectedURL = nil
-        finishOpeningProject(selectedFileURL: nil)
+    }
+
+    private nonisolated static func singleFileRoot(at url: URL) async throws -> FileNode {
+        try await Task.detached {
+            do {
+                guard try url.canonicalFileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                    throw ProjectScanError.unavailable
+                }
+            } catch {
+                throw ProjectScanError.resourceFailure(error)
+            }
+            let file = url.canonicalDocumentURL
+            let parent = file.deletingLastPathComponent()
+            return FileNode(url: parent, name: parent.lastPathComponent, isDirectory: true,
+                            children: [FileNode(url: file, name: file.lastPathComponent, isDirectory: false, children: nil)])
+        }.value
     }
 
     func handlePickedURL(_ pickedURL: URL, mode: ImportMode) {
@@ -232,23 +314,24 @@ final class ContentViewModel: ObservableObject {
     func toggleFavorite(for node: FileNode) {
         guard !node.isDirectory, let root else { return }
 
-        if favoriteFileURLs.contains(node.url) {
-            favoriteFileURLs.remove(node.url)
+        guard let path = relativePath(for: node.url.canonicalDocumentURL, in: root.url) else { return }
+        if storedFavoritePaths.contains(path) {
+            storedFavoritePaths.remove(path)
         } else {
-            favoriteFileURLs.insert(node.url)
+            storedFavoritePaths.insert(path)
         }
-
+        favoriteFileURLs = Set(storedFavoritePaths.compactMap { filesByRelativePath[$0]?.url })
         persistFavorites(for: root)
         rebuildDisplayedNodes()
     }
 
     func isFavorite(_ node: FileNode) -> Bool {
-        favoriteFileURLs.contains(node.url)
+        favoriteFileURLs.contains(node.url.canonicalDocumentURL)
     }
 
     private func stopCurrentSecurityScopeIfNeeded() {
         if let current = securityScopedURL {
-            current.stopAccessingSecurityScopedResource()
+            resourceAccess.stopAccessing(current)
             securityScopedURL = nil
         }
     }
@@ -304,8 +387,12 @@ final class ContentViewModel: ObservableObject {
             return
         }
 
-        let allFilesByRelativePath = fileNodesByRelativePath(in: root)
-        let storedPaths = favoritesStore.favoriteRelativePaths(for: root.url)
+        let allFilesByRelativePath = filesByRelativePath
+        storedFavoritePaths = Set(favoritesStore.favoriteRelativePaths(for: root.url))
+        if completeProjectScope {
+            storedFavoritePaths.formIntersection(allFilesByRelativePath.keys)
+        }
+        let storedPaths = storedFavoritePaths
         favoriteFileURLs = Set(
             storedPaths.compactMap { allFilesByRelativePath[$0]?.url }
         )
@@ -314,9 +401,7 @@ final class ContentViewModel: ObservableObject {
     }
 
     private func persistFavorites(for root: FileNode) {
-        let relativePaths = favoriteFileURLs
-            .compactMap { relativePath(for: $0, in: root.url) }
-            .sorted()
+        let relativePaths = storedFavoritePaths.sorted()
 
         if relativePaths.isEmpty {
             favoritesStore.clearFavorites(for: root.url)
@@ -331,6 +416,12 @@ final class ContentViewModel: ObservableObject {
             return "Couldn't save project access. You may need to reopen this location next time."
         case ProjectSessionError.bookmarkResolutionFailed:
             return "Couldn't restore the last opened project."
+        case ProjectScanError.missing:
+            return "Couldn't find the selected location. It may be temporarily unavailable."
+        case ProjectScanError.accessDenied:
+            return "Couldn't access the selected location. Check your permission and reopen it."
+        case is ProjectScanError:
+            return "Couldn't read the selected location. Check that it is available and you have permission to access it."
         default:
             return "An unexpected project access error occurred."
         }
@@ -341,6 +432,18 @@ final class ContentViewModel: ObservableObject {
         guard root == nil else { return false }
         let env = ProcessInfo.processInfo.environment
         guard env["MARKY_UI_TEST_SEED"] == "1" else { return false }
+
+        if let path = env["MARKY_UI_TEST_PROJECT_PATH"] {
+            let folder = URL(fileURLWithPath: path, isDirectory: true)
+            openPickedFolder(folder)
+            let seedRequestID = projectLoadID
+            Task { [weak self] in
+                await self?.waitForProjectLoad()
+                guard let self, self.projectLoadID == seedRequestID, self.root?.url == folder.canonicalFileURL else { return }
+                self.selectedURL = folder.appendingPathComponent("README.md").canonicalDocumentURL
+            }
+            return true
+        }
 
         let fixtures = [
             FileNode(url: URL(fileURLWithPath: "/tmp/README.md"), name: "README.md", isDirectory: false, children: nil),
@@ -376,8 +479,8 @@ final class ContentViewModel: ObservableObject {
 
         let favoriteNodes = displayedFavoriteNodes(in: root, normalizedQuery: query)
         displayedSections = [
-            SidebarSection(kind: .favorites, title: "Favorites", nodes: favoriteNodes),
-            SidebarSection(kind: .files, title: "Files", nodes: filteredNodes)
+            SidebarSection(kind: .favorites, title: String(localized: "Favorites"), nodes: favoriteNodes),
+            SidebarSection(kind: .files, title: String(localized: "Files"), nodes: filteredNodes)
         ]
     }
 
@@ -401,8 +504,7 @@ final class ContentViewModel: ObservableObject {
     }
 
     private func displayedFavoriteNodes(in root: FileNode, normalizedQuery query: String) -> [FileNode] {
-        fileNodesByRelativePath(in: root)
-            .values
+        filesByRelativePath.values
             .filter { favoriteFileURLs.contains($0.url) }
             .filter { query.isEmpty || favoriteMatchesQuery($0, normalizedQuery: query, rootURL: root.url) }
             .sorted { lhs, rhs in
@@ -447,6 +549,8 @@ final class ContentViewModel: ObservableObject {
     }
 
     private func relativePath(for fileURL: URL, in rootURL: URL) -> String? {
+        // Published project trees already carry canonical identities. Path math
+        // here must stay cheap: search and indexing must not resolve the filesystem.
         let rootPath = rootURL.standardizedFileURL.path
         let filePath = fileURL.standardizedFileURL.path
 

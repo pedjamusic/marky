@@ -188,7 +188,7 @@ struct ContentView: View {
                     )
                     .ignoresSafeArea()
 
-                    VStack(spacing: 20) {
+                    VStack(spacing: MarkyTheme.launchContentSpacing) {
                         Image("MarkyMascot")
                             .resizable()
                             .scaledToFit()
@@ -199,7 +199,7 @@ struct ContentView: View {
                             )
                             .accessibilityHidden(true)
 
-                        VStack(spacing: 20) {
+                        VStack(spacing: MarkyTheme.launchContentSpacing) {
                             Text("Marky")
                                 .font(.custom(MarkyTheme.wordmarkFontName, size: MarkyTheme.wordmarkSize))
                                 .foregroundStyle(
@@ -210,7 +210,7 @@ struct ContentView: View {
                                     )
                                 )
 
-                            HStack(spacing: 12) {
+                            HStack(spacing: MarkyTheme.launchActionSpacing) {
                                 Button {
                                     presentFilePanel()
                                 } label: {
@@ -226,7 +226,7 @@ struct ContentView: View {
                                 .buttonStyle(.bordered)
                             }
                         }
-                        .padding(.top, -64)
+                        .padding(.top, MarkyTheme.launchWordmarkTopInset)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -392,7 +392,7 @@ private struct SidebarNodeRow<Title: View>: View {
                     )
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: MarkyTheme.sidebarRowSpacing) {
                     Image(systemName: "folder")
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
@@ -406,7 +406,7 @@ private struct SidebarNodeRow<Title: View>: View {
                 }
             }
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: MarkyTheme.sidebarRowSpacing) {
                 Image(systemName: "doc.text")
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
@@ -464,21 +464,21 @@ private struct SidebarSectionHeader: View {
     let onCollapseFolders: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: MarkyTheme.sidebarSectionSpacing) {
             Button {
                 onToggleSection(section.kind)
             } label: {
                 Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: MarkyTheme.sidebarDisclosureFontSize, weight: .semibold))
                     .foregroundStyle(MarkyTheme.sidebarControlsIconColor)
-                    .frame(width: 12, height: 12)
+                    .frame(width: MarkyTheme.sidebarDisclosureSize, height: MarkyTheme.sidebarDisclosureSize)
             }
             .buttonStyle(.plain)
             .help(isCollapsed ? "Expand \(section.title)" : "Collapse \(section.title)")
             .accessibilityIdentifier("\(section.kind.rawValue)-section-toggle")
 
             Text(section.title)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: MarkyTheme.sidebarSectionFontSize, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             if section.kind == .files {

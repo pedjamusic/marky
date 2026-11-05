@@ -19,19 +19,29 @@ final class ProjectFavoritesStore: ProjectFavoritesStoring {
     }
 
     func favoriteRelativePaths(for projectURL: URL) -> [String] {
-        favoritesByProject[projectKey(for: projectURL)] ?? []
+        let key = projectKey(for: projectURL)
+        // Older versions persisted the granted path. Preserve those favorites when
+        // the same project is subsequently opened through another path alias.
+        return Set(favoritesByProject.flatMap { storedKey, paths in
+            projectKey(for: URL(fileURLWithPath: storedKey)) == key ? paths : []
+        }).sorted()
     }
 
     func saveFavoriteRelativePaths(_ relativePaths: [String], for projectURL: URL) {
-        var favorites = favoritesByProject
+        var favorites = removingAliases(of: projectURL)
         favorites[projectKey(for: projectURL)] = relativePaths
         userDefaults.set(favorites, forKey: favoritesByProjectKey)
     }
 
     func clearFavorites(for projectURL: URL) {
-        var favorites = favoritesByProject
-        favorites.removeValue(forKey: projectKey(for: projectURL))
-        userDefaults.set(favorites, forKey: favoritesByProjectKey)
+        userDefaults.set(removingAliases(of: projectURL), forKey: favoritesByProjectKey)
+    }
+
+    private func removingAliases(of projectURL: URL) -> [String: [String]] {
+        let key = projectKey(for: projectURL)
+        return favoritesByProject.filter { storedKey, _ in
+            projectKey(for: URL(fileURLWithPath: storedKey)) != key
+        }
     }
 
     private var favoritesByProject: [String: [String]] {
@@ -39,6 +49,6 @@ final class ProjectFavoritesStore: ProjectFavoritesStoring {
     }
 
     private func projectKey(for projectURL: URL) -> String {
-        projectURL.standardizedFileURL.path
+        projectURL.canonicalFileURL.path
     }
 }

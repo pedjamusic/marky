@@ -26,6 +26,7 @@ struct FilesOutlineView: NSViewRepresentable {
         scrollView.autohidesScrollers = true
 
         let outlineView = NSOutlineView()
+        outlineView.setAccessibilityIdentifier("files-outline")
         outlineView.headerView = nil
         outlineView.focusRingType = .none
         outlineView.backgroundColor = .clear
@@ -33,7 +34,8 @@ struct FilesOutlineView: NSViewRepresentable {
         outlineView.rowHeight = MarkyTheme.sidebarFilesOutlineRowHeight
         outlineView.rowSizeStyle = .custom
         outlineView.intercellSpacing = NSSize(width: 0, height: MarkyTheme.sidebarFilesOutlineRowSpacing)
-        outlineView.indentationPerLevel = 0
+        // Native disclosure cells also preserve AppKit's collapse behavior.
+        outlineView.indentationPerLevel = MarkyTheme.sidebarFilesOutlineIndentPerLevel
         outlineView.floatsGroupRows = false
         outlineView.allowsEmptySelection = true
         outlineView.dataSource = context.coordinator
@@ -61,22 +63,55 @@ struct FilesOutlineView: NSViewRepresentable {
         var parent: FilesOutlineView
         private var rootNodes: [FileNode] = []
         private var nodesByURL: [URL: FileNode] = [:]
+        // NSOutlineView retains expansion state by item identity. Keep the same objects
+        // across data source queries and incremental updates for this tree.
+        private final class Item: NSObject {
+            let url: URL
+            init(url: URL) { self.url = url }
+        }
+        private var itemsByURL: [URL: Item] = [:]
         private var isApplyingState = false
+        private var hasAppliedState = false
+        private var expandedFolderURLs: Set<URL> = []
+        private var favoriteFileURLs: Set<URL> = []
+        private var expandAllFolders = false
 
         init(parent: FilesOutlineView) {
             self.parent = parent
         }
 
         func apply(to outlineView: NSOutlineView) {
-            rootNodes = parent.nodes
-            nodesByURL = [:]
-            index(nodes: rootNodes)
+            let structureChanged = !hasAppliedState || rootNodes != parent.nodes
+            let expansionChanged = structureChanged || expandedFolderURLs != parent.expandedFolderURLs
+                || expandAllFolders != parent.expandAllFolders
+            let changedFavorites = favoriteFileURLs.symmetricDifference(parent.favoriteFileURLs)
 
             isApplyingState = true
-            outlineView.reloadData()
-            syncExpansion(in: outlineView, nodes: rootNodes)
+            defer { isApplyingState = false }
+            if structureChanged {
+                rootNodes = parent.nodes
+                nodesByURL.removeAll(keepingCapacity: true)
+                itemsByURL.removeAll(keepingCapacity: true)
+                index(nodes: rootNodes)
+                outlineView.reloadData()
+            }
+            if expansionChanged {
+                syncExpansion(in: outlineView, nodes: rootNodes)
+            }
+            if !structureChanged {
+                let rows = IndexSet(changedFavorites.compactMap { url in
+                    let row = outlineView.row(forItem: item(for: url))
+                    return row >= 0 ? row : nil
+                })
+                if !rows.isEmpty {
+                    outlineView.reloadData(forRowIndexes: rows, columnIndexes: IndexSet(integer: 0))
+                }
+            }
             syncSelection(in: outlineView)
-            isApplyingState = false
+            expandedFolderURLs = parent.expandedFolderURLs
+            favoriteFileURLs = parent.favoriteFileURLs
+            expandAllFolders = parent.expandAllFolders
+            hasAppliedState = true
         }
 
         func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
@@ -84,16 +119,12 @@ struct FilesOutlineView: NSViewRepresentable {
         }
 
         func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-            children(for: item)[index].url as NSURL
+            self.item(for: children(for: item)[index].url)
         }
 
         func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
             guard let node = node(for: item) else { return false }
             return node.isDirectory && !(node.children ?? []).isEmpty
-        }
-
-        func outlineView(_ outlineView: NSOutlineView, shouldShowOutlineCellForItem item: Any) -> Bool {
-            false
         }
 
         func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
@@ -105,16 +136,19 @@ struct FilesOutlineView: NSViewRepresentable {
             return !node.isDirectory
         }
 
-        func outlineView(_ outlineView: NSOutlineView, shouldExpandItem item: Any) -> Bool {
-            guard !isApplyingState, let node = node(for: item) else { return true }
-            parent.onSetFolderExpanded(node, true)
-            return true
+        func outlineViewItemDidExpand(_ notification: Notification) {
+            publishExpansion(from: notification, isExpanded: true)
         }
 
-        func outlineView(_ outlineView: NSOutlineView, shouldCollapseItem item: Any) -> Bool {
-            guard !isApplyingState, let node = node(for: item) else { return true }
-            parent.onSetFolderExpanded(node, false)
-            return true
+        func outlineViewItemDidCollapse(_ notification: Notification) {
+            publishExpansion(from: notification, isExpanded: false)
+        }
+
+        private func publishExpansion(from notification: Notification, isExpanded: Bool) {
+            guard !isApplyingState,
+                  let node = node(for: notification.userInfo?["NSObject"])
+            else { return }
+            parent.onSetFolderExpanded(node, isExpanded)
         }
 
         func outlineViewSelectionDidChange(_ notification: Notification) {
@@ -158,20 +192,9 @@ struct FilesOutlineView: NSViewRepresentable {
                 with: SidebarOutlineRowConfiguration(
                     title: node.name,
                     icon: node.isDirectory ? .folder : .file,
-                    outlineLevel: outlineView.level(forItem: item),
-                    showsDisclosure: node.isDirectory && !(node.children ?? []).isEmpty,
-                    isExpanded: outlineView.isItemExpanded(item),
                     showsFavoriteButton: !node.isDirectory,
                     isFavorite: parent.favoriteFileURLs.contains(node.url)
                 ),
-                onToggleDisclosure: { [weak outlineView] in
-                    guard let outlineView else { return }
-                    if outlineView.isItemExpanded(item) {
-                        outlineView.collapseItem(item)
-                    } else {
-                        outlineView.expandItem(item)
-                    }
-                },
                 onToggleFavorite: { [weak self] in
                     guard let self else { return }
                     self.parent.onToggleFavorite(node)
@@ -186,10 +209,15 @@ struct FilesOutlineView: NSViewRepresentable {
         }
 
         private func node(for item: Any?) -> FileNode? {
-            guard let item,
-                  let url = item as? NSURL
-            else { return nil }
-            return nodesByURL[url as URL]
+            guard let outlineItem = item as? Item else { return nil }
+            return nodesByURL[outlineItem.url]
+        }
+
+        private func item(for url: URL) -> Item {
+            if let item = itemsByURL[url] { return item }
+            let item = Item(url: url)
+            itemsByURL[url] = item
+            return item
         }
 
         private func index(nodes: [FileNode]) {
@@ -201,7 +229,7 @@ struct FilesOutlineView: NSViewRepresentable {
 
         private func syncExpansion(in outlineView: NSOutlineView, nodes: [FileNode]) {
             for node in nodes where node.isDirectory {
-                let item = node.url as NSURL
+                let item = item(for: node.url)
                 if parent.expandAllFolders || parent.expandedFolderURLs.contains(node.url) {
                     outlineView.expandItem(item)
                 } else {
@@ -217,13 +245,15 @@ struct FilesOutlineView: NSViewRepresentable {
                 return
             }
 
-            let row = outlineView.row(forItem: selectedURL as NSURL)
+            let row = outlineView.row(forItem: item(for: selectedURL))
             guard row >= 0 else {
                 outlineView.deselectAll(nil)
                 return
             }
 
-            outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+            if outlineView.selectedRow != row {
+                outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+            }
         }
     }
 }

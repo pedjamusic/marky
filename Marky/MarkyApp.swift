@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CoreText
 #if os(macOS)
 import AppKit
 #endif
@@ -17,7 +16,7 @@ struct MarkyApp: App {
     private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
     init() {
-        Self.registerBundledFontsIfNeeded()
+        BundledFontService.register()
         Self.applyDockIconFallbackIfNeeded()
     }
 
@@ -46,25 +45,6 @@ struct MarkyApp: App {
 
     private var selectedAppearanceMode: AppAppearanceMode {
         AppAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
-    }
-
-    private static func registerBundledFontsIfNeeded() {
-        guard let fontsDirectoryURL = Bundle.main.resourceURL?.appendingPathComponent("Fonts", isDirectory: true) else {
-            return
-        }
-
-        let fileManager = FileManager.default
-        guard let fontURLs = try? fileManager.contentsOfDirectory(
-            at: fontsDirectoryURL,
-            includingPropertiesForKeys: nil
-        ) else {
-            return
-        }
-
-        for fontURL in fontURLs where fontURL.pathExtension.lowercased() == "ttf" {
-            var registrationError: Unmanaged<CFError>?
-            CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, &registrationError)
-        }
     }
 
     private static func applyDockIconFallbackIfNeeded() {

@@ -47,7 +47,6 @@ final class ProjectSessionService: ProjectSessionServicing {
                 userDefaults.set(plainData, forKey: lastProjectBookmarkKey)
                 return
             } catch {
-                userDefaults.removeObject(forKey: lastProjectBookmarkKey)
                 throw ProjectSessionError.bookmarkEncodingFailed
             }
         }
@@ -84,4 +83,15 @@ final class ProjectSessionService: ProjectSessionServicing {
     func clearBookmark() {
         userDefaults.removeObject(forKey: lastProjectBookmarkKey)
     }
+}
+
+@MainActor
+protocol ProjectResourceAccessing {
+    func startAccessing(_ url: URL) -> Bool
+    func stopAccessing(_ url: URL)
+}
+
+struct ProjectResourceAccess: ProjectResourceAccessing {
+    func startAccessing(_ url: URL) -> Bool { url.startAccessingSecurityScopedResource() }
+    func stopAccessing(_ url: URL) { url.stopAccessingSecurityScopedResource() }
 }
