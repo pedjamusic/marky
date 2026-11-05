@@ -12,7 +12,6 @@ struct MarkyWindowChromeStyle {
     let backgroundColor: NSColor
     let toolbarBackgroundVisibility: Visibility
     let titlebarAppearsTransparent: Bool
-    let showsToolbarBaselineSeparator: Bool
 }
 
 struct MarkyWindowChromeModifier: ViewModifier {
@@ -56,6 +55,7 @@ private struct MarkyWindowChromeConfigurator: NSViewRepresentable {
         coordinator.detach()
     }
 
+    @MainActor
     final class Coordinator {
         private weak var view: NSView?
         private weak var window: NSWindow?
@@ -63,18 +63,17 @@ private struct MarkyWindowChromeConfigurator: NSViewRepresentable {
         private var style = MarkyWindowChromeStyle(
             backgroundColor: .windowBackgroundColor,
             toolbarBackgroundVisibility: .automatic,
-            titlebarAppearsTransparent: false,
-            showsToolbarBaselineSeparator: true
+            titlebarAppearsTransparent: false
         )
 
         func attach(to view: NSView, style: MarkyWindowChromeStyle) {
             self.view = view
             self.style = style
 
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.bindWindowIfNeeded()
-                self.apply()
+                bindWindowIfNeeded()
+                apply()
             }
         }
 
@@ -107,7 +106,9 @@ private struct MarkyWindowChromeConfigurator: NSViewRepresentable {
                     object: resolvedWindow,
                     queue: .main
                 ) { [weak self] _ in
-                    self?.apply()
+                    Task { @MainActor [weak self] in
+                        self?.apply()
+                    }
                 }
             }
         }
@@ -121,11 +122,6 @@ private struct MarkyWindowChromeConfigurator: NSViewRepresentable {
 
             if window.titlebarAppearsTransparent != style.titlebarAppearsTransparent {
                 window.titlebarAppearsTransparent = style.titlebarAppearsTransparent
-            }
-
-            if let toolbar = window.toolbar,
-               toolbar.showsBaselineSeparator != style.showsToolbarBaselineSeparator {
-                toolbar.showsBaselineSeparator = style.showsToolbarBaselineSeparator
             }
         }
     }

@@ -11,23 +11,17 @@ enum SidebarOutlineRowIcon {
 struct SidebarOutlineRowConfiguration {
     let title: String
     let icon: SidebarOutlineRowIcon
-    let outlineLevel: Int
-    let showsDisclosure: Bool
-    let isExpanded: Bool
     let showsFavoriteButton: Bool
     let isFavorite: Bool
 }
 
 final class SidebarOutlineRowView: NSTableCellView {
-    private let disclosureButton = NSButton()
     private let iconView = NSImageView()
     private let titleField = NSTextField(labelWithString: "")
     private let favoriteButton = NSButton()
-    private var leadingConstraint: NSLayoutConstraint?
     private var trackingAreaRef: NSTrackingArea?
     private var canShowFavoriteButton = false
     private var isFavorite = false
-    private var onToggleDisclosure: (() -> Void)?
     private var onToggleFavorite: (() -> Void)?
     private var isHovered = false {
         didSet {
@@ -40,7 +34,6 @@ final class SidebarOutlineRowView: NSTableCellView {
             let isEmphasized = backgroundStyle == .emphasized
             titleField.textColor = isEmphasized ? .alternateSelectedControlTextColor : .labelColor
             iconView.contentTintColor = isEmphasized ? .alternateSelectedControlTextColor : .secondaryLabelColor
-            disclosureButton.contentTintColor = isEmphasized ? .alternateSelectedControlTextColor : .secondaryLabelColor
             favoriteButton.contentTintColor = isEmphasized ? .alternateSelectedControlTextColor : .secondaryLabelColor
         }
     }
@@ -57,25 +50,24 @@ final class SidebarOutlineRowView: NSTableCellView {
 
     func configure(
         with configuration: SidebarOutlineRowConfiguration,
-        onToggleDisclosure: @escaping () -> Void,
         onToggleFavorite: @escaping () -> Void
     ) {
         titleField.stringValue = configuration.title
         iconView.image = configuration.icon == .folder ? Self.folderImage : Self.fileImage
-        disclosureButton.isHidden = !configuration.showsDisclosure
-        disclosureButton.image = configuration.isExpanded ? Self.expandedDisclosureImage : Self.collapsedDisclosureImage
-        leadingConstraint?.constant = MarkyTheme.sidebarFilesOutlineLeadingInset
-            + (CGFloat(configuration.outlineLevel) * MarkyTheme.sidebarFilesOutlineIndentPerLevel)
         favoriteButton.image = configuration.isFavorite ? Self.filledFavoriteStarImage : Self.emptyFavoriteStarImage
         canShowFavoriteButton = configuration.showsFavoriteButton
         isFavorite = configuration.isFavorite
-        let favoriteActionTitle = configuration.isFavorite ? "Remove from Favorites" : "Add to Favorites"
+        let favoriteActionTitle = configuration.isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites")
         favoriteButton.toolTip = favoriteActionTitle
         favoriteButton.setAccessibilityLabel(favoriteActionTitle)
-        self.onToggleDisclosure = onToggleDisclosure
         self.onToggleFavorite = onToggleFavorite
-        isHovered = false
+        refreshHoverState()
         updateFavoriteButtonVisibility()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshHoverState()
     }
 
     override func updateTrackingAreas() {
@@ -93,6 +85,7 @@ final class SidebarOutlineRowView: NSTableCellView {
         )
         addTrackingArea(trackingAreaRef)
         self.trackingAreaRef = trackingAreaRef
+        refreshHoverState()
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -106,14 +99,6 @@ final class SidebarOutlineRowView: NSTableCellView {
     }
 
     private func setup() {
-        disclosureButton.translatesAutoresizingMaskIntoConstraints = false
-        disclosureButton.isBordered = false
-        disclosureButton.imagePosition = .imageOnly
-        disclosureButton.focusRingType = .none
-        disclosureButton.contentTintColor = .secondaryLabelColor
-        disclosureButton.target = self
-        disclosureButton.action = #selector(toggleDisclosure)
-
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.contentTintColor = .secondaryLabelColor
         iconView.imageScaling = .scaleProportionallyUpOrDown
@@ -121,7 +106,7 @@ final class SidebarOutlineRowView: NSTableCellView {
         titleField.translatesAutoresizingMaskIntoConstraints = false
         titleField.lineBreakMode = .byTruncatingMiddle
         titleField.textColor = .labelColor
-        titleField.font = .systemFont(ofSize: 13)
+        titleField.font = .systemFont(ofSize: MarkyTheme.sidebarRowFontSize)
         titleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         favoriteButton.translatesAutoresizingMaskIntoConstraints = false
@@ -132,42 +117,37 @@ final class SidebarOutlineRowView: NSTableCellView {
         favoriteButton.target = self
         favoriteButton.action = #selector(toggleFavorite)
 
-        addSubview(disclosureButton)
         addSubview(iconView)
         addSubview(titleField)
         addSubview(favoriteButton)
 
-        leadingConstraint = disclosureButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 0)
-
         NSLayoutConstraint.activate([
-            leadingConstraint!,
-            disclosureButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            disclosureButton.widthAnchor.constraint(equalToConstant: MarkyTheme.sidebarFilesOutlineDisclosureWidth),
-            disclosureButton.heightAnchor.constraint(equalToConstant: MarkyTheme.sidebarFilesOutlineDisclosureWidth),
-
-            iconView.leadingAnchor.constraint(equalTo: disclosureButton.trailingAnchor, constant: 4),
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MarkyTheme.sidebarFilesOutlineLeadingInset),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 14),
-            iconView.heightAnchor.constraint(equalToConstant: 14),
+            iconView.widthAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize),
+            iconView.heightAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize),
 
-            titleField.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 6),
+            titleField.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: MarkyTheme.sidebarRowTitleGap),
             titleField.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            favoriteButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleField.trailingAnchor, constant: 8),
-            favoriteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            favoriteButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleField.trailingAnchor, constant: MarkyTheme.sidebarRowSpacing),
+            favoriteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MarkyTheme.sidebarRowTrailingInset),
             favoriteButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            favoriteButton.widthAnchor.constraint(equalToConstant: 14),
-            favoriteButton.heightAnchor.constraint(equalToConstant: 14)
+            favoriteButton.widthAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize),
+            favoriteButton.heightAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize)
         ])
+    }
+
+    private func refreshHoverState() {
+        guard let window else {
+            isHovered = false
+            return
+        }
+        isHovered = bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil))
     }
 
     private func updateFavoriteButtonVisibility() {
         favoriteButton.isHidden = !(canShowFavoriteButton && (isHovered || isFavorite))
-    }
-
-    @objc
-    private func toggleDisclosure() {
-        onToggleDisclosure?()
     }
 
     @objc
@@ -176,31 +156,19 @@ final class SidebarOutlineRowView: NSTableCellView {
     }
 
     private static let fileImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let config = NSImage.SymbolConfiguration(pointSize: MarkyTheme.sidebarRowSymbolSize, weight: .regular)
         return NSImage(systemSymbolName: "doc.text", accessibilityDescription: nil)?
             .withSymbolConfiguration(config)
     }()
 
     private static let folderImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let config = NSImage.SymbolConfiguration(pointSize: MarkyTheme.sidebarRowSymbolSize, weight: .regular)
         return NSImage(systemSymbolName: "folder", accessibilityDescription: nil)?
             .withSymbolConfiguration(config)
     }()
 
-    private static let collapsedDisclosureImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
-        return NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
-            .withSymbolConfiguration(config)
-    }()
-
-    private static let expandedDisclosureImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
-        return NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)?
-            .withSymbolConfiguration(config)
-    }()
-
     private static let emptyFavoriteStarImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let config = NSImage.SymbolConfiguration(pointSize: MarkyTheme.sidebarRowSymbolSize, weight: .regular)
         return NSImage(systemSymbolName: "star", accessibilityDescription: nil)?
             .withSymbolConfiguration(config)
     }()

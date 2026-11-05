@@ -7,85 +7,114 @@ public struct FileNode: Identifiable, Hashable, Equatable, Sendable {
     public nonisolated var children: [FileNode]?
 
     public nonisolated var id: URL { url }
+
+    nonisolated static let markdownFileExtensions = ["md", "markdown", "mdown", "mkd"]
+}
+
+enum ProjectScanError: Error, Equatable, Sendable {
+    case missing
+    case accessDenied
+    case unavailable
+    case notDirectory
+    case unreadableDirectory
+
+    nonisolated static func resourceFailure(_ error: Error, fallback: ProjectScanError = .unavailable) -> ProjectScanError {
+        let error = error as NSError
+        guard error.domain == NSCocoaErrorDomain else { return fallback }
+        switch error.code {
+        case NSFileNoSuchFileError, NSFileReadNoSuchFileError: return .missing
+        case NSFileReadNoPermissionError: return .accessDenied
+        default: return fallback
+        }
+    }
+}
+
+extension URL {
+    nonisolated var canonicalFileURL: URL { resolvingSymlinksInPath().standardizedFileURL }
+    /// Resolve directory aliases while preserving a document's own symlink name.
+    nonisolated var canonicalDocumentURL: URL {
+        deletingLastPathComponent().canonicalFileURL.appendingPathComponent(lastPathComponent)
+    }
 }
 
 public extension FileNode {
-    /// Build a project tree rooted at `rootURL`, including only directories that contain
-    /// markdown files (recursively) and markdown files themselves.
-    nonisolated static func buildProjectTree(at rootURL: URL) -> FileNode {
-        let fm = FileManager.default
-        var isDir: ObjCBool = false
-        _ = fm.fileExists(atPath: rootURL.path, isDirectory: &isDir)
-        let rootName = rootURL.lastPathComponent
-
-        var visitedDirectories: Set<String> = []
-        if isDir.boolValue {
-            visitedDirectories.insert(canonicalDirectoryPath(for: rootURL))
+    /// A successful result represents a complete scan. Any unreadable subtree fails the scan.
+    nonisolated static func buildProjectTree(at rootURL: URL) throws -> FileNode {
+        try Task.checkCancellation()
+        let root = rootURL.canonicalFileURL
+        let values: URLResourceValues
+        do {
+            values = try root.resourceValues(forKeys: [.isDirectoryKey])
+        } catch {
+            throw ProjectScanError.resourceFailure(error)
         }
-        let children = isDir.boolValue ? childNodes(for: rootURL, visitedDirectories: &visitedDirectories) : []
-        return FileNode(url: rootURL, name: rootName, isDirectory: true, children: children)
+        guard values.isDirectory == true else { throw ProjectScanError.notDirectory }
+        return FileNode(url: root, name: root.lastPathComponent, isDirectory: true,
+                        children: try childNodes(for: root))
+    }
+
+    nonisolated static func loadProjectTree(at url: URL) async throws -> FileNode {
+        let worker = Task.detached(priority: .userInitiated) {
+            try buildProjectTree(at: url)
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: {
+            worker.cancel()
+        }
     }
 }
 
 private extension FileNode {
-    nonisolated static func childNodes(for directoryURL: URL, visitedDirectories: inout Set<String>) -> [FileNode] {
-        let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
-            options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants]
-        ) else {
-            return []
+    nonisolated static func childNodes(for directoryURL: URL) throws -> [FileNode] {
+        try Task.checkCancellation()
+        let contents: [URL]
+        do {
+            contents = try FileManager.default.contentsOfDirectory(
+                at: directoryURL,
+                includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey, .isPackageKey, .isRegularFileKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants]
+            )
+        } catch {
+            throw ProjectScanError.resourceFailure(error, fallback: .unreadableDirectory)
         }
 
         var nodes: [FileNode] = []
         for url in contents {
-            if isHidden(url) { continue }
-
-            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-            let isDir = values?.isDirectory == true
-            let isSymLink = values?.isSymbolicLink == true
-            let name = url.lastPathComponent
-
-            if isDir {
-                // Avoid symlink cycles (for example, a child symlink that points back to an ancestor).
-                if isSymLink { continue }
-                let canonicalPath = canonicalDirectoryPath(for: url)
-                guard visitedDirectories.insert(canonicalPath).inserted else { continue }
-
-                // Recursively build children for subdirectory
-                let childChildren = childNodes(for: url, visitedDirectories: &visitedDirectories)
-                visitedDirectories.remove(canonicalPath)
-                // Include directory only if it contains markdown files (directly or nested)
-                if !childChildren.isEmpty {
-                    nodes.append(FileNode(url: url, name: name, isDirectory: true, children: childChildren))
+            try Task.checkCancellation()
+            if url.lastPathComponent.hasPrefix(".") { continue }
+            let values: URLResourceValues
+            do {
+                values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isPackageKey, .isRegularFileKey])
+            } catch {
+                throw ProjectScanError.resourceFailure(error, fallback: .unreadableDirectory)
+            }
+            if values.isPackage == true { continue }
+            // Never recurse through linked directories. Linked documents keep
+            // their project-local spelling, distinct from their target's identity.
+            if values.isSymbolicLink == true {
+                guard markdownFileExtensions.contains(url.pathExtension.lowercased()) else { continue }
+                do {
+                    let target = try url.canonicalFileURL.resourceValues(forKeys: [.isRegularFileKey, .isPackageKey])
+                    guard target.isRegularFile == true, target.isPackage != true else { continue }
+                } catch {
+                    throw ProjectScanError.resourceFailure(error, fallback: .unreadableDirectory)
                 }
-            } else if isMarkdownFile(url) {
-                nodes.append(FileNode(url: url, name: name, isDirectory: false, children: nil))
+            }
+            if values.isDirectory == true {
+                let canonicalURL = url.canonicalFileURL
+                let children = try childNodes(for: canonicalURL)
+                if !children.isEmpty {
+                    nodes.append(FileNode(url: canonicalURL, name: url.lastPathComponent, isDirectory: true, children: children))
+                }
+            } else if markdownFileExtensions.contains(url.pathExtension.lowercased()),
+                      values.isRegularFile == true || values.isSymbolicLink == true {
+                nodes.append(FileNode(url: url.canonicalDocumentURL, name: url.lastPathComponent, isDirectory: false, children: nil))
             }
         }
-
-        // Sort: directories first, then files; name localized case-insensitive
-        nodes.sort { a, b in
-            if a.isDirectory != b.isDirectory {
-                return a.isDirectory && !b.isDirectory
-            }
+        return nodes.sorted { a, b in
+            if a.isDirectory != b.isDirectory { return a.isDirectory }
             return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
         }
-        return nodes
-    }
-
-    nonisolated static func isHidden(_ url: URL) -> Bool {
-        let values = try? url.resourceValues(forKeys: [.isHiddenKey])
-        return values?.isHidden == true || url.lastPathComponent.hasPrefix(".")
-    }
-
-    nonisolated static func isMarkdownFile(_ url: URL) -> Bool {
-        let ext = url.pathExtension.lowercased()
-        return ["md", "markdown", "mdown", "mkd"].contains(ext)
-    }
-
-    nonisolated static func canonicalDirectoryPath(for url: URL) -> String {
-        url.resolvingSymlinksInPath().standardizedFileURL.path
     }
 }

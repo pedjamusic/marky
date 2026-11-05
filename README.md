@@ -30,8 +30,8 @@ Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder
 
 ## Requirements
 
-- macOS (Xcode destination currently targets modern macOS SDKs)
-- Xcode 17+
+- macOS 26.2 or later.
+- Xcode 27.2 with Swift 6 support (the verified toolchain).
 
 ## Run
 
@@ -45,10 +45,16 @@ CLI build:
 xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' build
 ```
 
+CLI unit tests:
+
+```bash
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' test -only-testing:MarkyTests
+```
+
 CLI UI tests (example focused run):
 
 ```bash
-xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' test -only-testing:MarkyUITests/MarkyUITests/testSidebarSeedSearchAndSelectFlow -only-testing:MarkyUITests/MarkyUITests/testCollapseButtonUpdatesStateToken
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' test -only-testing:MarkyUITests/MarkyUITests
 ```
 
 ## Repository Layout
@@ -61,7 +67,9 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' 
 ## Notes
 
 - This repository follows a solo workflow with versioned changelog entries (no `Unreleased` section).
-- Current released version: `0.2.0` (`CURRENT_PROJECT_VERSION = 2`).
+- Current app version: `0.2.2` (`CURRENT_PROJECT_VERSION = 3`).
+- Folder loading preserves the current project if another location cannot be read. Single-file access preserves favorites for other files in the same project.
+- Detailed validation and manual acceptance steps are recorded in [the code-quality verification notes](docs/CODE_QUALITY_VERIFICATION.md).
 
 ## Credits
 

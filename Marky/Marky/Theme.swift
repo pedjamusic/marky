@@ -59,7 +59,23 @@ enum MarkyTheme {
     static let sidebarFilesOutlineRowSpacing: CGFloat = 1
     static let sidebarFilesOutlineLeadingInset: CGFloat = 6
     static let sidebarFilesOutlineIndentPerLevel: CGFloat = 14
-    static let sidebarFilesOutlineDisclosureWidth: CGFloat = 10
+
+    // Shared chrome and layout decisions.
+    static let launchContentSpacing: CGFloat = 20
+    static let launchActionSpacing: CGFloat = 12
+    static let launchWordmarkTopInset: CGFloat = -64
+    static let settingsPadding: CGFloat = 16
+    static let settingsWidth: CGFloat = 420
+    static let sidebarSectionSpacing: CGFloat = 6
+    static let sidebarSectionFontSize: CGFloat = 12
+    static let sidebarDisclosureFontSize: CGFloat = 10
+    static let sidebarDisclosureSize: CGFloat = 12
+    static let sidebarRowSpacing: CGFloat = 8
+    static let sidebarRowFontSize: CGFloat = 13
+    static let sidebarRowIconSize: CGFloat = 14
+    static let sidebarRowSymbolSize: CGFloat = 12
+    static let sidebarRowTitleGap: CGFloat = 6
+    static let sidebarRowTrailingInset: CGFloat = 6
 
     // Brand typography tokens
     static let wordmarkFontName = "Fraunces"
@@ -123,15 +139,13 @@ enum MarkyTheme {
             return MarkyWindowChromeStyle(
                 backgroundColor: colorScheme == .dark ? nsDarkBackgroundBase : nsLightBackgroundBase,
                 toolbarBackgroundVisibility: .hidden,
-                titlebarAppearsTransparent: true,
-                showsToolbarBaselineSeparator: false
+                titlebarAppearsTransparent: true
             )
         case .settings:
             return MarkyWindowChromeStyle(
                 backgroundColor: settingsBackgroundColor(for: colorScheme),
                 toolbarBackgroundVisibility: .hidden,
-                titlebarAppearsTransparent: true,
-                showsToolbarBaselineSeparator: false
+                titlebarAppearsTransparent: true
             )
         }
     }

@@ -1,12 +1,27 @@
 import SwiftUI
 import Foundation
 import Combine
+import OSLog
 #if os(macOS)
 import AppKit
 #endif
 
 #if os(macOS)
 enum MarkdownRenderer {
+    private static let logger = Logger(subsystem: "rocks.toodear.Marky", category: "MarkdownRenderer")
+    private static let codeRegex = compilePattern(#"(?<!`)(`+)(?!`)([^\n]+?)(?<!`)\1(?!`)"#)
+    private static let linkRegex = compilePattern(#"\[([^\]]+)\]\(([^)\s]+)\)"#)
+    private static let boldRegex = compilePattern(#"\*\*([^*\n]+)\*\*"#)
+
+    private static func compilePattern(_ pattern: String) -> NSRegularExpression? {
+        do {
+            return try NSRegularExpression(pattern: pattern)
+        } catch {
+            logger.fault("Built-in Markdown pattern compilation failed")
+            return nil
+        }
+    }
+
     static func render(
         from text: String,
         mode: MarkdownTypographyMode = .allSystem,
@@ -15,27 +30,26 @@ enum MarkdownRenderer {
     ) -> NSAttributedString {
         let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
         let source = text.replacingOccurrences(of: "\r\n", with: "\n")
-        let lines = source.components(separatedBy: "\n")
+        let lines = MarkdownContentBlocks.sourceLines(from: source)
         var displayLines: [String] = []
         var lineStyles: [(headingLevel: Int?, isList: Bool, isQuote: Bool, isCodeBlock: Bool, startsAfterBlankLine: Bool)] = []
         displayLines.reserveCapacity(lines.count)
         lineStyles.reserveCapacity(lines.count)
         var pendingParagraphBreak = false
-        var inCodeFence = false
 
-        for line in lines {
+        for sourceLine in lines {
+            let line = sourceLine.text
             let prefixCount = line.prefix(while: { $0 == " " || $0 == "\t" }).count
             let indent = String(line.prefix(prefixCount))
             let content = String(line.dropFirst(prefixCount))
             let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if trimmedContent.hasPrefix("```") {
-                inCodeFence.toggle()
+            if sourceLine.isFence {
                 pendingParagraphBreak = true
                 continue
             }
 
-            if inCodeFence {
+            if sourceLine.isCode {
                 displayLines.append(line)
                 lineStyles.append((
                     headingLevel: nil,
@@ -66,27 +80,14 @@ enum MarkdownRenderer {
             var isList = false
             var isQuote = false
 
-            if let level = headingLevel(in: content) {
+            if let level = MarkdownContentBlocks.headingLevel(in: content) {
                 headingLevelValue = level
                 let markerLength = level + 1
                 let body = String(content.dropFirst(markerLength))
                 renderedLine = indent + body
-            } else if let taskItem = taskListItem(in: content) {
+            } else if let item = MarkdownContentBlocks.parseListItem(from: content) {
                 isList = true
-                let checkbox = taskItem.isChecked ? typography.checkboxCheckedSymbol : typography.checkboxUncheckedSymbol
-                renderedLine = indent + checkbox + " " + taskItem.body
-            } else if content.hasPrefix("- ")
-                || content.hasPrefix("* ")
-                || content.hasPrefix("+ ")
-                || content.hasPrefix("• ")
-            {
-                isList = true
-                if content.hasPrefix("• ") {
-                    renderedLine = indent + content
-                } else {
-                    let body = String(content.dropFirst(2))
-                    renderedLine = indent + "• " + body
-                }
+                renderedLine = indent + item.marker + " " + item.body
             } else if content.hasPrefix("> ") {
                 isQuote = true
                 let body = String(content.dropFirst(2))
@@ -195,27 +196,6 @@ enum MarkdownRenderer {
         return styled
     }
 
-    private static func headingLevel(in line: String) -> Int? {
-        guard line.hasPrefix("#") else { return nil }
-        let hashes = line.prefix(while: { $0 == "#" }).count
-        guard (1...6).contains(hashes), line.dropFirst(hashes).hasPrefix(" ") else { return nil }
-        return hashes
-    }
-
-    private static func taskListItem(in line: String) -> (isChecked: Bool, body: String)? {
-        let patterns: [(prefix: String, checked: Bool)] = [
-            ("- [ ] ", false), ("* [ ] ", false), ("+ [ ] ", false),
-            ("- [x] ", true), ("* [x] ", true), ("+ [x] ", true),
-            ("- [X] ", true), ("* [X] ", true), ("+ [X] ", true)
-        ]
-
-        for pattern in patterns where line.hasPrefix(pattern.prefix) {
-            let body = String(line.dropFirst(pattern.prefix.count))
-            return (pattern.checked, body)
-        }
-        return nil
-    }
-
     private static func applyIndentedParagraphStyle(
         paragraph: NSMutableParagraphStyle,
         indent: CGFloat,
@@ -244,83 +224,85 @@ enum MarkdownRenderer {
         return ranges
     }
 
-    private static func intersectsProtectedRange(_ range: NSRange, protectedRanges: [NSRange]) -> Bool {
-        for protectedRange in protectedRanges where NSIntersectionRange(range, protectedRange).length > 0 {
-            return true
-        }
-        return false
-    }
-
     private static func applyInlineStyles(
         to styled: NSMutableAttributedString,
         typography: MarkdownTypography,
         protectedRanges: [NSRange],
         isDarkMode: Bool
     ) {
-        let boldRegex = try? NSRegularExpression(pattern: #"\*\*([^*\n]+)\*\*"#)
-        let codeRegex = try? NSRegularExpression(pattern: #"`([^`\n]+)`"#)
-        let linkRegex = try? NSRegularExpression(pattern: #"\[([^\]]+)\]\(([^)\s]+)\)"#)
-
-        if let linkRegex {
-            let ns = styled.string as NSString
-            let matches = linkRegex.matches(in: styled.string, range: NSRange(location: 0, length: ns.length))
+        // Attributes move with edits; absolute offsets from an earlier pass do not.
+        let literal = NSAttributedString.Key("MarkyLiteralCode")
+        for range in protectedRanges {
+            styled.addAttribute(literal, value: true, range: range)
+        }
+        func transform(
+            _ regex: NSRegularExpression?,
+            bodyGroup: Int = 1,
+            allowsLiteralBody: Bool = true,
+            apply: (NSTextCheckingResult, NSMutableAttributedString) -> Void
+        ) {
+            guard let regex else { return }
+            let matchingText = NSMutableString(string: styled.string)
+            if allowsLiteralBody {
+                // Neutral UTF-16 units hide literal syntax without shifting attributed-source offsets.
+                styled.enumerateAttribute(literal, in: NSRange(location: 0, length: styled.length)) { value, range, _ in
+                    if value != nil {
+                        matchingText.replaceCharacters(in: range, with: String(repeating: "x", count: range.length))
+                    }
+                }
+            }
+            let matches = regex.matches(in: matchingText as String, range: NSRange(location: 0, length: styled.length))
             for match in matches.reversed() {
-                if intersectsProtectedRange(match.range, protectedRanges: protectedRanges) {
-                    continue
+                let bodyRange = match.range(at: bodyGroup)
+                var crossesLiteralSyntax = false
+                styled.enumerateAttribute(literal, in: match.range) { value, range, _ in
+                    guard value != nil else { return }
+                    // A label may contain code, but its delimiters and URL must be prose.
+                    if !allowsLiteralBody || NSIntersectionRange(range, bodyRange) != range {
+                        crossesLiteralSyntax = true
+                    }
                 }
-                guard match.numberOfRanges >= 3 else { continue }
-                let textRange = match.range(at: 1)
-                let urlRange = match.range(at: 2)
-                let text = ns.substring(with: textRange)
-                let urlString = ns.substring(with: urlRange)
-                var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
-                if let url = URL(string: urlString) {
-                    attrs[.link] = url
-                    attrs[.underlineStyle] = typography.linkUnderlineStyle.rawValue
-                    attrs[.foregroundColor] = typography.linkColor
-                }
-                styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
+                guard !crossesLiteralSyntax else { continue }
+                let replacement = NSMutableAttributedString(attributedString: styled.attributedSubstring(from: bodyRange))
+                apply(match, replacement)
+                styled.replaceCharacters(in: match.range, with: replacement)
             }
         }
 
-        if let boldRegex {
-            let ns = styled.string as NSString
-            let matches = boldRegex.matches(in: styled.string, range: NSRange(location: 0, length: ns.length))
-            for match in matches.reversed() {
-                if intersectsProtectedRange(match.range, protectedRanges: protectedRanges) {
-                    continue
-                }
-                guard match.numberOfRanges >= 2 else { continue }
-                let textRange = match.range(at: 1)
-                let text = ns.substring(with: textRange)
-                var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
-                let currentFont = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: 16)
-                attrs[.font] = NSFont.systemFont(ofSize: currentFont.pointSize, weight: .semibold)
-                styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
-            }
-        }
-
-        if let codeRegex {
-            let ns = styled.string as NSString
-            let matches = codeRegex.matches(in: styled.string, range: NSRange(location: 0, length: ns.length))
-            for match in matches.reversed() {
-                if intersectsProtectedRange(match.range, protectedRanges: protectedRanges) {
-                    continue
-                }
-                guard match.numberOfRanges >= 2 else { continue }
-                let textRange = match.range(at: 1)
-                let text = ns.substring(with: textRange)
-                var attrs = styled.attributes(at: match.range.location, effectiveRange: nil)
-                let currentFont = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: 16)
-                attrs[.font] = NSFont.monospacedSystemFont(
-                    ofSize: max(typography.codeMinimumFontSize, currentFont.pointSize * typography.codeFontScale),
+        // Backreferences pair whole delimiter runs; shorter backticks remain literal content.
+        transform(codeRegex, bodyGroup: 2, allowsLiteralBody: false) { _, replacement in
+            let fullRange = NSRange(location: 0, length: replacement.length)
+            replacement.enumerateAttribute(.font, in: fullRange) { value, range, _ in
+                let font = (value as? NSFont) ?? typography.bodyFont()
+                replacement.addAttribute(.font, value: NSFont.monospacedSystemFont(
+                    ofSize: max(typography.codeMinimumFontSize, font.pointSize * typography.codeFontScale),
                     weight: .regular
-                )
-                attrs[.foregroundColor] = typography.codeForegroundColor(isDarkMode: isDarkMode)
-                attrs[.backgroundColor] = typography.codeBackgroundColor(isDarkMode: isDarkMode)
-                styled.replaceCharacters(in: match.range, with: NSAttributedString(string: text, attributes: attrs))
+                ), range: range)
+            }
+            replacement.addAttributes([
+                literal: true,
+                .foregroundColor: typography.codeForegroundColor(isDarkMode: isDarkMode),
+                .backgroundColor: typography.codeBackgroundColor(isDarkMode: isDarkMode)
+            ], range: fullRange)
+        }
+        transform(linkRegex) { match, replacement in
+            let urlString = (styled.string as NSString).substring(with: match.range(at: 2))
+            if let url = URL(string: urlString) {
+                replacement.addAttributes([
+                    .link: url,
+                    .underlineStyle: typography.linkUnderlineStyle.rawValue,
+                    .foregroundColor: typography.linkColor
+                ], range: NSRange(location: 0, length: replacement.length))
             }
         }
+        transform(boldRegex) { _, replacement in
+            replacement.enumerateAttributes(in: NSRange(location: 0, length: replacement.length)) { attributes, range, _ in
+                guard attributes[literal] == nil else { return }
+                let font = (attributes[.font] as? NSFont) ?? typography.bodyFont()
+                replacement.addAttribute(.font, value: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask), range: range)
+            }
+        }
+        styled.removeAttribute(literal, range: NSRange(location: 0, length: styled.length))
     }
 }
 #endif
@@ -331,7 +313,7 @@ private enum MarkdownDocumentLoadError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedTextEncoding:
-            return "Unable to decode file as UTF-8/UTF-16 text"
+            return String(localized: "Unable to decode file as UTF-8/UTF-16 text")
         }
     }
 }
@@ -343,11 +325,14 @@ final class MarkdownDoc: ObservableObject {
     @Published var error: String?
 
     private var preparedBlocks: [MarkdownPreparedBlock] = []
-    private var loadTask: Task<Void, Never>?
+    private let prepareDocument: @Sendable (URL) async throws -> [MarkdownPreparedBlock]
     private var loadGeneration: UInt64 = 0
+    private var mode: MarkdownTypographyMode = .allSystem
+    private var textSizePreset: MarkdownReaderTextSizePreset = .default
+    private var isDarkMode = false
 
-    deinit {
-        loadTask?.cancel()
+    init(prepareDocument: (@Sendable (URL) async throws -> [MarkdownPreparedBlock])? = nil) {
+        self.prepareDocument = prepareDocument ?? Self.loadPreparedBlocks
     }
 
     func load(
@@ -355,49 +340,33 @@ final class MarkdownDoc: ObservableObject {
         mode: MarkdownTypographyMode = .allSystem,
         textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool = false
-    ) {
-        loadTask?.cancel()
+    ) async {
+        guard !Task.isCancelled else { return }
         loadGeneration &+= 1
         let generation = loadGeneration
-
+        self.mode = mode
+        self.textSizePreset = textSizePreset
+        self.isDarkMode = isDarkMode
         isLoading = true
         error = nil
         blocks = []
         preparedBlocks = []
 
-        loadTask = Task(priority: .userInitiated) { [weak self] in
-            guard let self else { return }
-
-            do {
-                let preparedBlocks = try await Self.loadPreparedBlocks(from: url)
-                try Task.checkCancellation()
-
-                #if os(macOS)
-                let blocks = MarkdownContentBlocks.render(
-                    preparedBlocks: preparedBlocks,
-                    mode: mode,
-                    textSizePreset: textSizePreset,
-                    isDarkMode: isDarkMode
-                )
-                #else
-                let blocks = []
-                #endif
-
-                guard generation == self.loadGeneration else { return }
-                self.preparedBlocks = preparedBlocks
-                self.blocks = blocks
-                self.isLoading = false
-                self.loadTask = nil
-            } catch is CancellationError {
-                guard generation == self.loadGeneration else { return }
-                self.isLoading = false
-                self.loadTask = nil
-            } catch {
-                guard generation == self.loadGeneration else { return }
-                self.isLoading = false
-                self.error = error.localizedDescription
-                self.loadTask = nil
-            }
+        do {
+            let prepared = try await prepareDocument(url)
+            try Task.checkCancellation()
+            guard generation == loadGeneration else { return }
+            preparedBlocks = prepared
+            rerenderFromPreparedBlocks(mode: self.mode, textSizePreset: self.textSizePreset, isDarkMode: self.isDarkMode)
+            isLoading = false
+        } catch is CancellationError {
+            guard generation == loadGeneration else { return }
+            isLoading = false
+        } catch {
+            guard generation == loadGeneration else { return }
+            isLoading = false
+            guard !Task.isCancelled else { return }
+            self.error = error.localizedDescription
         }
     }
 
@@ -406,6 +375,9 @@ final class MarkdownDoc: ObservableObject {
         textSizePreset: MarkdownReaderTextSizePreset,
         isDarkMode: Bool
     ) {
+        self.mode = mode
+        self.textSizePreset = textSizePreset
+        self.isDarkMode = isDarkMode
         guard !preparedBlocks.isEmpty else { return }
         #if os(macOS)
         blocks = MarkdownContentBlocks.render(
@@ -472,7 +444,7 @@ struct MarkdownViewer: View {
             content
         }
         .task(id: url) {
-            doc.load(
+            await doc.load(
                 from: url,
                 mode: typographyMode,
                 textSizePreset: textSizePreset,
@@ -525,6 +497,7 @@ struct MarkdownViewer: View {
                     isDarkMode: colorScheme == .dark
                 )
             }
+            .accessibilityIdentifier("markdown-reader")
         } else {
             Text("No content")
         }
@@ -623,7 +596,7 @@ private struct MarkdownListBlock: View {
                         .lineSpacing(typography.bodyLineSpacing)
                         .textSelection(.enabled)
                 }
-                .padding(.leading, CGFloat(item.nestingLevel) * typography.listIndent)
+                .padding(.leading, CGFloat(item.nestingLevel) * typography.nestedListIndent)
                 .padding(.top, topSpacing(for: index))
             }
         }
