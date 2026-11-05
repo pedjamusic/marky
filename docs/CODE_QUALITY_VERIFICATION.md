@@ -67,9 +67,12 @@ PR: https://github.com/pedjamusic/marky/pull/1
 - Review fixes passed **64 unit tests (67 runs including parameterized cases)**,
   with no failures or skips. The updated signed Release build and signature
   verification also passed.
-- The follow-up UI suite compiled but could not activate the app because the
-  desktop was locked. Those tests remain pending an unlocked desktop; the earlier
-  UI results do not establish the new keyboard/geometry/fixture behavior.
+- After the desktop was unlocked, all **6 UI tests passed**, with no failures or
+  skips: folder keyboard navigation, row/disclosure toggles, collapse-all,
+  document selection/search, visible nested-list indentation, and launch.
+  The geometry test selects the first matching text node because SwiftUI exposes
+  both a wrapper and a child with the same accessibility label; its measured
+  parent/child indentation assertion remains intact.
 - Fixes cover packages/non-regular files, fallback scope retention, pending
   restoration, confirmed-missing-only favorite pruning and concurrent edits,
   authorized alias migration without historical filesystem lookups, folder
@@ -80,13 +83,18 @@ PR: https://github.com/pedjamusic/marky/pull/1
   paths are not synchronously resolved during local favorite operations.
 
 Follow-up unit command uses the same signed test command above with only
-`-only-testing:MarkyTests`. After unlocking, run all `MarkyUITests` before final
-manual acceptance and merge.
+`-only-testing:MarkyTests`; the complete UI command uses
+`-only-testing:MarkyUITests`. Final UI result bundle:
+`/tmp/MarkyBugfixSigned/Logs/Test/Test-Marky-2026.11.05_23-55-44-+0100.xcresult`.
+Final manual acceptance and merge remain pending.
 
 ## Manual acceptance
 
 Use a signed, sandbox-enabled app for access-restoration checks. A build with code
 signing disabled does not establish persistent sandbox access behavior.
+Xcode adds test-only filesystem and automation exceptions to its UI-test build;
+the UI suite verifies reader/navigation behavior, not production sandbox
+isolation. The separately built Release candidate has no such exceptions.
 
 1. Open a folder with Markdown files at the root and inside a subfolder. Select
    files, search, expand/collapse folders, and switch between favorites and files.

@@ -4,7 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [0.2.2] - 2026-11-05
 
-Manually validated; CodeRabbit review and final merge approval are pending.
+Initial manual validation passed; CodeRabbit fixes are verified, with final manual
+acceptance and merge approval pending.
 
 - Corrected project access restoration and favorite preservation for single-file and failed folder opens.
 - Moved project enumeration off the main actor, added cancellation, and made filesystem failures explicit.

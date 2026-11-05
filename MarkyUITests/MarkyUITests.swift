@@ -104,8 +104,8 @@ final class MarkyUITests: XCTestCase {
         app.launch()
         defer { app.terminate() }
         let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
-        let parent = reader.staticTexts["Nested Parent Fixture"]
-        let child = reader.staticTexts["Nested Child Fixture"]
+        let parent = reader.staticTexts.matching(identifier: "Nested Parent Fixture").firstMatch
+        let child = reader.staticTexts.matching(identifier: "Nested Child Fixture").firstMatch
         XCTAssertTrue(parent.waitForExistence(timeout: 5))
         XCTAssertTrue(child.exists)
         XCTAssertGreaterThan(child.frame.minX, parent.frame.minX + 5)
