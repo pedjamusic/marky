@@ -11,7 +11,7 @@ public struct FileNode: Identifiable, Hashable, Equatable, Sendable {
     nonisolated static let markdownFileExtensions = ["md", "markdown", "mdown", "mkd"]
 }
 
-enum ProjectScanError: Error, Sendable {
+enum ProjectScanError: Error, Equatable, Sendable {
     case missing
     case accessDenied
     case unavailable
@@ -72,7 +72,7 @@ private extension FileNode {
         do {
             contents = try FileManager.default.contentsOfDirectory(
                 at: directoryURL,
-                includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
+                includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey, .isPackageKey, .isRegularFileKey],
                 options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants]
             )
         } catch {
@@ -85,16 +85,18 @@ private extension FileNode {
             if url.lastPathComponent.hasPrefix(".") { continue }
             let values: URLResourceValues
             do {
-                values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isPackageKey, .isRegularFileKey])
             } catch {
                 throw ProjectScanError.resourceFailure(error, fallback: .unreadableDirectory)
             }
+            if values.isPackage == true { continue }
             // Never recurse through linked directories. Linked documents keep
             // their project-local spelling, distinct from their target's identity.
             if values.isSymbolicLink == true {
                 guard markdownFileExtensions.contains(url.pathExtension.lowercased()) else { continue }
                 do {
-                    if try url.canonicalFileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true { continue }
+                    let target = try url.canonicalFileURL.resourceValues(forKeys: [.isRegularFileKey, .isPackageKey])
+                    guard target.isRegularFile == true, target.isPackage != true else { continue }
                 } catch {
                     throw ProjectScanError.resourceFailure(error, fallback: .unreadableDirectory)
                 }
@@ -105,7 +107,8 @@ private extension FileNode {
                 if !children.isEmpty {
                     nodes.append(FileNode(url: canonicalURL, name: url.lastPathComponent, isDirectory: true, children: children))
                 }
-            } else if markdownFileExtensions.contains(url.pathExtension.lowercased()) {
+            } else if markdownFileExtensions.contains(url.pathExtension.lowercased()),
+                      values.isRegularFile == true || values.isSymbolicLink == true {
                 nodes.append(FileNode(url: url.canonicalDocumentURL, name: url.lastPathComponent, isDirectory: false, children: nil))
             }
         }

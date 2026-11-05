@@ -16,6 +16,8 @@ Manually validated; CodeRabbit review and final merge approval are pending.
 - Tightened shared UI tokens, localized runtime labels, and removed unused window-chrome configuration and avoidable force unwraps.
 - Restored reliable folder collapse by using AppKit's native disclosure controls and stable outline item identities.
 - Strengthened automated coverage for project access, favorites, Markdown, fonts, and visible sidebar/reader behavior.
+- Addressed CodeRabbit edge cases: package and special-file filtering, retained fallback scope, pending-open restoration, excluded-file favorites, and edits made during a background reopen.
+- Added folder keyboard navigation, consistent search expansion, stationary-pointer hover refresh, app-owned UI fixtures, and literal-aware outer inline markup.
 
 ## [0.2.1] - 2026-03-08
 

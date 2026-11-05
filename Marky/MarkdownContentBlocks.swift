@@ -61,7 +61,9 @@ enum MarkdownContentBlocks {
         return text.replacingOccurrences(of: "\r\n", with: "\n")
             .components(separatedBy: "\n")
             .map { line in
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                let leadingSpaces = line.prefix(while: { $0 == " " }).count
+                // Fences permit up to three leading spaces; deeper indentation stays literal.
+                let trimmed = leadingSpaces <= 3 ? String(line.dropFirst(leadingSpaces)) : ""
                 if let opening = openingFence {
                     let count = trimmed.prefix(while: { $0 == opening.delimiter }).count
                     if count >= opening.length,

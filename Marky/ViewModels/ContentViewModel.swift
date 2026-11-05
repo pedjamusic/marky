@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 import Combine
+import OSLog
 
 @MainActor
 final class ContentViewModel: ObservableObject {
@@ -48,13 +49,15 @@ final class ContentViewModel: ObservableObject {
     private var securityScopedURL: URL?
     private var projectLoadTask: Task<Void, Never>?
     private var projectLoadID = UUID()
-    private var completeProjectScope = false
+    private var isProjectLoadPending = false
+    private var ownedUITestFixtureURL: URL?
     private var storedFavoritePaths: Set<String> = []
     private var filesByRelativePath: [String: FileNode] = [:]
     private let ownedTestDefaultsSuite: String?
     private let skipAutomaticRestoration: Bool
     private let resourceAccess: ProjectResourceAccessing
     private let scanProject: @Sendable (URL) async throws -> FileNode
+    private let probeMissingFavorites: @Sendable (Set<String>, FileNode) async throws -> Set<String>
     private let projectSessionService: ProjectSessionServicing
     private let favoritesStore: ProjectFavoritesStoring
 
@@ -68,7 +71,8 @@ final class ContentViewModel: ObservableObject {
         projectSessionService: ProjectSessionServicing? = nil,
         favoritesStore: ProjectFavoritesStoring? = nil,
         resourceAccess: ProjectResourceAccessing? = nil,
-        scanProject: @escaping @Sendable (URL) async throws -> FileNode = { try await FileNode.loadProjectTree(at: $0) }
+        scanProject: @escaping @Sendable (URL) async throws -> FileNode = { try await FileNode.loadProjectTree(at: $0) },
+        probeMissingFavorites: (@Sendable (Set<String>, FileNode) async throws -> Set<String>)? = nil
     ) {
         let testDefaults: UserDefaults?
         let environment = ProcessInfo.processInfo.environment
@@ -85,12 +89,21 @@ final class ContentViewModel: ObservableObject {
         self.favoritesStore = favoritesStore ?? ProjectFavoritesStore(userDefaults: testDefaults ?? .standard)
         self.resourceAccess = resourceAccess ?? ProjectResourceAccess()
         self.scanProject = scanProject
+        self.probeMissingFavorites = probeMissingFavorites ?? { try await Self.confirmedMissingFavorites($0, in: $1) }
     }
 
     isolated deinit {
         projectLoadTask?.cancel()
         if let securityScopedURL { resourceAccess.stopAccessing(securityScopedURL) }
         if let ownedTestDefaultsSuite { UserDefaults.standard.removePersistentDomain(forName: ownedTestDefaultsSuite) }
+        if let ownedUITestFixtureURL {
+            do {
+                try FileManager.default.removeItem(at: ownedUITestFixtureURL)
+            } catch {
+                Logger(subsystem: "rocks.toodear.Marky", category: "UITesting")
+                    .error("Could not remove temporary UI test fixture.")
+            }
+        }
     }
 
     func requestFileImport() {
@@ -102,6 +115,7 @@ final class ContentViewModel: ObservableObject {
     }
 
     func restoreBookmarkIfNeeded() {
+        guard !isProjectLoadPending else { return }
         if bootstrapSidebarForUITestingIfRequested() {
             return
         }
@@ -119,6 +133,7 @@ final class ContentViewModel: ObservableObject {
     func closeProject() {
         projectLoadTask?.cancel()
         projectLoadID = UUID()
+        isProjectLoadPending = false
         stopCurrentSecurityScopeIfNeeded()
         projectSessionService.clearBookmark()
         selectedURL = nil
@@ -126,7 +141,6 @@ final class ContentViewModel: ObservableObject {
         expandedFolderURLs.removeAll()
         favoriteFileURLs.removeAll()
         storedFavoritePaths.removeAll()
-        completeProjectScope = false
     }
 
     func openPickedFile(_ fileURL: URL) {
@@ -152,11 +166,13 @@ final class ContentViewModel: ObservableObject {
         projectLoadTask?.cancel()
         let requestID = UUID()
         projectLoadID = requestID
+        isProjectLoadPending = true
         errorMessage = nil
         // Activate the original granted URL before any filesystem inspection. Canonical
         // URLs are identities only; they must not replace the scope's lifetime URL.
         let accessed = preactivatedAccess ?? resourceAccess.startAccessing(grantedURL)
         let scanProject = self.scanProject
+        let probeMissingFavorites = self.probeMissingFavorites
         let resourceAccess = self.resourceAccess
         projectLoadTask = Task { [weak self] in
             var adoptedScope = false
@@ -164,6 +180,7 @@ final class ContentViewModel: ObservableObject {
             var candidateAccess = accessed
             defer {
                 if candidateAccess && !adoptedScope { resourceAccess.stopAccessing(candidateURL) }
+                if let self, self.projectLoadID == requestID { self.isProjectLoadPending = false }
             }
             do {
                 let isDirectory: Bool
@@ -198,9 +215,11 @@ final class ContentViewModel: ObservableObject {
                             if fileAccess { resourceAccess.stopAccessing(selectedOverride) }
                             throw error
                         }
-                        if candidateAccess { resourceAccess.stopAccessing(candidateURL) }
-                        candidateURL = selectedOverride
-                        candidateAccess = fileAccess
+                        if fileAccess {
+                            if candidateAccess { resourceAccess.stopAccessing(candidateURL) }
+                            candidateURL = selectedOverride
+                            candidateAccess = true
+                        }
                         selectedFile = selectedOverride.canonicalDocumentURL
                         fullProjectScope = false
                     }
@@ -209,14 +228,29 @@ final class ContentViewModel: ObservableObject {
                     selectedFile = grantedURL.canonicalDocumentURL
                 }
                 try Task.checkCancellation()
+                guard self?.projectLoadID == requestID else { return }
+                let grantedProjectURL = isDirectory ? grantedURL : grantedURL.deletingLastPathComponent()
+                self?.favoritesStore.migrateFavorites(from: grantedProjectURL, to: newRoot.url)
+                let pathsToProbe = Set(self?.favoritesStore.favoriteRelativePaths(for: newRoot.url) ?? [])
+                let missing: Set<String>
+                if fullProjectScope {
+                    missing = try await probeMissingFavorites(pathsToProbe, newRoot)
+                } else {
+                    missing = []
+                }
+                try Task.checkCancellation()
                 guard let self, requestID == self.projectLoadID else { return }
+                // The existing project stays interactive during the probe. Apply its
+                // result to the latest store, including edits made by another window.
+                var favoritePaths = Set(self.favoritesStore.favoriteRelativePaths(for: newRoot.url))
+                favoritePaths.subtract(missing)
                 self.stopCurrentSecurityScopeIfNeeded()
                 if candidateAccess {
                     self.securityScopedURL = candidateURL
                     adoptedScope = true
                 }
-                self.completeProjectScope = fullProjectScope
                 self.root = newRoot
+                self.storedFavoritePaths = favoritePaths
                 self.finishOpeningProject(selectedFileURL: selectedFile)
                 if persistBookmark { self.persistBookmarkOrReportError(for: candidateURL) }
             } catch is CancellationError {
@@ -225,6 +259,40 @@ final class ContentViewModel: ObservableObject {
                 guard let self, requestID == self.projectLoadID, !Task.isCancelled else { return }
                 self.errorMessage = self.userSafeErrorMessage(for: error)
             }
+        }
+    }
+
+    /// Checks unindexed saved paths off-main; inaccessible paths remain unknown.
+    private nonisolated static func confirmedMissingFavorites(_ paths: Set<String>, in root: FileNode) async throws -> Set<String> {
+        let worker = Task.detached(priority: .userInitiated) {
+            var indexedPaths: Set<String> = []
+            var nodes = root.children ?? []
+            while let node = nodes.popLast() {
+                try Task.checkCancellation()
+                if node.isDirectory { nodes.append(contentsOf: node.children ?? []) }
+                else if node.url.path.hasPrefix(root.url.path + "/") {
+                    indexedPaths.insert(String(node.url.path.dropFirst(root.url.path.count + 1)))
+                }
+            }
+            var missing: Set<String> = []
+            for path in paths.subtracting(indexedPaths) {
+                try Task.checkCancellation()
+                let url = root.url.appendingPathComponent(path).standardizedFileURL
+                // Stored paths are untrusted persistence data. Never inspect outside the project.
+                guard !path.hasPrefix("/"), url.path.hasPrefix(root.url.path + "/") else { continue }
+                do {
+                    _ = try url.resourceValues(forKeys: [.isRegularFileKey])
+                } catch {
+                    // Access denial or transient I/O is unknown, so retain the saved favorite.
+                    if ProjectScanError.resourceFailure(error) == .missing { missing.insert(path) }
+                }
+            }
+            return missing
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: {
+            worker.cancel()
         }
     }
 
@@ -388,10 +456,6 @@ final class ContentViewModel: ObservableObject {
         }
 
         let allFilesByRelativePath = filesByRelativePath
-        storedFavoritePaths = Set(favoritesStore.favoriteRelativePaths(for: root.url))
-        if completeProjectScope {
-            storedFavoritePaths.formIntersection(allFilesByRelativePath.keys)
-        }
         let storedPaths = storedFavoritePaths
         favoriteFileURLs = Set(
             storedPaths.compactMap { allFilesByRelativePath[$0]?.url }
@@ -428,13 +492,41 @@ final class ContentViewModel: ObservableObject {
     }
 
     @discardableResult
-    private func bootstrapSidebarForUITestingIfRequested() -> Bool {
+    func bootstrapSidebarForUITestingIfRequested(environment env: [String: String] = ProcessInfo.processInfo.environment) -> Bool {
         guard root == nil else { return false }
-        let env = ProcessInfo.processInfo.environment
         guard env["MARKY_UI_TEST_SEED"] == "1" else { return false }
 
-        if let path = env["MARKY_UI_TEST_PROJECT_PATH"] {
-            let folder = URL(fileURLWithPath: path, isDirectory: true)
+        let fixtureURL: URL?
+        do {
+            if env["MARKY_UI_TEST_PROJECT_PATH"] == nil || env["MARKY_UI_TEST_FIXTURE_JSON"] != nil {
+                let id = env["MARKY_UI_TEST_FIXTURE_ID"] ?? UUID().uuidString
+                guard UUID(uuidString: id) != nil else { throw ProjectScanError.unavailable }
+                let documents: [String: String]
+                if let json = env["MARKY_UI_TEST_FIXTURE_JSON"] {
+                    guard let data = json.data(using: .utf8) else { throw ProjectScanError.unavailable }
+                    documents = try JSONDecoder().decode([String: String].self, from: data)
+                } else {
+                    documents = ["README.md": "# Welcome\n\nReader fixture.", "MEMORY.md": "# Memory", "docs/GUIDE.md": "# Guide"]
+                }
+                let folder = FileManager.default.temporaryDirectory.appendingPathComponent("MarkyUITests-" + id, isDirectory: true).canonicalFileURL
+                ownedUITestFixtureURL = folder
+                for (relativePath, text) in documents {
+                    let document = folder.appendingPathComponent(relativePath).standardizedFileURL
+                    guard !relativePath.hasPrefix("/"), document.path.hasPrefix(folder.path + "/") else {
+                        throw ProjectScanError.unavailable
+                    }
+                    try FileManager.default.createDirectory(at: document.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try text.write(to: document, atomically: true, encoding: .utf8)
+                }
+                fixtureURL = folder
+            } else {
+                fixtureURL = env["MARKY_UI_TEST_PROJECT_PATH"].map { URL(fileURLWithPath: $0, isDirectory: true) }
+            }
+        } catch {
+            errorMessage = "Couldn't prepare the UI test project."
+            return true
+        }
+        if let folder = fixtureURL {
             openPickedFolder(folder)
             let seedRequestID = projectLoadID
             Task { [weak self] in
@@ -445,23 +537,6 @@ final class ContentViewModel: ObservableObject {
             return true
         }
 
-        let fixtures = [
-            FileNode(url: URL(fileURLWithPath: "/tmp/README.md"), name: "README.md", isDirectory: false, children: nil),
-            FileNode(url: URL(fileURLWithPath: "/tmp/MEMORY.md"), name: "MEMORY.md", isDirectory: false, children: nil),
-            FileNode(url: URL(fileURLWithPath: "/tmp/docs"), name: "docs", isDirectory: true, children: [
-                FileNode(url: URL(fileURLWithPath: "/tmp/docs/GUIDE.md"), name: "GUIDE.md", isDirectory: false, children: nil)
-            ])
-        ]
-
-        root = FileNode(
-            url: URL(fileURLWithPath: "/tmp/marky-ui-seed-root"),
-            name: "marky-ui-seed-root",
-            isDirectory: true,
-            children: fixtures
-        )
-        selectedURL = nil
-        expandedFolderURLs.removeAll()
-        splitViewVisibility = .all
         return true
     }
 

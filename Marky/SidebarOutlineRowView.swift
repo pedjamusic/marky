@@ -61,8 +61,13 @@ final class SidebarOutlineRowView: NSTableCellView {
         favoriteButton.toolTip = favoriteActionTitle
         favoriteButton.setAccessibilityLabel(favoriteActionTitle)
         self.onToggleFavorite = onToggleFavorite
-        isHovered = false
+        refreshHoverState()
         updateFavoriteButtonVisibility()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshHoverState()
     }
 
     override func updateTrackingAreas() {
@@ -80,6 +85,7 @@ final class SidebarOutlineRowView: NSTableCellView {
         )
         addTrackingArea(trackingAreaRef)
         self.trackingAreaRef = trackingAreaRef
+        refreshHoverState()
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -130,6 +136,14 @@ final class SidebarOutlineRowView: NSTableCellView {
             favoriteButton.widthAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize),
             favoriteButton.heightAnchor.constraint(equalToConstant: MarkyTheme.sidebarRowIconSize)
         ])
+    }
+
+    private func refreshHoverState() {
+        guard let window else {
+            isHovered = false
+            return
+        }
+        isHovered = bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil))
     }
 
     private func updateFavoriteButtonVisibility() {

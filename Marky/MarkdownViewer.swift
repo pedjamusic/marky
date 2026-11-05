@@ -242,7 +242,16 @@ enum MarkdownRenderer {
             apply: (NSTextCheckingResult, NSMutableAttributedString) -> Void
         ) {
             guard let regex else { return }
-            let matches = regex.matches(in: styled.string, range: NSRange(location: 0, length: styled.length))
+            let matchingText = NSMutableString(string: styled.string)
+            if allowsLiteralBody {
+                // Neutral UTF-16 units hide literal syntax without shifting attributed-source offsets.
+                styled.enumerateAttribute(literal, in: NSRange(location: 0, length: styled.length)) { value, range, _ in
+                    if value != nil {
+                        matchingText.replaceCharacters(in: range, with: String(repeating: "x", count: range.length))
+                    }
+                }
+            }
+            let matches = regex.matches(in: matchingText as String, range: NSRange(location: 0, length: styled.length))
             for match in matches.reversed() {
                 let bodyRange = match.range(at: bodyGroup)
                 var crossesLiteralSyntax = false
@@ -332,6 +341,7 @@ final class MarkdownDoc: ObservableObject {
         textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool = false
     ) async {
+        guard !Task.isCancelled else { return }
         loadGeneration &+= 1
         let generation = loadGeneration
         self.mode = mode
@@ -355,6 +365,7 @@ final class MarkdownDoc: ObservableObject {
         } catch {
             guard generation == loadGeneration else { return }
             isLoading = false
+            guard !Task.isCancelled else { return }
             self.error = error.localizedDescription
         }
     }

@@ -75,6 +75,8 @@ struct FilesOutlineView: NSViewRepresentable {
         private var expandedFolderURLs: Set<URL> = []
         private var favoriteFileURLs: Set<URL> = []
         private var expandAllFolders = false
+        private var selectedOutlineURL: URL?
+        private var lastReaderURL: URL?
 
         init(parent: FilesOutlineView) {
             self.parent = parent
@@ -132,8 +134,11 @@ struct FilesOutlineView: NSViewRepresentable {
         }
 
         func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
-            guard let node = node(for: item) else { return false }
-            return !node.isDirectory
+            node(for: item) != nil
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, shouldCollapseItem item: Any) -> Bool {
+            isApplyingState || !parent.expandAllFolders
         }
 
         func outlineViewItemDidExpand(_ notification: Notification) {
@@ -145,7 +150,7 @@ struct FilesOutlineView: NSViewRepresentable {
         }
 
         private func publishExpansion(from notification: Notification, isExpanded: Bool) {
-            guard !isApplyingState,
+            guard !isApplyingState, !parent.expandAllFolders,
                   let node = node(for: notification.userInfo?["NSObject"])
             else { return }
             parent.onSetFolderExpanded(node, isExpanded)
@@ -157,8 +162,12 @@ struct FilesOutlineView: NSViewRepresentable {
             else { return }
 
             let row = outlineView.selectedRow
-            guard row >= 0, let node = node(for: outlineView.item(atRow: row)) else { return }
-            parent.onSelectNode(node)
+            guard row >= 0, let node = node(for: outlineView.item(atRow: row)) else {
+                selectedOutlineURL = nil
+                return
+            }
+            selectedOutlineURL = node.url
+            if !node.isDirectory { parent.onSelectNode(node) }
         }
 
         @objc
@@ -240,7 +249,14 @@ struct FilesOutlineView: NSViewRepresentable {
         }
 
         private func syncSelection(in outlineView: NSOutlineView) {
-            guard let selectedURL = parent.selectedURL else {
+            if !hasAppliedState || lastReaderURL != parent.selectedURL {
+                selectedOutlineURL = parent.selectedURL
+            }
+            lastReaderURL = parent.selectedURL
+            if let selectedOutlineURL, nodesByURL[selectedOutlineURL] == nil {
+                self.selectedOutlineURL = parent.selectedURL
+            }
+            guard let selectedURL = selectedOutlineURL else {
                 outlineView.deselectAll(nil)
                 return
             }

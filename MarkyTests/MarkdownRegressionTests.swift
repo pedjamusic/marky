@@ -43,6 +43,23 @@ struct MarkdownRegressionTests {
         #expect(bold.attribute(.backgroundColor, at: boldCode.location, effectiveRange: nil) != nil)
     }
 
+    @Test("Outer styles recognize punctuation inside protected code")
+    func punctuationInsideStyledCode() throws {
+        let bold = MarkdownRenderer.render(from: "**before `a*b` after**", mode: .systemHeadingsSerifBody)
+        #expect(bold.string == "before a*b after")
+        let proseFont = try #require(bold.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(NSFontManager.shared.traits(of: proseFont).contains(.boldFontMask))
+        let codeRange = (bold.string as NSString).range(of: "a*b")
+        let codeFont = try #require(bold.attribute(.font, at: codeRange.location, effectiveRange: nil) as? NSFont)
+        #expect(codeFont.fontDescriptor.symbolicTraits.contains(.monoSpace))
+        #expect(bold.attribute(.backgroundColor, at: codeRange.location, effectiveRange: nil) != nil)
+        let linked = MarkdownRenderer.render(from: "[Use `array[index]`](https://example.com)")
+        #expect(linked.string == "Use array[index]")
+        let literalRange = (linked.string as NSString).range(of: "array[index]")
+        #expect(linked.attribute(.link, at: literalRange.location, effectiveRange: nil) as? URL == URL(string: "https://example.com"))
+        #expect(linked.attribute(.backgroundColor, at: literalRange.location, effectiveRange: nil) != nil)
+    }
+
     @Test("Edits before fenced code cannot shift literal protection")
     func codeOffsets() {
         let rendered = MarkdownRenderer.render(from: "🎵 [site](https://example.com) **bold**\n```\n**literal** [literal](https://example.com)\n```\n**after**")
@@ -71,6 +88,21 @@ struct MarkdownRegressionTests {
             #expect(text == "unclosed **literal**")
         } else {
             Issue.record("Expected unclosed fence to preserve code")
+        }
+    }
+
+    @Test("Indented fence-like lines stay literal until a valid closer")
+    func indentedFenceClosers() {
+        for indent in ["    ", "\t"] {
+            let source = "~~~\n\(indent)~~~\n**literal**\n~~~\nAfter"
+            let prepared = MarkdownContentBlocks.prepare(from: source)
+            #expect(prepared.count == 2)
+            if case .code(let text) = prepared.first?.kind {
+                #expect(text == "\(indent)~~~\n**literal**")
+            } else {
+                Issue.record("Expected indented fence candidate to remain code")
+            }
+            #expect(MarkdownRenderer.render(from: source).string == "\(indent)~~~\n**literal**\nAfter")
         }
     }
 
@@ -106,16 +138,58 @@ struct MarkdownRegressionTests {
         let doc = MarkdownDoc { url in try await loader.load(url) }
         let task = Task { await doc.load(from: URL(fileURLWithPath: "/document")) }
         await loader.waitForRequests(1)
-        doc.rerenderFromPreparedBlocks(mode: .allSystem, textSizePreset: .slightlyBigger, isDarkMode: true)
-        await loader.finish(0, text: "# Heading")
+        doc.rerenderFromPreparedBlocks(mode: .systemHeadingsSerifBody, textSizePreset: .slightlyBigger, isDarkMode: true)
+        await loader.finish(0, text: "Prose `literal`")
         await task.value
-        guard case .heading(_, let text) = doc.blocks.first?.kind else {
-            Issue.record("Expected loaded heading")
+        guard case .paragraph(let text) = doc.blocks.first?.kind else {
+            Issue.record("Expected loaded prose")
             return
         }
-        let font = try #require(NSAttributedString(text).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
-        #expect(abs(font.pointSize - MarkdownTypography(mode: .allSystem, textSizePreset: .slightlyBigger).headingFont(for: 1).pointSize) < 0.01)
+        let attributed = NSAttributedString(text)
+        let typography = MarkdownTypography(mode: .systemHeadingsSerifBody, textSizePreset: .slightlyBigger)
+        let font = try #require(attributed.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(font.familyName == typography.bodyFont().familyName)
+        #expect(abs(font.pointSize - typography.bodyFont().pointSize) < 0.01)
+        let code = (attributed.string as NSString).range(of: "literal")
+        let background = try #require(attributed.attribute(.backgroundColor, at: code.location, effectiveRange: nil) as? NSColor)
+        #expect(background == typography.codeBackgroundColor(isDarkMode: true))
         #expect(await loader.requestCount == 1)
+    }
+
+    @Test("An already-cancelled late call cannot invalidate an active load")
+    func alreadyCancelledLateCall() async {
+        let loader = SuspendedMarkdownLoader()
+        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let active = Task { await doc.load(from: URL(fileURLWithPath: "/active")) }
+        await loader.waitForRequests(1)
+        let late = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            await doc.load(from: URL(fileURLWithPath: "/cancelled-old"))
+        }
+        await late.value
+        #expect(await loader.requestCount == 1)
+        #expect(doc.isLoading)
+        await loader.finish(0, text: "active content")
+        await active.value
+        if case .paragraph(let text) = doc.blocks.first?.kind {
+            #expect(String(text.characters) == "active content")
+        } else {
+            Issue.record("Expected active load to retain its generation")
+        }
+    }
+
+    @Test("An ordinary loader failure after cancellation stays silent")
+    func cancelledOrdinaryFailure() async {
+        let loader = SuspendedMarkdownLoader()
+        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let task = Task { await doc.load(from: URL(fileURLWithPath: "/cancelled")) }
+        await loader.waitForRequests(1)
+        task.cancel()
+        await loader.fail(0)
+        await task.value
+        #expect(!doc.isLoading)
+        #expect(doc.blocks.isEmpty)
+        #expect(doc.error == nil)
     }
 
     @Test("Superseded and cancelled document loads cannot publish stale content")
@@ -164,6 +238,10 @@ private actor SuspendedMarkdownLoader {
     func waitForRequests(_ count: Int) async {
         guard pending.count < count else { return }
         await withCheckedContinuation { waiter = (count, $0) }
+    }
+
+    func fail(_ index: Int) {
+        pending[index].resume(throwing: CocoaError(.fileReadNoSuchFile))
     }
 
     func finish(_ index: Int, text: String) {

@@ -58,6 +58,31 @@ and collapse-all regression pass. The sidebar now uses native disclosure control
 and retains stable item objects, as required by [AppKit's data-source
 contract](https://developer.apple.com/documentation/appkit/nsoutlineviewdatasource/outlineview(_:child:ofitem:)).
 
+## CodeRabbit follow-up
+
+PR: https://github.com/pedjamusic/marky/pull/1
+
+- The initially published commit `53f8245` passed a clean-checkout run of **49 unit
+  tests and all 4 UI tests**, including the launch screenshot test.
+- Review fixes passed **64 unit tests (67 runs including parameterized cases)**,
+  with no failures or skips. The updated signed Release build and signature
+  verification also passed.
+- The follow-up UI suite compiled but could not activate the app because the
+  desktop was locked. Those tests remain pending an unlocked desktop; the earlier
+  UI results do not establish the new keyboard/geometry/fixture behavior.
+- Fixes cover packages/non-regular files, fallback scope retention, pending
+  restoration, confirmed-missing-only favorite pruning and concurrent edits,
+  authorized alias migration without historical filesystem lookups, folder
+  keyboard/search behavior, hover state, app-owned test fixtures, fence indentation,
+  literal-aware outer styles, and cancellation before/after preparation.
+- Unknown legacy project aliases are preserved and migrated when their original
+  location is explicitly reopened under its active grant. Unrelated historical
+  paths are not synchronously resolved during local favorite operations.
+
+Follow-up unit command uses the same signed test command above with only
+`-only-testing:MarkyTests`. After unlocking, run all `MarkyUITests` before final
+manual acceptance and merge.
+
 ## Manual acceptance
 
 Use a signed, sandbox-enabled app for access-restoration checks. A build with code
