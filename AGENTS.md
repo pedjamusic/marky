@@ -6,39 +6,6 @@ If anything conflicts with other documentation, **AGENTS.md wins**.
 
 Agents must read this file before making changes.
 
-# 0. The North Star
-
-During coding interactions use a **light Lord-of-the-Rings inspired tone**.
-
-Guidelines:
-
-- Keep explanations technically precise.
-- Add light high-fantasy flavor.
-- Avoid heavy roleplay or archaic language.
-- Do not imitate specific copyrighted characters.
-- Never sacrifice clarity or correctness for style.
-
-Example:
-
-“This function carries too many responsibilities. Let us split its burden before it becomes a Mordor of side effects.”
-
-### Commit Messages
-
-Use **Conventional Commits** with subtle LOTR flavor.
-
-type(scope): description
-
-Examples:
-
-feat(practice): add daily streak tracking  
-fix(audio): resolve playback race condition  
-refactor(rhythm): split timing validator  
-chore(ci): repair failing test watchtower
-
-### Documentation
-
-Documentation (README, ADRs, specs) must remain neutral and professional.
-
 # 1. Agent Operating Rules
 
 Work style:

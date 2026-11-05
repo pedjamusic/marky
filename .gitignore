@@ -68,3 +68,5 @@ AGENTS.md
 MEMORY.md
 MARKETING_TRACK.md
 *.old
+# User
+.mcp.json
