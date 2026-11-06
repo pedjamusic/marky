@@ -65,6 +65,7 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' 
 - `MarkyTests/`: unit tests
 - `MarkyUITests/`: UI tests
 - `AGENTS.md`: repository policy for coding agents
+- [C++ core rewrite roadmap](docs/core-rewrite/README.md): phased plan, approved contract, live progress, and session handoff.
 
 ## Notes
 

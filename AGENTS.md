@@ -7,6 +7,7 @@ This file defines repository policy and takes precedence over other repository d
 ## Read when relevant
 
 - `README.md`: current features, toolchain, and build/test commands. Confirm versions in the project settings before reporting them.
+- `docs/core-rewrite/README.md`: entry point before C++ core planning, implementation, portability work, or handoff; follow its contract, active phase, and status ledger.
 - `_plans/*TODO*.md`: execution checklists. Check their scope and status before treating an old plan as active.
 - `docs/CODE_QUALITY_VERIFICATION.md`: project access, favorites, sidebar, and signed sandbox acceptance procedures.
 - `docs/MARKDOWN_STYLING_VERIFICATION.md` and `docs/MARKDOWN_SHOWCASE.md`: Markdown behavior and reading examples before parser or renderer work.
