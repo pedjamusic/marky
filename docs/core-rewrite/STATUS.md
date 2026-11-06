@@ -4,15 +4,15 @@ Updated: 2026-11-06. This is the authoritative live ledger. [README](README.md) 
 
 ## Current checkpoint
 
-- Current task: documentation package only; core implementation has not started.
-- Active work: both attached CodeRabbit findings on [PR #3](https://github.com/pedjamusic/marky/pull/3) are fixed in `d0bdc99`, independently verified by CodeRabbit, and accepted by the user's **PASS** on 2026-11-06. Both threads are resolved; core implementation remains queued.
-- Candidate: repository `docs/core-rewrite/` package plus one discovery line each in README.md and AGENTS.md on `codex/cpp-core-roadmap`.
+- Current task: documentation package completed and merged; core implementation has not started.
+- Accepted result: both attached CodeRabbit findings on [PR #3](https://github.com/pedjamusic/marky/pull/3) are fixed in `d0bdc99`, independently verified by CodeRabbit, and accepted by the user's **PASS** on 2026-11-06. Both threads are resolved.
+- Delivery: PR #3 merged into `main` as `220e0dc`; this documentation-only closeout records the final handoff. The local and remote `codex/cpp-core-roadmap` branches have been deleted.
 - Repository baseline: clean `main` at `be3710a` before drafting. Recheck live Git state before applying; this is an evidence snapshot, not a permanent branch assumption.
-- Durable files: this directory is the review candidate. Temporary drafting/check scripts are supplementary and are not needed to resume from the repository.
+- Durable files: this directory on main is the accepted roadmap. Temporary drafting/check scripts are supplementary and are not needed to resume from the repository.
 - Automated verification: 8 phase documents, 20 tickets, 51 slices, all required fields, 19 owed-work definitions, 216 relative links/anchors, slice-state coverage, and the manually transcribed dependency graph checked; whitespace and patch applicability passed. No app build/runtime checks were run.
-- User acceptance: initial documentation accepted ("great"); the focused repair candidate `d0bdc99` received user **PASS** on 2026-11-06. This acceptance covers documentation, not application runtime behavior or Git merge permission.
-- Publication: roadmap commit `82cf5eb` was pushed to `origin/codex/cpp-core-roadmap` and PR #3 opened against main; this status follow-up records the publication. App source, project settings, version, and changelog are unchanged.
-- Next action: obtain separate authorization before merging PR #3 or cleaning up its branch. CodeRabbit verified both fixes in thread replies; the requested incremental re-review was rate-limited, so no complete re-review is claimed. T01.S1 remains queued until core work is subsequently requested. Merge/push of main remains unauthorized.
+- User acceptance: initial documentation accepted ("great"); the focused repair candidate `d0bdc99` received user **PASS** on 2026-11-06. The user subsequently authorized merge, pull/push, and branch cleanup. No application runtime acceptance is claimed.
+- Publication: roadmap `82cf5eb`, publication checkpoint `fc7f1b4`, repairs `d0bdc99`, and PASS checkpoint `2b320a3` were merged through PR #3. App source, project settings, version, and changelog are unchanged.
+- Next action: when core work is requested, start T01.S1 on a new authorized local codex branch from current main. Re-read its inputs and verify current source/test state before characterization. CodeRabbit verified both fixes in thread replies; the incremental re-review was rate-limited, so no complete re-review is claimed. No implementation ticket has started.
 
 ## Ticket and slice state
 
@@ -20,7 +20,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 
 | Ticket | Phase definition | Ticket state | Slice state | Verification / acceptance |
 | --- | --- | --- | --- | --- |
-| T00 | [00](phases/00-roadmap.md) | done | T00.S1 done; T00.S2 done; T00.S3 done | Documentation checks passed (E00); user accepted delivery and requested external review. |
+| T00 | [00](phases/00-roadmap.md) | done | T00.S1 done; T00.S2 done; T00.S3 done | Documentation accepted, review fixes passed (E02), and PR #3 merged (E03). |
 | T01 | [01](phases/01-behavior-and-baselines.md) | queued | T01.S1 queued; T01.S2 queued; T01.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T02 | [01](phases/01-behavior-and-baselines.md) | queued | T02.S1 queued; T02.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | queued | T03.S1 queued; T03.S2 queued; T03.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -88,6 +88,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E00 | T00.S1–T00.S3 | Documentation package against be3710a; static inventory, dependency/owe, link, and whitespace checks. | PASS: 8 phase files, 20 tickets/51 slices, required ticket fields, 19 owed-work definitions, complete slice-state inventory, 216 local links/anchors, manually matched acyclic technical prerequisites, and whitespace. git apply --check --whitespace=error-all accepted the patch against the clean baseline; final worktree content/links and git diff --check were verified after application. Supervisor reviewed all phase drafts and corrected multi-recipient owed-work closure to avoid reverse dependencies. No application build/test/runtime validation. | User accepted delivery ("great") and requested a CodeRabbit PR on 2026-11-06. |
 | E01 | External documentation review | [PR #3](https://github.com/pedjamusic/marky/pull/3), initial review at fc7f1b4; fixes at d0bdc99. | Initial review produced two actionable findings. CodeRabbit independently verified both fixes in the resolved threads. The [incremental re-review request was rate-limited](https://github.com/pedjamusic/marky/pull/3#issuecomment-6684048757); no complete re-review or overall bot approval is claimed. | Both attached findings verified; user PASS recorded in E02. |
 | E02 | Documentation review repair | d0bdc99: T12.S1/S2 and T16 prerequisites, plus the repair checkpoint. | PASS: 8 phases, 20 tickets/51 slices, required fields/statuses, 19 owes, 216 local links/anchors, and an acyclic dependency graph including T03.S3 → T16.S1. Both omissions reproduced in the prior head and corrected; T17 is byte-identical. Whitespace and focused three-file diff checks passed. No runtime measurement or app test is claimed by this documentation edit. | User **PASS** ("pass.") on 2026-11-06 for d0bdc99. |
+| E03 | Merge and handoff | PR #3, accepted head 2b320a3, merge 220e0dc. | GitHub merge confirmed; local main fast-forwarded to the merge. Both review threads resolved. Merged local/remote task branch deleted; final documentation checkpoint follows through the authorized main push. Static document checks passed before merge; no app build/runtime validation. | User explicitly authorized merge, pull/push, deletion, and wrap-up on 2026-11-06. |
 
 ## Git authorization and integration
 
@@ -98,11 +99,11 @@ This is independent of technical completion and user acceptance. Record the actu
 | Read-only inspection | Allowed by policy | Clean main/be3710a inspected before drafting. |
 | Documentation file edits | User requested this package and explicitly authorized applying it | Applied to the authorized local branch; user accepted delivery. |
 | Create local codex branch/worktree | User explicitly approved codex/cpp-core-roadmap and applying docs, 2026-11-06 | Created from clean main/be3710a; B02 resolved. |
-| Commit | Authorized as necessary to publish the user-requested PR and follow-up, 2026-11-06 | Roadmap 82cf5eb, publication fc7f1b4, repairs d0bdc99; this checkpoint records user PASS and review limits. |
-| Merge to main | Not authorized | Not performed. |
-| Push | Task-branch push authorized by the explicit PR request, 2026-11-06 | origin/codex/cpp-core-roadmap published; main push is not authorized. |
-| Delete branch/worktree | Not authorized | Not performed. |
-| Open PR | User explicitly requested a PR for CodeRabbit review, 2026-11-06 | [PR #3](https://github.com/pedjamusic/marky/pull/3) opened against main. |
+| Commit | Authorized for PR publication, repairs, and final wrap-up, 2026-11-06 | Accepted PR commits listed above; this final checkpoint records integration and next work. |
+| Merge to main | User explicitly authorized merge and wrap-up, 2026-11-06 | PR #3 merged as 220e0dc with expected-head verification. |
+| Pull/push | User explicitly authorized synchronization and wrap-up, 2026-11-06 | Merged main pulled with --ff-only; final documentation checkpoint uses the authorized main push. |
+| Delete branch/worktree | User explicitly authorized merged-branch cleanup, 2026-11-06 | codex/cpp-core-roadmap deleted locally and on origin after merge. Temporary local handoff branch is disposable after its checkpoint reaches main. No extra worktree was created. |
+| Open PR | User explicitly requested a PR for CodeRabbit review, 2026-11-06 | [PR #3](https://github.com/pedjamusic/marky/pull/3) merged; review limits recorded in E01. |
 
 ## Contract amendments
 
