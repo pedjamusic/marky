@@ -123,7 +123,7 @@ Use core project rules in the macOS app while preserving access, navigation, and
 
 ### Prerequisites
 
-Accepted `T13`, `T14`, and `T15`.
+Accepted `T13`, `T14`, and `T15`; verified `T03.S3`.
 
 ### Inputs
 
