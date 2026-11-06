@@ -78,6 +78,70 @@ enum MarkyTheme {
     static let sidebarRowTitleGap: CGFloat = 6
     static let sidebarRowTrailingInset: CGFloat = 6
 
+    // Table and reader block styling tokens
+    static let tableCornerRadius: CGFloat = 8
+    static let tableCellHorizontalPadding: CGFloat = 12
+    static let tableCellVerticalPadding: CGFloat = 8
+    static let tableCellMinWidth: CGFloat = 80
+    static let tableCellMaxWidth: CGFloat = 380
+    static let tableCharacterWidthMultiplier: CGFloat = 0.58
+    static let tableScrollIndicatorSpacing: CGFloat = 6
+    static let tableBorderLineWidth: CGFloat = 1.0
+    static let tableCellBorderLineWidth: CGFloat = 0.5
+    static let tableOuterPadding: CGFloat = 1.0
+    static let tableLineSpacingScale: CGFloat = 0.7
+    static let thematicBreakHeight: CGFloat = 1
+    static let thematicBreakPaddingVertical: CGFloat = 14
+    static let imageCornerRadius: CGFloat = 8
+    static let imagePlaceholderHeight: CGFloat = 110
+    static let imageCardHorizontalPadding: CGFloat = 14
+    static let imageCardVerticalPadding: CGFloat = 10
+    static let imageCardIconSize: CGFloat = 20
+    static let imageCaptionSpacing: CGFloat = 6
+    static let imageLoadingHStackSpacing: CGFloat = 8
+    static let imageCardHStackSpacing: CGFloat = 10
+    static let imageCardVStackSpacing: CGFloat = 2
+    static let imageTitleFontScale: CGFloat = 0.85
+    static let imageCardTitleFontScale: CGFloat = 0.9
+    static let imageCardUrlFontScale: CGFloat = 0.75
+    static let imageLoadingTextFontScale: CGFloat = 0.9
+    static let quoteBarWidth: CGFloat = 3
+    static let quoteBarCornerRadius: CGFloat = 1.5
+    static let quoteBarSpacing: CGFloat = 12
+    static let quoteLeadingInset: CGFloat = 2
+    static let italicObliqueness: CGFloat = 0.20
+
+    static func tableBorderColor(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.14)
+            : Color.black.opacity(0.12)
+    }
+
+    static func tableHeaderBackgroundColor(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.black.opacity(0.04)
+    }
+
+    static func tableRowBackgroundColor(isAlternate: Bool, for colorScheme: ColorScheme) -> Color {
+        guard isAlternate else { return Color.clear }
+        return colorScheme == .dark
+            ? Color.white.opacity(0.035)
+            : Color.black.opacity(0.02)
+    }
+
+    static func thematicBreakColor(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.16)
+            : Color.black.opacity(0.12)
+    }
+
+    static func quoteBarColor(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.28)
+            : Color.black.opacity(0.24)
+    }
+
     // Brand typography tokens
     static let wordmarkFontName = "Fraunces"
     static let wordmarkSize: CGFloat = 38

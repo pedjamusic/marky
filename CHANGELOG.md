@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.4] - 2026-11-06
+
+Manual validation passed on 2026-11-06.
+
+- Reader feature suite: added native GFM table grids with column alignment, bounded multi-line cell wrapping, and horizontal scrolling; expanded inline and block Markdown styling across headings, lists, quotes, and links; and introduced native standalone presentation for local project images and remote HTTPS images with accessible fallbacks.
+- GFM pipe tables: added support for pipe-free short rows padded to column count, block boundary termination for lists, blockquotes, headings, rules, and images, and shared code-span backtick matching between table row splitting and pipe detection.
+- Markdown styling & inline parsing: normalized reference link labels with whitespace collapsing and consistent case folding; preserved literal source on invalid reference destinations; prevented undefined full reference links from falling back to shortcut references; safe angle-bracket serialization for link destinations containing parentheses; reinforced bold and italic traits for triple delimiters.
+- Images & network permissions: added angle-bracket enclosed image paths with spaces while rejecting unbracketed spaces; normalized remote URL schemes (case-insensitive HTTPS); added user-initiated folder access grant fallback via native NSOpenPanel for local images denied sandbox access while maintaining approved network permissions.
+
 ## [0.2.3] - 2026-11-06
 
 Manual validation passed on 2026-11-06.
