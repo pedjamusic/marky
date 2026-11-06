@@ -5,14 +5,14 @@ Updated: 2026-11-06. This is the authoritative live ledger. [README](README.md) 
 ## Current checkpoint
 
 - Current task: documentation package only; core implementation has not started.
-- Active work: focused repairs to the two attached CodeRabbit findings on [PR #3](https://github.com/pedjamusic/marky/pull/3) are implemented and checked: comparable document performance before T12 cutover, and verified Swift/Xcode integration before T16. Updated-head review remains pending; core implementation remains queued.
+- Active work: both attached CodeRabbit findings on [PR #3](https://github.com/pedjamusic/marky/pull/3) are fixed in `d0bdc99`, independently verified by CodeRabbit, and accepted by the user's **PASS** on 2026-11-06. Both threads are resolved; core implementation remains queued.
 - Candidate: repository `docs/core-rewrite/` package plus one discovery line each in README.md and AGENTS.md on `codex/cpp-core-roadmap`.
 - Repository baseline: clean `main` at `be3710a` before drafting. Recheck live Git state before applying; this is an evidence snapshot, not a permanent branch assumption.
 - Durable files: this directory is the review candidate. Temporary drafting/check scripts are supplementary and are not needed to resume from the repository.
 - Automated verification: 8 phase documents, 20 tickets, 51 slices, all required fields, 19 owed-work definitions, 216 relative links/anchors, slice-state coverage, and the manually transcribed dependency graph checked; whitespace and patch applicability passed. No app build/runtime checks were run.
-- User acceptance: the user accepted the documentation delivery ("great") and requested a PR for CodeRabbit on 2026-11-06. The external review is a separate pending check; subsequent changes require applicable review again.
+- User acceptance: initial documentation accepted ("great"); the focused repair candidate `d0bdc99` received user **PASS** on 2026-11-06. This acceptance covers documentation, not application runtime behavior or Git merge permission.
 - Publication: roadmap commit `82cf5eb` was pushed to `origin/codex/cpp-core-roadmap` and PR #3 opened against main; this status follow-up records the publication. App source, project settings, version, and changelog are unchanged.
-- Next action: follow the updated-head review after publishing this repair and replying to the two threads. The initial full review ran and produced these findings; repaired-head acceptance remains pending. T01.S1 remains queued until core work is subsequently requested. Merge/push of main remains unauthorized.
+- Next action: obtain separate authorization before merging PR #3 or cleaning up its branch. CodeRabbit verified both fixes in thread replies; the requested incremental re-review was rate-limited, so no complete re-review is claimed. T01.S1 remains queued until core work is subsequently requested. Merge/push of main remains unauthorized.
 
 ## Ticket and slice state
 
@@ -86,8 +86,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | ID | Applies to | Candidate / checks | Result and limitations | User acceptance |
 | --- | --- | --- | --- | --- |
 | E00 | T00.S1–T00.S3 | Documentation package against be3710a; static inventory, dependency/owe, link, and whitespace checks. | PASS: 8 phase files, 20 tickets/51 slices, required ticket fields, 19 owed-work definitions, complete slice-state inventory, 216 local links/anchors, manually matched acyclic technical prerequisites, and whitespace. git apply --check --whitespace=error-all accepted the patch against the clean baseline; final worktree content/links and git diff --check were verified after application. Supervisor reviewed all phase drafts and corrected multi-recipient owed-work closure to avoid reverse dependencies. No application build/test/runtime validation. | User accepted delivery ("great") and requested a CodeRabbit PR on 2026-11-06. |
-| E01 | External documentation review | [PR #3](https://github.com/pedjamusic/marky/pull/3), initial review at fc7f1b4. | CodeRabbit's full review produced two actionable findings: missing pre-cutover document measurements and missing T03.S3 prerequisite for T16. User requested the focused repair. | Updated-head review pending; no bot approval claimed. |
-| E02 | Documentation review repair | Follow-up to fc7f1b4: T12.S1/S2 and T16 prerequisites, plus this checkpoint. | PASS: 8 phases, 20 tickets/51 slices, required fields/statuses, 19 owes, 216 local links/anchors, and an acyclic dependency graph including T03.S3 → T16.S1. Both omissions reproduced in the prior head and corrected in the working tree; T17 is byte-identical. Whitespace and focused three-file diff checks passed. No runtime measurement or app test is claimed by this documentation edit. | User requested these repairs; final review of the updated diff remains pending. |
+| E01 | External documentation review | [PR #3](https://github.com/pedjamusic/marky/pull/3), initial review at fc7f1b4; fixes at d0bdc99. | Initial review produced two actionable findings. CodeRabbit independently verified both fixes in the resolved threads. The [incremental re-review request was rate-limited](https://github.com/pedjamusic/marky/pull/3#issuecomment-6684048757); no complete re-review or overall bot approval is claimed. | Both attached findings verified; user PASS recorded in E02. |
+| E02 | Documentation review repair | d0bdc99: T12.S1/S2 and T16 prerequisites, plus the repair checkpoint. | PASS: 8 phases, 20 tickets/51 slices, required fields/statuses, 19 owes, 216 local links/anchors, and an acyclic dependency graph including T03.S3 → T16.S1. Both omissions reproduced in the prior head and corrected; T17 is byte-identical. Whitespace and focused three-file diff checks passed. No runtime measurement or app test is claimed by this documentation edit. | User **PASS** ("pass.") on 2026-11-06 for d0bdc99. |
 
 ## Git authorization and integration
 
@@ -98,7 +98,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Read-only inspection | Allowed by policy | Clean main/be3710a inspected before drafting. |
 | Documentation file edits | User requested this package and explicitly authorized applying it | Applied to the authorized local branch; user accepted delivery. |
 | Create local codex branch/worktree | User explicitly approved codex/cpp-core-roadmap and applying docs, 2026-11-06 | Created from clean main/be3710a; B02 resolved. |
-| Commit | Authorized as necessary to publish the user-requested PR, 2026-11-06 | Roadmap committed as 82cf5eb; publication checkpoint follows in the same PR. |
+| Commit | Authorized as necessary to publish the user-requested PR and follow-up, 2026-11-06 | Roadmap 82cf5eb, publication fc7f1b4, repairs d0bdc99; this checkpoint records user PASS and review limits. |
 | Merge to main | Not authorized | Not performed. |
 | Push | Task-branch push authorized by the explicit PR request, 2026-11-06 | origin/codex/cpp-core-roadmap published; main push is not authorized. |
 | Delete branch/worktree | Not authorized | Not performed. |
