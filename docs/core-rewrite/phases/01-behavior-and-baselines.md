@@ -14,7 +14,7 @@ Read [STATUS](../STATUS.md), [document semantics](../CONTRACT.md#document-semant
 
 | Slice | Output | Verification and exit |
 | --- | --- | --- |
-| T01.S1 | Requirement-to-test coverage map separating shared semantics from native checks and identifying gaps. | Account for existing documented supported behavior and critical project/access invariants; identify gaps and their owning tickets rather than assuming coverage. |
+| T01.S1 | [Requirement-to-test coverage map](../T01-S1-COVERAGE.md) separating shared semantics from native checks and identifying gaps. | Account for existing documented supported behavior and critical project/access invariants; identify gaps and their owning tickets rather than assuming coverage. |
 | T01.S2 | Shared Markdown input fixtures and independently reviewed expected structure, visible text, formatting, destinations, and literal protection. | Check expected results against current code/tests and accepted examples; assign stable fixture identities usable by standalone core tests and Mac adapter checks. Expectations are not generated from the replacement parser. |
 | T01.S3 | Characterization of ambiguous/uncovered cases against the current app, with linked fixture updates. | Each discovered ambiguity is resolved with evidence or has a named blocker on its consumer; no standards change is introduced silently. Resolve incoming OWE-T00 with the reviewed map/corpus. |
 

@@ -4,15 +4,15 @@ Updated: 2026-11-06. This is the authoritative live ledger. [README](README.md) 
 
 ## Current checkpoint
 
-- Current task: documentation package completed and merged; core implementation has not started.
-- Accepted result: both attached CodeRabbit findings on [PR #3](https://github.com/pedjamusic/marky/pull/3) are fixed in `d0bdc99`, independently verified by CodeRabbit, and accepted by the user's **PASS** on 2026-11-06. Both threads are resolved.
-- Delivery: PR #3 merged into `main` as `220e0dc`; this documentation-only closeout records the final handoff. The local and remote `codex/cpp-core-roadmap` branches have been deleted.
-- Repository baseline: clean `main` at `be3710a` before drafting. Recheck live Git state before applying; this is an evidence snapshot, not a permanent branch assumption.
-- Durable files: this directory on main is the accepted roadmap. Temporary drafting/check scripts are supplementary and are not needed to resume from the repository.
-- Automated verification: 8 phase documents, 20 tickets, 51 slices, all required fields, 19 owed-work definitions, 216 relative links/anchors, slice-state coverage, and the manually transcribed dependency graph checked; whitespace and patch applicability passed. No app build/runtime checks were run.
-- User acceptance: initial documentation accepted ("great"); the focused repair candidate `d0bdc99` received user **PASS** on 2026-11-06. The user subsequently authorized merge, pull/push, and branch cleanup. No application runtime acceptance is claimed.
-- Publication: roadmap `82cf5eb`, publication checkpoint `fc7f1b4`, repairs `d0bdc99`, and PASS checkpoint `2b320a3` were merged through PR #3. App source, project settings, version, and changelog are unchanged.
-- Next action: when core work is requested, start T01.S1 on a new authorized local codex branch from current main. Re-read its inputs and verify current source/test state before characterization. CodeRabbit verified both fixes in thread replies; the incremental re-review was rate-limited, so no complete re-review is claimed. No implementation ticket has started.
+- Active ticket/slice: T01.S1 accepted and `done`; T01.S2 is next and remains queued. No C++ core, build integration, new fixtures, or app behavior implementation has started.
+- Scope authorized: user selected T01.S1 on 2026-11-06. Its output is a requirement-to-test inventory, not the executable corpus in T01.S2 or characterization in T01.S3.
+- Branch/base: `codex/t01-s1-coverage-map` from clean `main` at `7e16955ac750efed706566a5b12b0045b66280df`. Branch creation was explicitly authorized. User clarified on 2026-11-06 that PASS also authorizes commit, merge, main push and merged-branch cleanup unless a PR is specifically requested. Integration is authorized; no PR was requested.
+- Integration candidate: new [T01-S1-COVERAGE.md](T01-S1-COVERAGE.md), discovery link in [phase 01](phases/01-behavior-and-baselines.md), this ledger, and the user-requested PASS authorization clarification in AGENTS and roadmap workflow documentation. E04 identifies the accepted candidate; E05 records acceptance bookkeeping and the current map hash. The ledger has no self-referential hash.
+- Output: 41 requirements (19 shared document, eight native document, ten shared project, four native project/access), existing assertion strength/limits, and 15 gaps assigned to fixture/characterization or implementation/native acceptance owners. All 104 current unit-test functions and seven focused UI-test functions are referenced; these are inventory counts, not fresh passing test results.
+- Verification: source/assertion inspection, supervisor review (including bounded explorer findings for project/access), map test-name/link/ID audit, and whitespace/diff scope checks. Exact reproducible map audit is embedded in the map; E04 records results. No application build, runtime checks, portability execution or performance measurements were run for this documentation slice.
+- Acceptance: user **PASS** ("pass") on 2026-11-06 for the T01.S1 map/diff identified in E04. E05 records this acceptance; T01.S2/S3 and the whole T01 ticket remain unfinished. App source/settings/version/changelog remain unchanged.
+- Blockers/owes: B04 limits approval of affected code-span expectations until T01.S3 characterization; it does not block this inventory or unaffected fixtures. B03 portability route remains unverified. OWE-T00 remains open until all T01 map/corpus/characterization evidence is reviewed; OWE-T01 remains planned. No new owe is incurred by this slice.
+- Exact next action: finish the authorized commit/merge/main-push/branch-cleanup workflow, then begin T01.S2 only when requested/authorized: assign stable fixture IDs and independent expected results from the current production path, preserving G01/B04 cases for T01.S3 resolution. T02.S1 can consume the verified inventory under its own authorization without waiting for all T01. Acceptance and Git execution remain separately recorded; PASS supplies the integration authorization.
 
 ## Ticket and slice state
 
@@ -21,7 +21,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | Ticket | Phase definition | Ticket state | Slice state | Verification / acceptance |
 | --- | --- | --- | --- | --- |
 | T00 | [00](phases/00-roadmap.md) | done | T00.S1 done; T00.S2 done; T00.S3 done | Documentation accepted, review fixes passed (E02), and PR #3 merged (E03). |
-| T01 | [01](phases/01-behavior-and-baselines.md) | queued | T01.S1 queued; T01.S2 queued; T01.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T01 | [01](phases/01-behavior-and-baselines.md) | in_progress | T01.S1 done; T01.S2 queued; T01.S3 queued | Coverage map/static verification (E04) accepted by user PASS on 2026-11-06 (E05). No executable fixtures or core implementation. |
 | T02 | [01](phases/01-behavior-and-baselines.md) | queued | T02.S1 queued; T02.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | queued | T03.S1 queued; T03.S2 queued; T03.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T04 | [02](phases/02-core-and-swift-seam.md) | queued | T04.S1 queued; T04.S2 queued; T04.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -50,6 +50,7 @@ A blocker records a condition, not permission to bypass the contract. Unverified
 | B01 | resolved | Writing T00 documentation | Mode changed to Default; file editing is now enabled. | Developer mode instruction for this implementation turn, 2026-11-06. The old Plan-mode restriction is historical. |
 | B02 | resolved | Applying T00 package on the required local branch/worktree | User explicitly authorized local branch creation and applying the documentation; the session created codex/cpp-core-roadmap from clean main/be3710a. | User reply: "Yes, create the branch and apply the docs", 2026-11-06. Commit/merge/push authorization was excluded. |
 | B03 | unverified | T03.S2 execution evidence and final T19.S1 portability exit | Discover available Windows/MSVC and Linux/GCC execution routes, then run final clean builds/tests on all required OSes. | No Windows/Linux execution route was checked by this documentation task. Configurations alone will not close it. Independent local work can proceed. |
+| B04 | open | T01.S2 approval of D06/G01 multiline/partially matched code-span expectations; their T08.S1 consumer cases | T01.S3 implementer characterizes the current production prepare/renderInline route alongside the older whole-document helper, records exact fixture IDs/text/traits and resolves any wording conflict before those cases are approved. Any behavior change requires user agreement. | MR.codeDelimiterRuns asserts multiline/unmatched examples through the line-based helper; production proseBlocks joins soft paragraph lines before renderInline. [Map G01](T01-S1-COVERAGE.md#gap-handoff) identifies the cases; no route comparison was executed in T01.S1. Unaffected cases can proceed. |
 
 ## Owes ledger
 
@@ -57,7 +58,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 
 | ID | Origin | Recipients | State | Required closure evidence / recipient receipts |
 | --- | --- | --- | --- | --- |
-| OWE-T00 | T00 | T01 | open | T01.S1/S2/S3 reviewed coverage, executable corpus, and characterized cases. No characterization is claimed by drafting this package. |
+| OWE-T00 | T00 | T01 | open | T01.S1 reviewed coverage accepted in E04/E05. T01.S2 executable corpus and T01.S3 characterized cases remain outstanding; this obligation stays open. |
 | OWE-T01 | T01 | T05, T06, T07, T08, T09, T10, T12 | planned | Each T05–T09 recipient records applicable passing fixtures; T10 records complete semantic corpus results; T12 records complete native parity. |
 | OWE-T02 | T02 | T17 | planned | T17.S3 comparable measurements against fixed baseline identity/procedure, assessed against the regression gate. |
 | OWE-T03 | T03 | T19 | planned | T19.S1 executed clean three-OS builds/tests and final runtime-dependency inspection, including any initially unavailable OS. |
@@ -89,10 +90,13 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E01 | External documentation review | [PR #3](https://github.com/pedjamusic/marky/pull/3), initial review at fc7f1b4; fixes at d0bdc99. | Initial review produced two actionable findings. CodeRabbit independently verified both fixes in the resolved threads. The [incremental re-review request was rate-limited](https://github.com/pedjamusic/marky/pull/3#issuecomment-6684048757); no complete re-review or overall bot approval is claimed. | Both attached findings verified; user PASS recorded in E02. |
 | E02 | Documentation review repair | d0bdc99: T12.S1/S2 and T16 prerequisites, plus the repair checkpoint. | PASS: 8 phases, 20 tickets/51 slices, required fields/statuses, 19 owes, 216 local links/anchors, and an acyclic dependency graph including T03.S3 → T16.S1. Both omissions reproduced in the prior head and corrected; T17 is byte-identical. Whitespace and focused three-file diff checks passed. No runtime measurement or app test is claimed by this documentation edit. | User **PASS** ("pass.") on 2026-11-06 for d0bdc99. |
 | E03 | Merge and handoff | PR #3, accepted head 2b320a3, merge 220e0dc. | GitHub merge confirmed; local main fast-forwarded to the merge. Both review threads resolved. Merged local/remote task branch deleted; final documentation checkpoint follows through the authorized main push. Static document checks passed before merge; no app build/runtime validation. | User explicitly authorized merge, pull/push, deletion, and wrap-up on 2026-11-06. |
+| E04 | T01.S1 coverage map | Uncommitted docs on `codex/t01-s1-coverage-map`, base `7e16955ac750efed706566a5b12b0045b66280df`; map SHA-256 `22e9d2f5f43bac221e884af229685e321258357e7ac97dbffe3d53d3754e1a6a`; phase 01 discovery-file SHA-256 `37e73b5bd48f70970c1720d28c1fb67e722044a15202729188ba8076ef32e84c`. STATUS is the third changed file. | PASS: Python 3 audit embedded in [map static verification](T01-S1-COVERAGE.md#static-verification) checks exact test-name equality against MR 53 / MT 43 / FO 4 / UI 7 / BF 4 functions, 41 unique requirement IDs, 15 unique/referenced gap IDs and 15 map local links. `git diff --check` plus Python newline/trailing-whitespace checks including the new file passed; final inspection verified 60 local links/anchors across all three documents and the exact change scope/branch/base. `shasum -a 256` identifies the map and phase file. Source/assertions reviewed; no Xcode build/test execution, app runtime evidence or performance/portability claim. | User **PASS** ("pass") on 2026-11-06 for this candidate. T01.S1 accepted; user clarified that this PASS supplies Git integration authorization (E06). |
+| E05 | T01.S1 acceptance checkpoint | User reply "pass", 2026-11-06, accepts E04's map and focused diff. Same branch/base; uncommitted acceptance bookkeeping in STATUS and one map sentence pointing to this ledger. Current map SHA-256 `b4ac4da5349120806f5dac6a905a48e43bfb48872e7d042a0cbe07d3e2ceda91`; phase discovery hash unchanged from E04. | Acceptance-only update: 41 requirements, 15 gaps and all mapped evidence unchanged. Candidate hashes verified before recording PASS; `git diff --check` and map inventory/link/ID audit passed after bookkeeping. No new runtime checks; B04 and remaining T01/OWE-T00 work stay open. | T01.S1 **done**. PASS authorizes commit, merge, main push and merged-branch cleanup per the user clarification in E06; PR publication was not requested. |
+| E06 | PASS authorization clarification | User explicitly defined PASS as authorization to commit, merge, push main and clean up the merged branch unless a PR is specifically requested, 2026-11-06. | Updated AGENTS and roadmap workflow wording to preserve this instruction. T01.S1 map/fixture expectations and app behavior are unchanged. Static map audit, local-link/anchor and whitespace checks apply to the expanded documentation-only diff. | Existing T01.S1 PASS stands; Git integration authorized. |
 
 ## Git authorization and integration
 
-This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope when permission arrives; do not reinterpret a planning approval as commit/push permission.
+This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
 
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
@@ -104,6 +108,15 @@ This is independent of technical completion and user acceptance. Record the actu
 | Pull/push | User explicitly authorized synchronization and wrap-up, 2026-11-06 | Merged main pulled with --ff-only; final documentation checkpoint uses the authorized main push. |
 | Delete branch/worktree | User explicitly authorized merged-branch cleanup, 2026-11-06 | codex/cpp-core-roadmap deleted locally and on origin after merge. Temporary local handoff branch is disposable after its checkpoint reaches main. No extra worktree was created. |
 | Open PR | User explicitly requested a PR for CodeRabbit review, 2026-11-06 | [PR #3](https://github.com/pedjamusic/marky/pull/3) merged; review limits recorded in E01. |
+
+### T01.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Coverage-map and handoff edits | User selected next implementation slice T01.S1, 2026-11-06 | Documentation-only map, phase discovery link and STATUS update; user PASS recorded in E05. |
+| Create local branch | User reply: "Yes, create the branch" to `codex/t01-s1-coverage-map` from clean main, branch creation only | `git switch -c codex/t01-s1-coverage-map` succeeded at base `7e16955`; no worktree was needed for read-only exploration. |
+| Commit / merge / main push / delete merged branch | User clarification, 2026-11-06: "pass means authorization, unless i specifically ask for PR. so commit merge etc. that is what PASS means" | Authorized workflow in progress; execution checkpoint follows. |
+| Open PR | Requires a specific user request | Not requested or executed for T01.S1. |
 
 ## Contract amendments
 

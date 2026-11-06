@@ -54,7 +54,7 @@ This file defines repository policy and takes precedence over other repository d
 
 - Read-only Git inspection is allowed. Ask before Git mutations unless that operation is already authorized in the conversation; approval for a branch is not approval to commit, merge, or push.
 - Work on a local `codex/` branch from `main`, after checking for existing user changes. Use separate worktrees for concurrent sessions; preserve unrelated work.
-- After verification and user acceptance, obtain Git authorization, commit the focused changes, merge into local `main`, and delete the merged branch if no longer needed and authorized.
+- User-reported **PASS** for a verified candidate authorizes committing the focused changes, merging into local `main`, pushing `main`, and deleting the merged task branch. Proceed with that integration unless the user specifically requests a PR, in which case follow the requested PR workflow. Record acceptance and executed Git operations separately.
 - Push only battle-tested `main`. Push a task branch or open a pull request only when explicitly requested. Never rewrite or force-push `main`.
 
 ## Skills and delegation

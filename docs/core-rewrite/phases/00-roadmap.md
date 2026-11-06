@@ -22,7 +22,7 @@ Read [STATUS](../STATUS.md), the [contract](../CONTRACT.md), and [completion rul
 
 **Owes:** `OWE-T00` → T01: executable characterization of current behavior. Close with T01's reviewed coverage map and compatibility corpus; drafting a roadmap is not implementation evidence.
 
-**Acceptance:** user review of the documentation diff. No app build/runtime claims and no version bump. Separate Git permission is required for commit/merge/push.
+**Acceptance:** user review of the documentation diff. No app build/runtime claims and no version bump. Apply the PASS/Git authorization rule in [repository policy](../../../AGENTS.md#git); record Git execution separately from acceptance.
 
 **Handoff:** record whether the draft is staged or applied, its exact location, checks, and pending review in STATUS. Next action is T01.S1 only after T00 acceptance and a subsequent core-work instruction; this task stops after the documentation delivery.
 
