@@ -9,16 +9,210 @@ import AppKit
 #if os(macOS)
 enum MarkdownRenderer {
     private static let logger = Logger(subsystem: "rocks.toodear.Marky", category: "MarkdownRenderer")
-    private static let codeRegex = compilePattern(#"(?<!`)(`+)(?!`)([^\n]+?)(?<!`)\1(?!`)"#)
-    private static let linkRegex = compilePattern(#"\[([^\]]+)\]\(([^)\s]+)\)"#)
-    private static let boldRegex = compilePattern(#"\*\*([^*\n]+)\*\*"#)
 
-    private static func compilePattern(_ pattern: String) -> NSRegularExpression? {
+    static func renderInline(
+        from text: String,
+        mode: MarkdownTypographyMode = .allSystem,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
+        isDarkMode: Bool = false,
+        headingLevel: Int? = nil,
+        isTableHeader: Bool = false,
+        referenceLinks: [String: URL] = [:]
+    ) -> NSAttributedString {
+        let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
+        let resolvedText = substituteReferenceLinks(in: text, referenceLinks: referenceLinks)
+
+        var options = AttributedString.MarkdownParsingOptions()
+        options.interpretedSyntax = .inlineOnlyPreservingWhitespace
+
+        let parsed: AttributedString
         do {
-            return try NSRegularExpression(pattern: pattern)
+            parsed = try AttributedString(markdown: resolvedText, options: options)
         } catch {
-            logger.fault("Built-in Markdown pattern compilation failed")
-            return nil
+            logger.error("Native Markdown parsing failed for inline text; falling back to raw attributed text")
+            parsed = AttributedString(resolvedText)
+        }
+
+        let baseFont: NSFont
+        let tracking: CGFloat
+        let lineHeightMultiple: CGFloat
+
+        if let level = headingLevel {
+            baseFont = typography.headingFont(for: level)
+            tracking = typography.headingTracking
+            lineHeightMultiple = typography.headingLineHeight(for: level)
+        } else if isTableHeader {
+            let base = typography.bodyFont()
+            baseFont = NSFontManager.shared.convert(base, toHaveTrait: .boldFontMask)
+            tracking = typography.bodyTracking
+            lineHeightMultiple = typography.bodyLineHeightMultiple
+        } else {
+            baseFont = typography.bodyFont()
+            tracking = typography.bodyTracking
+            lineHeightMultiple = typography.bodyLineHeightMultiple
+        }
+
+        let result = NSMutableAttributedString(string: String(parsed.characters))
+        let baseParagraph = NSMutableParagraphStyle()
+        baseParagraph.lineHeightMultiple = lineHeightMultiple
+        baseParagraph.paragraphSpacing = 0
+
+        result.addAttributes([
+            .font: baseFont,
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: baseParagraph,
+            .kern: tracking
+        ], range: NSRange(location: 0, length: result.length))
+
+        var utf16Offset = 0
+        for run in parsed.runs {
+            let runString = String(parsed[run.range].characters)
+            let runLength = (runString as NSString).length
+            let runRange = NSRange(location: utf16Offset, length: runLength)
+            utf16Offset += runLength
+
+            guard runLength > 0 else { continue }
+
+            if let intent = run.inlinePresentationIntent, !intent.isEmpty {
+                applyPresentationIntent(
+                    intent,
+                    to: result,
+                    range: runRange,
+                    baseFont: baseFont,
+                    typography: typography,
+                    isDarkMode: isDarkMode
+                )
+            }
+
+            if let url = run.link {
+                result.addAttributes([
+                    .link: url,
+                    .underlineStyle: typography.linkUnderlineStyle.rawValue,
+                    .foregroundColor: typography.linkColor
+                ], range: runRange)
+            }
+        }
+
+        // Process ALL detected links in source order so plain links also advance search offset
+        let allLinks = detectLinks(in: resolvedText)
+        var searchOffset = 0
+        for link in allLinks {
+            let labelParsed: AttributedString
+            do {
+                labelParsed = try AttributedString(markdown: link.labelMarkdown, options: options)
+            } catch {
+                logger.error("Native Markdown parsing failed for link label; falling back to unformatted label")
+                labelParsed = AttributedString(link.labelMarkdown)
+            }
+            let plainLabel = String(labelParsed.characters)
+            let plainLength = (plainLabel as NSString).length
+            guard plainLength > 0 else { continue }
+
+            let fullString = result.string as NSString
+            var foundRange = NSRange(location: NSNotFound, length: 0)
+            var searchLoc = searchOffset
+            let expectedURL = URL(string: link.destination)
+
+            while searchLoc + plainLength <= fullString.length {
+                let testRange = NSRange(location: searchLoc, length: plainLength)
+                if fullString.substring(with: testRange) == plainLabel {
+                    if let url = result.attribute(.link, at: testRange.location, effectiveRange: nil) as? URL {
+                        if expectedURL == nil || url.absoluteString == expectedURL?.absoluteString || url.absoluteString == link.destination {
+                            foundRange = testRange
+                            break
+                        }
+                    }
+                }
+                searchLoc += 1
+            }
+
+            guard foundRange.location != NSNotFound else { continue }
+            // Advance searchOffset for all links to prevent same-label collisions
+            searchOffset = foundRange.location + foundRange.length
+
+            if link.labelMarkdown.contains("*") ||
+               link.labelMarkdown.contains("_") ||
+               link.labelMarkdown.contains("`") ||
+               link.labelMarkdown.contains("~") {
+                var subOffset = 0
+                for subRun in labelParsed.runs {
+                    let subString = String(labelParsed[subRun.range].characters)
+                    let subLength = (subString as NSString).length
+                    let subRange = NSRange(location: foundRange.location + subOffset, length: subLength)
+                    subOffset += subLength
+
+                    guard subLength > 0 else { continue }
+                    if let intent = subRun.inlinePresentationIntent, !intent.isEmpty {
+                        applyPresentationIntent(
+                            intent,
+                            to: result,
+                            range: subRange,
+                            baseFont: baseFont,
+                            typography: typography,
+                            isDarkMode: isDarkMode
+                        )
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    private static func applyPresentationIntent(
+        _ intent: InlinePresentationIntent,
+        to result: NSMutableAttributedString,
+        range: NSRange,
+        baseFont: NSFont,
+        typography: MarkdownTypography,
+        isDarkMode: Bool
+    ) {
+        let fontManager = NSFontManager.shared
+        if intent.contains(.code) {
+            var codeFont = NSFont.monospacedSystemFont(
+                ofSize: max(typography.codeMinimumFontSize, baseFont.pointSize * typography.codeFontScale),
+                weight: .regular
+            )
+            if intent.contains(.stronglyEmphasized) {
+                codeFont = fontManager.convert(codeFont, toHaveTrait: .boldFontMask)
+            }
+            result.addAttributes([
+                .font: codeFont,
+                .foregroundColor: typography.codeForegroundColor(isDarkMode: isDarkMode),
+                .backgroundColor: typography.codeBackgroundColor(isDarkMode: isDarkMode)
+            ], range: range)
+        } else {
+            var traits: NSFontTraitMask = []
+            if intent.contains(.stronglyEmphasized) {
+                traits.insert(.boldFontMask)
+            }
+            if intent.contains(.emphasized) {
+                traits.insert(.italicFontMask)
+            }
+            if !traits.isEmpty {
+                let currentFont = (result.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont) ?? baseFont
+                let converted = fontManager.convert(currentFont, toHaveTrait: traits)
+                if fontManager.traits(of: converted).contains(traits) {
+                    result.addAttribute(.font, value: converted, range: range)
+                } else {
+                    var sym = currentFont.fontDescriptor.symbolicTraits
+                    if traits.contains(.boldFontMask) { sym.insert(.bold) }
+                    if traits.contains(.italicFontMask) { sym.insert(.italic) }
+                    if let descFont = NSFont(descriptor: currentFont.fontDescriptor.withSymbolicTraits(sym), size: currentFont.pointSize) {
+                        result.addAttribute(.font, value: descFont, range: range)
+                    } else if traits.contains(.italicFontMask) {
+                        result.addAttribute(.obliqueness, value: MarkyTheme.italicObliqueness, range: range)
+                    }
+                }
+            }
+        }
+
+        if intent.contains(.strikethrough) {
+            result.addAttribute(
+                .strikethroughStyle,
+                value: NSUnderlineStyle.single.rawValue,
+                range: range
+            )
         }
     }
 
@@ -28,8 +222,9 @@ enum MarkdownRenderer {
         textSizePreset: MarkdownReaderTextSizePreset = .default,
         isDarkMode: Bool = false
     ) -> NSAttributedString {
+        let (cleanedSource, documentLinks) = MarkdownContentBlocks.extractDocumentReferenceLinks(from: text)
         let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
-        let source = text.replacingOccurrences(of: "\r\n", with: "\n")
+        let source = cleanedSource.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = MarkdownContentBlocks.sourceLines(from: source)
         var displayLines: [String] = []
         var lineStyles: [(headingLevel: Int?, isList: Bool, isQuote: Bool, isCodeBlock: Bool, startsAfterBlankLine: Bool)] = []
@@ -88,10 +283,19 @@ enum MarkdownRenderer {
             } else if let item = MarkdownContentBlocks.parseListItem(from: content) {
                 isList = true
                 renderedLine = indent + item.marker + " " + item.body
-            } else if content.hasPrefix("> ") {
+            } else if content.hasPrefix(">") {
                 isQuote = true
-                let body = String(content.dropFirst(2))
-                renderedLine = indent + "▎ " + body
+                var quoteLevel = 0
+                var remainder = content[...]
+                while remainder.hasPrefix(">") {
+                    quoteLevel += 1
+                    remainder = remainder.dropFirst()
+                    if remainder.hasPrefix(" ") {
+                        remainder = remainder.dropFirst()
+                    }
+                }
+                let bars = String(repeating: "▎ ", count: quoteLevel)
+                renderedLine = indent + bars + String(remainder)
             }
 
             displayLines.append(renderedLine)
@@ -105,56 +309,56 @@ enum MarkdownRenderer {
             pendingParagraphBreak = false
         }
 
-        let display = displayLines.joined(separator: "\n")
-        let styled = NSMutableAttributedString(string: display)
-        let bodyFont = typography.bodyFont()
-        let baseParagraph = NSMutableParagraphStyle()
-        baseParagraph.lineHeightMultiple = typography.bodyLineHeightMultiple
-        baseParagraph.paragraphSpacing = typography.bodyParagraphSpacing
-
-        styled.addAttributes([
-            .font: bodyFont,
-            .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: baseParagraph,
-            .kern: typography.bodyTracking
-        ], range: NSRange(location: 0, length: styled.length))
-
-        var location = 0
-        for (index, line) in displayLines.enumerated() {
-            let lineLength = (line as NSString).length
-            let lineRange = NSRange(location: location, length: lineLength)
-            location += lineLength + 1
-            guard lineLength > 0 else { continue }
-
-            var font = bodyFont
-            let paragraph = baseParagraph.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+        let attributedLines: [NSAttributedString] = displayLines.enumerated().map { index, line in
             let style = lineStyles[index]
-            paragraph.paragraphSpacingBefore = style.startsAfterBlankLine ? typography.paragraphBreakSpacingBefore : 0
-
             if style.isCodeBlock {
-                font = NSFont.monospacedSystemFont(
-                    ofSize: max(typography.codeMinimumFontSize, bodyFont.pointSize * typography.codeFontScale),
+                let codeFont = NSFont.monospacedSystemFont(
+                    ofSize: max(typography.codeMinimumFontSize, typography.bodyFont().pointSize * typography.codeFontScale),
                     weight: .regular
                 )
-                paragraph.firstLineHeadIndent = typography.codeBlockHorizontalInset
-                paragraph.headIndent = typography.codeBlockHorizontalInset
-                paragraph.lineHeightMultiple = typography.codeBlockLineHeightMultiple
-                let previousIsCodeBlock = index > 0 ? lineStyles[index - 1].isCodeBlock : false
-                let nextIsCodeBlock = index < (lineStyles.count - 1) ? lineStyles[index + 1].isCodeBlock : false
-                if !previousIsCodeBlock {
-                    paragraph.paragraphSpacingBefore = max(
-                        paragraph.paragraphSpacingBefore,
+                let codeParagraph = NSMutableParagraphStyle()
+                codeParagraph.firstLineHeadIndent = typography.codeBlockHorizontalInset
+                codeParagraph.headIndent = typography.codeBlockHorizontalInset
+                codeParagraph.lineHeightMultiple = typography.codeBlockLineHeightMultiple
+                let previousIsCode = index > 0 ? lineStyles[index - 1].isCodeBlock : false
+                let nextIsCode = index < (lineStyles.count - 1) ? lineStyles[index + 1].isCodeBlock : false
+                if !previousIsCode {
+                    codeParagraph.paragraphSpacingBefore = max(
+                        style.startsAfterBlankLine ? typography.paragraphBreakSpacingBefore : 0,
                         typography.codeBlockParagraphSpacingBefore
                     )
                 }
-                paragraph.paragraphSpacing = nextIsCodeBlock ? 0 : typography.codeBlockParagraphSpacingAfter
-                styled.addAttribute(
-                    .backgroundColor,
-                    value: typography.codeBackgroundColor(isDarkMode: isDarkMode),
-                    range: lineRange
-                )
-            } else if let level = style.headingLevel {
-                font = typography.headingFont(for: level)
+                codeParagraph.paragraphSpacing = nextIsCode ? 0 : typography.codeBlockParagraphSpacingAfter
+
+                let result = NSMutableAttributedString(string: line)
+                result.addAttributes([
+                    .font: codeFont,
+                    .foregroundColor: typography.codeForegroundColor(isDarkMode: isDarkMode),
+                    .backgroundColor: typography.codeBackgroundColor(isDarkMode: isDarkMode),
+                    .paragraphStyle: codeParagraph
+                ], range: NSRange(location: 0, length: result.length))
+                return result
+            }
+
+            if line.isEmpty {
+                return NSAttributedString(string: "")
+            }
+
+            let rendered = renderInline(
+                from: line,
+                mode: mode,
+                textSizePreset: textSizePreset,
+                isDarkMode: isDarkMode,
+                headingLevel: style.headingLevel,
+                referenceLinks: documentLinks
+            )
+            let mutable = NSMutableAttributedString(attributedString: rendered)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineHeightMultiple = typography.bodyLineHeightMultiple
+            paragraph.paragraphSpacing = typography.bodyParagraphSpacing
+            paragraph.paragraphSpacingBefore = style.startsAfterBlankLine ? typography.paragraphBreakSpacingBefore : 0
+
+            if let level = style.headingLevel {
                 paragraph.lineHeightMultiple = typography.headingLineHeight(for: level)
                 if index > 0 {
                     paragraph.paragraphSpacingBefore = max(
@@ -163,7 +367,6 @@ enum MarkdownRenderer {
                     )
                 }
                 paragraph.paragraphSpacing = typography.headingSpacingAfter(for: level)
-                styled.addAttribute(.kern, value: typography.headingTracking, range: lineRange)
             } else if style.isList {
                 applyIndentedParagraphStyle(
                     paragraph: paragraph,
@@ -178,22 +381,295 @@ enum MarkdownRenderer {
                     paragraphSpacing: typography.listParagraphSpacing,
                     lineHeightMultiple: typography.quoteLineHeightMultiple
                 )
-                styled.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: lineRange)
-                styled.addAttribute(.obliqueness, value: typography.quoteObliqueness, range: lineRange)
+                mutable.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: NSRange(location: 0, length: mutable.length))
+                mutable.addAttribute(.obliqueness, value: typography.quoteObliqueness, range: NSRange(location: 0, length: mutable.length))
             }
 
-            styled.addAttribute(.font, value: font, range: lineRange)
-            styled.addAttribute(.paragraphStyle, value: paragraph, range: lineRange)
+            mutable.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: mutable.length))
+            return mutable
         }
 
-        let protectedRanges = codeBlockRanges(displayLines: displayLines, lineStyles: lineStyles)
-        applyInlineStyles(
-            to: styled,
-            typography: typography,
-            protectedRanges: protectedRanges,
-            isDarkMode: isDarkMode
-        )
-        return styled
+        let combined = NSMutableAttributedString(string: "")
+        for (index, attrLine) in attributedLines.enumerated() {
+            if index > 0 {
+                combined.append(NSAttributedString(string: "\n"))
+            }
+            combined.append(attrLine)
+        }
+        return combined
+    }
+
+    private struct DetectedLink {
+        let labelMarkdown: String
+        let destination: String
+    }
+
+    private static func detectLinks(in text: String) -> [DetectedLink] {
+        var links: [DetectedLink] = []
+        var idx = text.startIndex
+
+        while idx < text.endIndex {
+            let ch = text[idx]
+            if ch == "\\" {
+                idx = text.index(after: idx)
+                if idx < text.endIndex { idx = text.index(after: idx) }
+                continue
+            }
+            if ch == "`" {
+                let run = text[idx...].prefix(while: { $0 == "`" })
+                let count = run.count
+                var search = text.index(idx, offsetBy: count)
+                var foundClosing = false
+                while search < text.endIndex {
+                    if text[search] == "`" {
+                        let closeRun = text[search...].prefix(while: { $0 == "`" })
+                        if closeRun.count == count {
+                            idx = text.index(search, offsetBy: count)
+                            foundClosing = true
+                            break
+                        } else {
+                            search = text.index(search, offsetBy: closeRun.count)
+                            continue
+                        }
+                    }
+                    search = text.index(after: search)
+                }
+                if foundClosing {
+                    continue
+                }
+            }
+            if ch == "!" && text.index(after: idx) < text.endIndex && text[text.index(after: idx)] == "[" {
+                idx = text.index(after: idx)
+                continue
+            }
+            if ch == "[" {
+                let labelStart = text.index(after: idx)
+                var scan = labelStart
+                var labelEnd: String.Index? = nil
+                while scan < text.endIndex {
+                    let c = text[scan]
+                    if c == "\\" {
+                        scan = text.index(after: scan)
+                        if scan < text.endIndex { scan = text.index(after: scan) }
+                        continue
+                    }
+                    if c == "`" {
+                        let run = text[scan...].prefix(while: { $0 == "`" })
+                        let count = run.count
+                        scan = text.index(scan, offsetBy: count)
+                        while scan < text.endIndex {
+                            if text[scan] == "`" {
+                                let closeRun = text[scan...].prefix(while: { $0 == "`" })
+                                if closeRun.count == count {
+                                    scan = text.index(scan, offsetBy: count)
+                                    break
+                                } else {
+                                    scan = text.index(scan, offsetBy: closeRun.count)
+                                    continue
+                                }
+                            }
+                            scan = text.index(after: scan)
+                        }
+                        continue
+                    }
+                    if c == "]" {
+                        labelEnd = scan
+                        break
+                    }
+                    scan = text.index(after: scan)
+                }
+
+                if let lEnd = labelEnd {
+                    let afterBracket = text.index(after: lEnd)
+                    if afterBracket < text.endIndex && text[afterBracket] == "(" {
+                        let destStart = text.index(after: afterBracket)
+                        var destScan = destStart
+                        var openParens = 1
+                        var destEnd: String.Index? = nil
+                        while destScan < text.endIndex {
+                            let dc = text[destScan]
+                            if dc == "\\" {
+                                destScan = text.index(after: destScan)
+                                if destScan < text.endIndex { destScan = text.index(after: destScan) }
+                                continue
+                            }
+                            if dc == "(" {
+                                openParens += 1
+                            } else if dc == ")" {
+                                openParens -= 1
+                                if openParens == 0 {
+                                    destEnd = destScan
+                                    break
+                                }
+                            }
+                            destScan = text.index(after: destScan)
+                        }
+
+                        if let dEnd = destEnd {
+                            let label = String(text[labelStart..<lEnd])
+                            let destRaw = String(text[destStart..<dEnd]).trimmingCharacters(in: .whitespaces)
+                            let destClean: String
+                            if destRaw.hasPrefix("<") && destRaw.hasSuffix(">") {
+                                destClean = String(destRaw.dropFirst().dropLast())
+                            } else if let spaceIdx = destRaw.firstIndex(where: { $0.isWhitespace }) {
+                                destClean = String(destRaw[..<spaceIdx])
+                            } else {
+                                destClean = destRaw
+                            }
+                            links.append(DetectedLink(labelMarkdown: label, destination: destClean))
+                            idx = text.index(after: dEnd)
+                            continue
+                        }
+                    }
+                }
+            }
+            idx = text.index(after: idx)
+        }
+        return links
+    }
+
+    private static func substituteReferenceLinks(
+        in text: String,
+        referenceLinks: [String: URL]
+    ) -> String {
+        guard !referenceLinks.isEmpty else { return text }
+
+        var result = ""
+        result.reserveCapacity(text.count)
+        var idx = text.startIndex
+
+        while idx < text.endIndex {
+            let ch = text[idx]
+
+            if ch == "\\" {
+                result.append(ch)
+                let next = text.index(after: idx)
+                if next < text.endIndex {
+                    result.append(text[next])
+                    idx = text.index(after: next)
+                } else {
+                    idx = next
+                }
+                continue
+            }
+
+            if ch == "`" {
+                let run = text[idx...].prefix(while: { $0 == "`" })
+                let count = run.count
+                var search = text.index(idx, offsetBy: count)
+                var foundClosing = false
+                while search < text.endIndex {
+                    if text[search] == "`" {
+                        let closeRun = text[search...].prefix(while: { $0 == "`" })
+                        if closeRun.count == count {
+                            let closeEnd = text.index(search, offsetBy: count)
+                            result.append(contentsOf: text[idx..<closeEnd])
+                            idx = closeEnd
+                            foundClosing = true
+                            break
+                        } else {
+                            search = text.index(search, offsetBy: closeRun.count)
+                            continue
+                        }
+                    }
+                    search = text.index(after: search)
+                }
+                if foundClosing {
+                    continue
+                }
+            }
+
+            if ch == "[" {
+                let labelStart = text.index(after: idx)
+                var scan = labelStart
+                var labelEnd: String.Index? = nil
+
+                while scan < text.endIndex {
+                    let c = text[scan]
+                    if c == "\\" {
+                        scan = text.index(after: scan)
+                        if scan < text.endIndex { scan = text.index(after: scan) }
+                        continue
+                    }
+                    if c == "`" {
+                        let run = text[scan...].prefix(while: { $0 == "`" })
+                        let count = run.count
+                        scan = text.index(scan, offsetBy: count)
+                        while scan < text.endIndex {
+                            if text[scan] == "`" {
+                                let closeRun = text[scan...].prefix(while: { $0 == "`" })
+                                if closeRun.count == count {
+                                    scan = text.index(scan, offsetBy: count)
+                                    break
+                                } else {
+                                    scan = text.index(scan, offsetBy: closeRun.count)
+                                    continue
+                                }
+                            }
+                            scan = text.index(after: scan)
+                        }
+                        continue
+                    }
+                    if c == "]" {
+                        labelEnd = scan
+                        break
+                    }
+                    scan = text.index(after: scan)
+                }
+
+                if let lEnd = labelEnd {
+                    let label = String(text[labelStart..<lEnd])
+                    let afterBracket = text.index(after: lEnd)
+
+                    if afterBracket < text.endIndex && text[afterBracket] == "(" {
+                        result.append(ch)
+                        idx = text.index(after: idx)
+                        continue
+                    }
+
+                    if afterBracket < text.endIndex && text[afterBracket] == "[" {
+                        let refStart = text.index(after: afterBracket)
+                        var refScan = refStart
+                        var refEnd: String.Index? = nil
+                        while refScan < text.endIndex {
+                            let rc = text[refScan]
+                            if rc == "\\" {
+                                refScan = text.index(after: refScan)
+                                if refScan < text.endIndex { refScan = text.index(after: refScan) }
+                                continue
+                            }
+                            if rc == "]" {
+                                refEnd = refScan
+                                break
+                            }
+                            refScan = text.index(after: refScan)
+                        }
+
+                        if let rEnd = refEnd {
+                            let refRaw = String(text[refStart..<rEnd])
+                            let key = (refRaw.isEmpty ? label : refRaw).trimmingCharacters(in: .whitespaces).lowercased()
+                            if let url = referenceLinks[key] {
+                                result.append("[\(label)](\(url.absoluteString))")
+                                idx = text.index(after: rEnd)
+                                continue
+                            }
+                        }
+                    }
+
+                    let key = label.trimmingCharacters(in: .whitespaces).lowercased()
+                    if let url = referenceLinks[key] {
+                        result.append("[\(label)](\(url.absoluteString))")
+                        idx = text.index(after: lEnd)
+                        continue
+                    }
+                }
+            }
+
+            result.append(ch)
+            idx = text.index(after: idx)
+        }
+
+        return result
     }
 
     private static func applyIndentedParagraphStyle(
@@ -206,103 +682,6 @@ enum MarkdownRenderer {
         paragraph.headIndent = indent
         paragraph.paragraphSpacing = paragraphSpacing
         paragraph.lineHeightMultiple = lineHeightMultiple
-    }
-
-    private static func codeBlockRanges(
-        displayLines: [String],
-        lineStyles: [(headingLevel: Int?, isList: Bool, isQuote: Bool, isCodeBlock: Bool, startsAfterBlankLine: Bool)]
-    ) -> [NSRange] {
-        var ranges: [NSRange] = []
-        var location = 0
-        for (index, line) in displayLines.enumerated() {
-            let lineLength = (line as NSString).length
-            if lineStyles[index].isCodeBlock, lineLength > 0 {
-                ranges.append(NSRange(location: location, length: lineLength))
-            }
-            location += lineLength + 1
-        }
-        return ranges
-    }
-
-    private static func applyInlineStyles(
-        to styled: NSMutableAttributedString,
-        typography: MarkdownTypography,
-        protectedRanges: [NSRange],
-        isDarkMode: Bool
-    ) {
-        // Attributes move with edits; absolute offsets from an earlier pass do not.
-        let literal = NSAttributedString.Key("MarkyLiteralCode")
-        for range in protectedRanges {
-            styled.addAttribute(literal, value: true, range: range)
-        }
-        func transform(
-            _ regex: NSRegularExpression?,
-            bodyGroup: Int = 1,
-            allowsLiteralBody: Bool = true,
-            apply: (NSTextCheckingResult, NSMutableAttributedString) -> Void
-        ) {
-            guard let regex else { return }
-            let matchingText = NSMutableString(string: styled.string)
-            if allowsLiteralBody {
-                // Neutral UTF-16 units hide literal syntax without shifting attributed-source offsets.
-                styled.enumerateAttribute(literal, in: NSRange(location: 0, length: styled.length)) { value, range, _ in
-                    if value != nil {
-                        matchingText.replaceCharacters(in: range, with: String(repeating: "x", count: range.length))
-                    }
-                }
-            }
-            let matches = regex.matches(in: matchingText as String, range: NSRange(location: 0, length: styled.length))
-            for match in matches.reversed() {
-                let bodyRange = match.range(at: bodyGroup)
-                var crossesLiteralSyntax = false
-                styled.enumerateAttribute(literal, in: match.range) { value, range, _ in
-                    guard value != nil else { return }
-                    // A label may contain code, but its delimiters and URL must be prose.
-                    if !allowsLiteralBody || NSIntersectionRange(range, bodyRange) != range {
-                        crossesLiteralSyntax = true
-                    }
-                }
-                guard !crossesLiteralSyntax else { continue }
-                let replacement = NSMutableAttributedString(attributedString: styled.attributedSubstring(from: bodyRange))
-                apply(match, replacement)
-                styled.replaceCharacters(in: match.range, with: replacement)
-            }
-        }
-
-        // Backreferences pair whole delimiter runs; shorter backticks remain literal content.
-        transform(codeRegex, bodyGroup: 2, allowsLiteralBody: false) { _, replacement in
-            let fullRange = NSRange(location: 0, length: replacement.length)
-            replacement.enumerateAttribute(.font, in: fullRange) { value, range, _ in
-                let font = (value as? NSFont) ?? typography.bodyFont()
-                replacement.addAttribute(.font, value: NSFont.monospacedSystemFont(
-                    ofSize: max(typography.codeMinimumFontSize, font.pointSize * typography.codeFontScale),
-                    weight: .regular
-                ), range: range)
-            }
-            replacement.addAttributes([
-                literal: true,
-                .foregroundColor: typography.codeForegroundColor(isDarkMode: isDarkMode),
-                .backgroundColor: typography.codeBackgroundColor(isDarkMode: isDarkMode)
-            ], range: fullRange)
-        }
-        transform(linkRegex) { match, replacement in
-            let urlString = (styled.string as NSString).substring(with: match.range(at: 2))
-            if let url = URL(string: urlString) {
-                replacement.addAttributes([
-                    .link: url,
-                    .underlineStyle: typography.linkUnderlineStyle.rawValue,
-                    .foregroundColor: typography.linkColor
-                ], range: NSRange(location: 0, length: replacement.length))
-            }
-        }
-        transform(boldRegex) { _, replacement in
-            replacement.enumerateAttributes(in: NSRange(location: 0, length: replacement.length)) { attributes, range, _ in
-                guard attributes[literal] == nil else { return }
-                let font = (attributes[.font] as? NSFont) ?? typography.bodyFont()
-                replacement.addAttribute(.font, value: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask), range: range)
-            }
-        }
-        styled.removeAttribute(literal, range: NSRange(location: 0, length: styled.length))
     }
 }
 #endif
@@ -492,6 +871,7 @@ struct MarkdownViewer: View {
             ReaderScrollContainer {
                 MarkdownDocumentBlocks(
                     blocks: doc.blocks,
+                    documentURL: url,
                     typographyMode: typographyMode,
                     textSizePreset: textSizePreset,
                     isDarkMode: colorScheme == .dark
@@ -506,9 +886,11 @@ struct MarkdownViewer: View {
 
 private struct MarkdownDocumentBlocks: View {
     let blocks: [MarkdownRenderedBlock]
+    let documentURL: URL?
     let typographyMode: MarkdownTypographyMode
     let textSizePreset: MarkdownReaderTextSizePreset
     let isDarkMode: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     private var typography: MarkdownTypography {
         MarkdownTypography(mode: typographyMode, textSizePreset: textSizePreset)
@@ -534,14 +916,31 @@ private struct MarkdownDocumentBlocks: View {
                         .padding(.top, topSpacing(for: block))
                         .padding(.bottom, typography.listBlockSpacing)
                 case .quote(let rendered):
-                    Text(rendered)
-                        .lineSpacing(typography.bodyLineSpacing)
-                        .textSelection(.enabled)
+                    MarkdownQuoteBlock(rendered: rendered, typography: typography, colorScheme: colorScheme)
                         .padding(.top, topSpacing(for: block))
                         .padding(.bottom, typography.quoteBlockSpacing)
                 case .code(let code):
                     MarkdownCodeBlock(code: code, typography: typography, isDarkMode: isDarkMode)
                         .padding(.top, topSpacing(for: block))
+                case .table(let table):
+                    MarkdownTableView(table: table, typography: typography, colorScheme: colorScheme)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.paragraphBlockSpacing)
+                case .thematicBreak:
+                    MarkdownThematicBreakView(colorScheme: colorScheme)
+                        .padding(.top, topSpacing(for: block))
+                        .padding(.bottom, typography.paragraphBlockSpacing)
+                case .image(let alt, let url, let title):
+                    MarkdownImageView(
+                        alt: alt,
+                        url: url,
+                        title: title,
+                        documentURL: documentURL,
+                        typography: typography,
+                        colorScheme: colorScheme
+                    )
+                    .padding(.top, topSpacing(for: block))
+                    .padding(.bottom, typography.paragraphBlockSpacing)
                 }
             }
         }
@@ -570,6 +969,12 @@ private struct MarkdownDocumentBlocks: View {
             return typography.paragraphBlockSpacing * 0.25
         case .code:
             return 0
+        case .table:
+            return typography.paragraphBlockSpacing * 0.35
+        case .thematicBreak:
+            return 0
+        case .image:
+            return typography.paragraphBlockSpacing * 0.3
         }
     }
 }
@@ -578,6 +983,318 @@ private extension Array {
     subscript(safe index: Int) -> Element? {
         guard indices.contains(index) else { return nil }
         return self[index]
+    }
+}
+
+private struct MarkdownQuoteBlock: View {
+    let rendered: AttributedString
+    let typography: MarkdownTypography
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: MarkyTheme.quoteBarSpacing) {
+            RoundedRectangle(cornerRadius: MarkyTheme.quoteBarCornerRadius)
+                .fill(MarkyTheme.quoteBarColor(for: colorScheme))
+                .frame(width: MarkyTheme.quoteBarWidth)
+            Text(rendered)
+                .lineSpacing(typography.bodyLineSpacing)
+                .foregroundStyle(Color.secondary)
+                .textSelection(.enabled)
+        }
+        .padding(.leading, MarkyTheme.quoteLeadingInset)
+    }
+}
+
+private struct MarkdownThematicBreakView: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Rectangle()
+            .fill(MarkyTheme.thematicBreakColor(for: colorScheme))
+            .frame(height: MarkyTheme.thematicBreakHeight)
+            .padding(.vertical, MarkyTheme.thematicBreakPaddingVertical)
+            .accessibilityElement()
+            .accessibilityLabel("Horizontal Rule")
+    }
+}
+
+private struct MarkdownTableView: View {
+    let table: MarkdownRenderedTable
+    let typography: MarkdownTypography
+    let colorScheme: ColorScheme
+
+    @State private var contentHeight: CGFloat = 0
+
+    private func computeColumnWidths() -> [CGFloat] {
+        let headerCount = table.headers.count
+        let maxRowCount = table.rows.map(\.cells.count).max() ?? 0
+        let count = max(headerCount, maxRowCount)
+        guard count > 0 else { return [] }
+        let charWidth = typography.bodyFontSize * MarkyTheme.tableCharacterWidthMultiplier
+        let padding = MarkyTheme.tableCellHorizontalPadding * 2
+
+        return (0..<count).map { colIndex in
+            var maxChars = 0
+            if colIndex < table.headers.count {
+                maxChars = max(maxChars, table.headers[colIndex].content.characters.count)
+            }
+            for row in table.rows {
+                if colIndex < row.cells.count {
+                    maxChars = max(maxChars, row.cells[colIndex].content.characters.count)
+                }
+            }
+            let estimatedWidth = CGFloat(maxChars) * charWidth + padding
+            return min(max(estimatedWidth, MarkyTheme.tableCellMinWidth), MarkyTheme.tableCellMaxWidth)
+        }
+    }
+
+    var body: some View {
+        let widths = computeColumnWidths()
+
+        ScrollView(.horizontal, showsIndicators: true) {
+            gridContent(widths: widths)
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    ceil(proxy.size.height)
+                } action: { newHeight in
+                    if abs(contentHeight - newHeight) > 1.0 {
+                        contentHeight = newHeight
+                    }
+                }
+        }
+        .frame(height: contentHeight > 0 ? contentHeight : nil)
+        .accessibilityIdentifier("table-scroll-view")
+    }
+
+    private func gridContent(widths: [CGFloat]) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
+            if !table.headers.isEmpty {
+                GridRow {
+                    ForEach(Array(table.headers.enumerated()), id: \.element.id) { colIndex, cell in
+                        cellView(
+                            cell,
+                            width: widths[safe: colIndex] ?? MarkyTheme.tableCellMinWidth,
+                            isHeader: true,
+                            isAlternate: false
+                        )
+                    }
+                }
+            }
+            ForEach(Array(table.rows.enumerated()), id: \.element.id) { index, row in
+                GridRow {
+                    ForEach(Array(row.cells.enumerated()), id: \.element.id) { colIndex, cell in
+                        cellView(
+                            cell,
+                            width: widths[safe: colIndex] ?? MarkyTheme.tableCellMinWidth,
+                            isHeader: false,
+                            isAlternate: index % 2 == 1
+                        )
+                    }
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.tableCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MarkyTheme.tableCornerRadius, style: .continuous)
+                .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableBorderLineWidth)
+        )
+        .padding(MarkyTheme.tableOuterPadding)
+        .padding(.bottom, MarkyTheme.tableScrollIndicatorSpacing)
+    }
+
+    private func cellView(
+        _ cell: MarkdownTableCell,
+        width: CGFloat,
+        isHeader: Bool,
+        isAlternate: Bool
+    ) -> some View {
+        let textAlignment: TextAlignment = {
+            switch cell.alignment {
+            case .left: return .leading
+            case .center: return .center
+            case .right: return .trailing
+            }
+        }()
+
+        let frameAlignment: Alignment = {
+            switch cell.alignment {
+            case .left: return .leading
+            case .center: return .center
+            case .right: return .trailing
+            }
+        }()
+
+        return Text(cell.content)
+            .lineSpacing(typography.bodyLineSpacing * MarkyTheme.tableLineSpacingScale)
+            .multilineTextAlignment(textAlignment)
+            .foregroundStyle(Color.primary)
+            .textSelection(.enabled)
+            .padding(.horizontal, MarkyTheme.tableCellHorizontalPadding)
+            .padding(.vertical, MarkyTheme.tableCellVerticalPadding)
+            .frame(width: width, alignment: frameAlignment)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
+            .background(
+                isHeader
+                    ? MarkyTheme.tableHeaderBackgroundColor(for: colorScheme)
+                    : MarkyTheme.tableRowBackgroundColor(isAlternate: isAlternate, for: colorScheme)
+            )
+            .overlay(
+                Rectangle()
+                    .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+            )
+    }
+}
+
+struct MarkdownImageView: View {
+    let alt: String
+    let url: String
+    let title: String?
+    let documentURL: URL?
+    let typography: MarkdownTypography
+    let colorScheme: ColorScheme
+
+    @State private var loadedLocalImage: NSImage?
+
+    static func resolveLocalFileURL(for urlString: String, relativeTo documentURL: URL?) -> URL? {
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let parsedURL = URL(string: trimmed), let scheme = parsedURL.scheme {
+            if scheme.lowercased() == "file" {
+                return parsedURL.standardizedFileURL
+            } else {
+                return nil
+            }
+        }
+
+        let baseDir = documentURL?.deletingLastPathComponent().standardizedFileURL
+
+        if let url = URL(string: trimmed, relativeTo: baseDir), url.isFileURL {
+            return url.standardizedFileURL
+        }
+
+        if let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+           let url = URL(string: encoded, relativeTo: baseDir), url.isFileURL {
+            return url.standardizedFileURL
+        }
+
+        if trimmed.hasPrefix("/") {
+            return URL(fileURLWithPath: trimmed).standardizedFileURL
+        }
+
+        if let baseDir {
+            let decoded = trimmed.removingPercentEncoding ?? trimmed
+            return URL(fileURLWithPath: decoded, relativeTo: baseDir).standardizedFileURL
+        }
+
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MarkyTheme.imageCaptionSpacing) {
+            imageContent
+            if let title, !title.isEmpty {
+                Text(title)
+                    .font(.system(size: typography.bodyFontSize * MarkyTheme.imageTitleFontScale))
+                    .foregroundStyle(Color.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: "\(url)|\(documentURL?.path ?? "")") {
+            await loadLocalImageAsync()
+        }
+    }
+
+    @ViewBuilder
+    private var imageContent: some View {
+        if let remoteURL = URL(string: url), remoteURL.scheme == "http" || remoteURL.scheme == "https" {
+            AsyncImage(url: remoteURL) { phase in
+                switch phase {
+                case .empty:
+                    HStack(spacing: MarkyTheme.imageLoadingHStackSpacing) {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text(alt.isEmpty ? String(localized: "Loading image…") : alt)
+                            .font(.system(size: typography.bodyFontSize * MarkyTheme.imageLoadingTextFontScale))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .frame(height: MarkyTheme.imagePlaceholderHeight)
+                    .frame(maxWidth: .infinity)
+                    .background(MarkyTheme.tableHeaderBackgroundColor(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
+                                .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+                        )
+                        .accessibilityLabel(alt.isEmpty ? String(localized: "Image") : alt)
+                case .failure:
+                    fallbackCard
+                @unknown default:
+                    fallbackCard
+                }
+            }
+        } else if let localImage = loadedLocalImage {
+            Image(nsImage: localImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
+                        .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+                )
+                .accessibilityLabel(alt.isEmpty ? String(localized: "Image") : alt)
+        } else {
+            fallbackCard
+        }
+    }
+
+    private var fallbackCard: some View {
+        HStack(spacing: MarkyTheme.imageCardHStackSpacing) {
+            Image(systemName: "photo")
+                .font(.system(size: MarkyTheme.imageCardIconSize))
+                .foregroundStyle(Color.secondary)
+            VStack(alignment: .leading, spacing: MarkyTheme.imageCardVStackSpacing) {
+                Text(alt.isEmpty ? String(localized: "Image") : alt)
+                    .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardTitleFontScale, weight: .medium))
+                    .foregroundStyle(Color.primary)
+                Text(url)
+                    .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardUrlFontScale, design: .monospaced))
+                    .foregroundStyle(Color.secondary)
+                    .lineLimit(1)
+            }
+            .textSelection(.enabled)
+        }
+        .padding(.horizontal, MarkyTheme.imageCardHorizontalPadding)
+        .padding(.vertical, MarkyTheme.imageCardVerticalPadding)
+        .background(MarkyTheme.tableHeaderBackgroundColor(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
+                .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(alt.isEmpty ? String(localized: "Image: \(url)") : alt)
+    }
+
+    private func loadLocalImageAsync() async {
+        self.loadedLocalImage = nil
+        guard let targetURL = Self.resolveLocalFileURL(for: url, relativeTo: documentURL) else { return }
+        let image = await Task.detached(priority: .userInitiated) { () -> NSImage? in
+            guard !Task.isCancelled else { return nil }
+            guard FileManager.default.fileExists(atPath: targetURL.path) else { return nil }
+            guard !Task.isCancelled else { return nil }
+            return NSImage(contentsOf: targetURL)
+        }.value
+
+        guard !Task.isCancelled else { return }
+        self.loadedLocalImage = image
     }
 }
 

@@ -973,7 +973,7 @@ struct MarkyTests {
 
         if case .heading(let level, let source) = blocks[0].kind {
             #expect(level == 1)
-            #expect(source == "# Title")
+            #expect(source == "Title")
         } else {
             Issue.record("Expected heading block first")
         }
