@@ -486,6 +486,10 @@ enum MarkdownRenderer {
                         var destScan = destStart
                         var openParens = 1
                         var destEnd: String.Index? = nil
+                        var insideAngleBrackets = false
+                        if destStart < text.endIndex && text[destStart] == "<" {
+                            insideAngleBrackets = true
+                        }
                         while destScan < text.endIndex {
                             let dc = text[destScan]
                             if dc == "\\" {
@@ -493,13 +497,19 @@ enum MarkdownRenderer {
                                 if destScan < text.endIndex { destScan = text.index(after: destScan) }
                                 continue
                             }
-                            if dc == "(" {
-                                openParens += 1
-                            } else if dc == ")" {
-                                openParens -= 1
-                                if openParens == 0 {
-                                    destEnd = destScan
-                                    break
+                            if insideAngleBrackets {
+                                if dc == ">" {
+                                    insideAngleBrackets = false
+                                }
+                            } else {
+                                if dc == "(" {
+                                    openParens += 1
+                                } else if dc == ")" {
+                                    openParens -= 1
+                                    if openParens == 0 {
+                                        destEnd = destScan
+                                        break
+                                    }
                                 }
                             }
                             destScan = text.index(after: destScan)
@@ -526,6 +536,17 @@ enum MarkdownRenderer {
             idx = text.index(after: idx)
         }
         return links
+    }
+
+    /// Serializes a URL destination for Markdown expansion, safely wrapping in angle brackets
+    /// if the URL contains parentheses or whitespace that could truncate the inline link.
+    nonisolated static func serializeMarkdownDestination(_ url: URL) -> String {
+        let str = url.absoluteString
+        if str.contains(")") || str.contains("(") || str.contains(" ") {
+            let escaped = str.replacingOccurrences(of: ">", with: "%3E")
+            return "<\(escaped)>"
+        }
+        return str
     }
 
     private static func substituteReferenceLinks(
@@ -647,18 +668,26 @@ enum MarkdownRenderer {
 
                         if let rEnd = refEnd {
                             let refRaw = String(text[refStart..<rEnd])
-                            let key = (refRaw.isEmpty ? label : refRaw).trimmingCharacters(in: .whitespaces).lowercased()
-                            if let url = referenceLinks[key] {
-                                result.append("[\(label)](\(url.absoluteString))")
+                            let lookupLabel = refRaw.isEmpty ? label : refRaw
+                            let key = MarkdownContentBlocks.normalizeReferenceLabel(lookupLabel)
+                            if !key.isEmpty, let url = referenceLinks[key] {
+                                result.append("[\(label)](\(serializeMarkdownDestination(url)))")
+                                idx = text.index(after: rEnd)
+                                continue
+                            } else {
+                                // Explicit reference ([foo][bar] or [foo][]) where reference is undefined:
+                                // Don't fall back to shortcut foo. Copy the entire reference literal as-is
+                                // and advance past rEnd so inner labels are not scanned as shortcut links.
+                                result.append(contentsOf: text[idx...rEnd])
                                 idx = text.index(after: rEnd)
                                 continue
                             }
                         }
                     }
 
-                    let key = label.trimmingCharacters(in: .whitespaces).lowercased()
-                    if let url = referenceLinks[key] {
-                        result.append("[\(label)](\(url.absoluteString))")
+                    let key = MarkdownContentBlocks.normalizeReferenceLabel(label)
+                    if !key.isEmpty, let url = referenceLinks[key] {
+                        result.append("[\(label)](\(serializeMarkdownDestination(url)))")
                         idx = text.index(after: lEnd)
                         continue
                     }
@@ -1155,6 +1184,27 @@ struct MarkdownImageView: View {
     let colorScheme: ColorScheme
 
     @State private var loadedLocalImage: NSImage?
+    @State private var loadErrorMessage: String?
+    @State private var grantedFolderURL: URL?
+    @State private var loadAttemptID = UUID()
+    @State private var isPresentingFolderPicker = false
+
+    /// Normalizes and returns a remote URL if the string scheme is http or https (case-insensitively).
+    static func remoteURL(from urlString: String) -> URL? {
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsed = URL(string: trimmed), let scheme = parsed.scheme?.lowercased() else {
+            return nil
+        }
+        guard scheme == "http" || scheme == "https" else {
+            return nil
+        }
+        if parsed.scheme != scheme {
+            var components = URLComponents(url: parsed, resolvingAgainstBaseURL: false)
+            components?.scheme = scheme
+            return components?.url ?? parsed
+        }
+        return parsed
+    }
 
     static func resolveLocalFileURL(for urlString: String, relativeTo documentURL: URL?) -> URL? {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1191,6 +1241,10 @@ struct MarkdownImageView: View {
         return nil
     }
 
+    private var isLocalImage: Bool {
+        Self.remoteURL(from: url) == nil && Self.resolveLocalFileURL(for: url, relativeTo: documentURL) != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: MarkyTheme.imageCaptionSpacing) {
             imageContent
@@ -1202,14 +1256,14 @@ struct MarkdownImageView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .task(id: "\(url)|\(documentURL?.path ?? "")") {
-            await loadLocalImageAsync()
+        .task(id: "\(url)|\(documentURL?.path ?? "")|\(loadAttemptID)") {
+            await loadLocalImageAsync(folderURL: grantedFolderURL)
         }
     }
 
     @ViewBuilder
     private var imageContent: some View {
-        if let remoteURL = URL(string: url), remoteURL.scheme == "http" || remoteURL.scheme == "https" {
+        if let remoteURL = Self.remoteURL(from: url) {
             AsyncImage(url: remoteURL) { phase in
                 switch phase {
                 case .empty:
@@ -1268,8 +1322,27 @@ struct MarkdownImageView: View {
                     .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardUrlFontScale, design: .monospaced))
                     .foregroundStyle(Color.secondary)
                     .lineLimit(1)
+                if let loadErrorMessage {
+                    Text(loadErrorMessage)
+                        .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardUrlFontScale))
+                        .foregroundStyle(Color.secondary)
+                }
             }
             .textSelection(.enabled)
+
+            if isLocalImage {
+                Spacer()
+                Button {
+                    promptForFolderAccess()
+                } label: {
+                    Label(
+                        loadErrorMessage != nil ? String(localized: "Grant Folder Access…") : String(localized: "Choose Folder…"),
+                        systemImage: "folder.badge.plus"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
         }
         .padding(.horizontal, MarkyTheme.imageCardHorizontalPadding)
         .padding(.vertical, MarkyTheme.imageCardVerticalPadding)
@@ -1283,18 +1356,61 @@ struct MarkdownImageView: View {
         .accessibilityLabel(alt.isEmpty ? String(localized: "Image: \(url)") : alt)
     }
 
-    private func loadLocalImageAsync() async {
+    private func loadLocalImageAsync(folderURL: URL? = nil) async {
         self.loadedLocalImage = nil
+        self.loadErrorMessage = nil
         guard let targetURL = Self.resolveLocalFileURL(for: url, relativeTo: documentURL) else { return }
-        let image = await Task.detached(priority: .userInitiated) { () -> NSImage? in
-            guard !Task.isCancelled else { return nil }
-            guard FileManager.default.fileExists(atPath: targetURL.path) else { return nil }
-            guard !Task.isCancelled else { return nil }
-            return NSImage(contentsOf: targetURL)
-        }.value
+        do {
+            let image: NSImage
+            if let folderURL {
+                image = try await LocalImageLoader.loadImage(at: targetURL, under: folderURL)
+            } else {
+                image = try await LocalImageLoader.loadImage(at: targetURL)
+            }
+            guard !Task.isCancelled else { return }
+            self.loadedLocalImage = image
+            self.loadErrorMessage = nil
+        } catch is CancellationError {
+            // Cancelled cleanly
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.loadErrorMessage = error.localizedDescription
+        }
+    }
 
-        guard !Task.isCancelled else { return }
-        self.loadedLocalImage = image
+    private func promptForFolderAccess() {
+        #if os(macOS)
+        guard !isPresentingFolderPicker else { return }
+        isPresentingFolderPicker = true
+        let capturedURL = self.url
+        let capturedDocURL = self.documentURL
+        guard let targetURL = Self.resolveLocalFileURL(for: capturedURL, relativeTo: capturedDocURL) else {
+            isPresentingFolderPicker = false
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.prompt = String(localized: "Grant Access")
+        panel.message = String(localized: "Select the folder containing this image.")
+        panel.directoryURL = targetURL.deletingLastPathComponent().standardizedFileURL
+
+        Task { @MainActor in
+            defer { self.isPresentingFolderPicker = false }
+            let response = await withCheckedContinuation { continuation in
+                panel.begin { res in continuation.resume(returning: res) }
+            }
+            guard self.url == capturedURL && self.documentURL == capturedDocURL else {
+                return
+            }
+            guard response == .OK, let selectedFolder = panel.url else {
+                return
+            }
+            self.grantedFolderURL = selectedFolder
+            self.loadAttemptID = UUID()
+        }
+        #endif
     }
 }
 

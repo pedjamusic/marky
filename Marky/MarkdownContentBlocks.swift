@@ -181,6 +181,13 @@ enum MarkdownContentBlocks {
         return blocks
     }
 
+    /// Normalizes a reference link label by stripping leading/trailing whitespace,
+    /// collapsing internal whitespace runs to a single space, and case-folding.
+    nonisolated static func normalizeReferenceLabel(_ raw: String) -> String {
+        let pieces = raw.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        return pieces.joined(separator: " ").lowercased()
+    }
+
     nonisolated static func extractDocumentReferenceLinks(from source: String) -> (cleanedSource: String, links: [String: URL]) {
         let linesWithStatus = sourceLines(from: source)
         var links: [String: URL] = [:]
@@ -221,17 +228,18 @@ enum MarkdownContentBlocks {
 
             let nsLine = line as NSString
             if let regex = refRegex, let match = regex.firstMatch(in: line, range: NSRange(location: 0, length: nsLine.length)) {
-                let label = nsLine.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces).lowercased()
+                let rawLabel = nsLine.substring(with: match.range(at: 1))
+                let label = normalizeReferenceLabel(rawLabel)
                 let urlString = nsLine.substring(with: match.range(at: 2))
-                if let url = URL(string: urlString) {
+                if !label.isEmpty, let url = URL(string: urlString) {
                     if links[label] == nil {
                         links[label] = url
                     }
+                    outputLines.append("")
+                    continue
                 }
-                outputLines.append("")
-            } else {
-                outputLines.append(line)
             }
+            outputLines.append(line)
         }
 
         return (outputLines.joined(separator: "\n"), links)
@@ -568,11 +576,12 @@ enum MarkdownContentBlocks {
             }
 
             // Check for GFM Table:
-            // 1. Header line MUST contain a real unescaped pipe outside code spans!
-            // 2. Delimiter line MUST contain a real unescaped pipe outside code spans!
-            // 3. Delimiter line must be a valid delimiter row.
-            // 4. Header cells count MUST EXACTLY match delimiter alignments count!
-            if containsUnescapedPipe(line) && i + 1 < lines.count {
+            // 1. Line must not be a quote, heading, list, or thematic break!
+            // 2. Header line MUST contain a real unescaped pipe outside code spans!
+            // 3. Delimiter line MUST contain a real unescaped pipe outside code spans!
+            // 4. Delimiter line must be a valid delimiter row.
+            // 5. Header cells count MUST EXACTLY match delimiter alignments count!
+            if !trimmed.hasPrefix(">") && headingLevel(in: trimmed) == nil && !isListLine(trimmed) && !isThematicBreak(trimmed) && containsUnescapedPipe(line) && i + 1 < lines.count {
                 let nextLine = lines[i + 1]
                 if containsUnescapedPipe(nextLine), let alignments = parseTableDelimiterRow(nextLine) {
                     let headerCells = splitTableRow(line)
@@ -585,12 +594,16 @@ enum MarkdownContentBlocks {
                         while j < lines.count {
                             let rowLine = lines[j]
                             let rowTrimmed = rowLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if rowTrimmed.isEmpty || !containsUnescapedPipe(rowLine) {
-                                break
-                            }
-                            if headingLevel(in: rowTrimmed) != nil || isThematicBreak(rowTrimmed) {
-                                break
-                            }
+                            // Terminate on real block boundaries:
+                            if rowTrimmed.isEmpty { break }
+                            if rowTrimmed.hasPrefix(">") { break }
+                            if headingLevel(in: rowTrimmed) != nil { break }
+                            if rowTrimmed.allSatisfy({ $0 == "=" }) && !rowTrimmed.isEmpty { break }
+                            if isThematicBreak(rowTrimmed) { break }
+                            if isListLine(rowTrimmed) { break }
+                            if parseStandaloneImage(rowTrimmed) != nil { break }
+                            if rowLine.hasPrefix("    ") || rowLine.hasPrefix("\t") { break }
+
                             let rawCells = splitTableRow(rowLine)
                             var cells: [String] = []
                             for colIndex in 0..<alignments.count {
@@ -656,9 +669,24 @@ enum MarkdownContentBlocks {
         return blocks
     }
 
+    /// Finds the end index of a matched backtick code span starting at `startIndex`, or nil if unmatched.
+    nonisolated static func findMatchingCodeSpanEnd(in text: String, startingAt startIndex: String.Index, delimiterLength: Int) -> String.Index? {
+        var searchIndex = text.index(startIndex, offsetBy: delimiterLength)
+        while searchIndex < text.endIndex {
+            if text[searchIndex] == "`" {
+                let run = text[searchIndex...].prefix(while: { $0 == "`" })
+                if run.count == delimiterLength {
+                    return text.index(searchIndex, offsetBy: delimiterLength)
+                }
+                searchIndex = text.index(searchIndex, offsetBy: run.count)
+            } else {
+                searchIndex = text.index(after: searchIndex)
+            }
+        }
+        return nil
+    }
+
     nonisolated static func containsUnescapedPipe(_ line: String) -> Bool {
-        var inCode = false
-        var backtickCount = 0
         var isEscaped = false
         var idx = line.startIndex
         while idx < line.endIndex {
@@ -675,20 +703,15 @@ enum MarkdownContentBlocks {
             }
             if ch == "`" {
                 let run = line[idx...].prefix(while: { $0 == "`" })
-                let count = run.count
-                if inCode {
-                    if count == backtickCount {
-                        inCode = false
-                        backtickCount = 0
-                    }
+                if let spanEnd = findMatchingCodeSpanEnd(in: line, startingAt: idx, delimiterLength: run.count) {
+                    idx = spanEnd
+                    continue
                 } else {
-                    inCode = true
-                    backtickCount = count
+                    idx = line.index(idx, offsetBy: run.count)
+                    continue
                 }
-                idx = line.index(idx, offsetBy: count)
-                continue
             }
-            if ch == "|" && !inCode {
+            if ch == "|" {
                 return true
             }
             idx = line.index(after: idx)
@@ -707,16 +730,24 @@ enum MarkdownContentBlocks {
 
     nonisolated static func parseStandaloneImage(_ line: String) -> (alt: String, url: String, title: String?)? {
         guard line.hasPrefix("![") && line.hasSuffix(")") else { return nil }
-        guard let regex = try? NSRegularExpression(pattern: #"^!\[([^\]]*)\]\(\s*<?([^\s>]+)>?(?:\s+["'](.*?)["'])?\s*\)$"#) else {
+        guard let regex = try? NSRegularExpression(pattern: #"^!\[([^\]]*)\]\(\s*(?:<([^>\r\n]+)>|([^\s>]+))(?:\s+["'](.*?)["'])?\s*\)$"#) else {
             return nil
         }
-        let range = NSRange(location: 0, length: (line as NSString).length)
+        let nsLine = line as NSString
+        let range = NSRange(location: 0, length: nsLine.length)
         guard let match = regex.firstMatch(in: line, range: range) else { return nil }
-        let alt = (line as NSString).substring(with: match.range(at: 1))
-        let url = (line as NSString).substring(with: match.range(at: 2))
+        let alt = nsLine.substring(with: match.range(at: 1))
+        let url: String
+        if match.range(at: 2).location != NSNotFound {
+            url = nsLine.substring(with: match.range(at: 2))
+        } else if match.range(at: 3).location != NSNotFound {
+            url = nsLine.substring(with: match.range(at: 3))
+        } else {
+            return nil
+        }
         var title: String? = nil
-        if match.numberOfRanges > 3, match.range(at: 3).location != NSNotFound {
-            title = (line as NSString).substring(with: match.range(at: 3))
+        if match.numberOfRanges > 4, match.range(at: 4).location != NSNotFound {
+            title = nsLine.substring(with: match.range(at: 4))
         }
         return (alt, url, title)
     }
@@ -777,11 +808,9 @@ enum MarkdownContentBlocks {
 
         var cells: [String] = []
         var currentCell = ""
-        var inCodeSpan = false
-        var codeBacktickCount = 0
         var isEscaped = false
-
         var index = raw.startIndex
+
         while index < raw.endIndex {
             let ch = raw[index]
 
@@ -801,22 +830,18 @@ enum MarkdownContentBlocks {
 
             if ch == "`" {
                 let run = raw[index...].prefix(while: { $0 == "`" })
-                let count = run.count
-                if inCodeSpan {
-                    if count == codeBacktickCount {
-                        inCodeSpan = false
-                        codeBacktickCount = 0
-                    }
+                if let spanEnd = findMatchingCodeSpanEnd(in: raw, startingAt: index, delimiterLength: run.count) {
+                    currentCell.append(contentsOf: raw[index..<spanEnd])
+                    index = spanEnd
+                    continue
                 } else {
-                    inCodeSpan = true
-                    codeBacktickCount = count
+                    currentCell.append(contentsOf: run)
+                    index = raw.index(index, offsetBy: run.count)
+                    continue
                 }
-                currentCell.append(contentsOf: run)
-                index = raw.index(index, offsetBy: count)
-                continue
             }
 
-            if ch == "|" && !inCodeSpan {
+            if ch == "|" {
                 cells.append(currentCell.trimmingCharacters(in: .whitespaces))
                 currentCell = ""
                 index = raw.index(after: index)

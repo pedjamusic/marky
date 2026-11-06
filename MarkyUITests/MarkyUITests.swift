@@ -14,6 +14,7 @@ final class MarkyUITests: XCTestCase {
             "README.md": "# Welcome Fixture\n\nWelcome to the real reader fixture.\n\n- Nested Parent Fixture\n  - Nested Child Fixture",
             "NOTES.md": "# Notes Fixture\n\nIndependent notes content.",
             "TABLE.md": "# Table Fixture\n\n| Deliverable | Implementation Notes | Release Plan |\n| :--- | :--- | ---: |\n| First Milestone Feature with Long Wrapped Prose | Extensive architectural implementation details that wrap onto multiple lines to thoroughly verify bounded column width proposals and vertical growth | Q1 2026 |\n| Second Milestone Feature with Multi-Line Content | Additional comprehensive implementation prose wrapping onto multiple lines to ensure all consecutive rows calculate proper vertical spacing without clipping | Q2 2026 |\n| Final Verification Row | Short summary text | Q3 2026 |",
+            "WIDE_TABLE.md": "# Wide Table Fixture\n\n| Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 | Col 8 Target |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: |\n| Cell 1 Alpha | Cell 2 Beta | Cell 3 Gamma | Cell 4 Delta | Cell 5 Epsilon | Cell 6 Zeta | Cell 7 Eta | Cell 8 Theta Target |",
             "docs/GUIDE.md": "# Guide Fixture\n\nExpanded folder guide content."
         ]
         let payload = try JSONSerialization.data(withJSONObject: documents)
@@ -180,6 +181,60 @@ final class MarkyUITests: XCTestCase {
         // 8. Capture screenshot attachment for supervisor visual validation
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "TableGeometryAndRowWrapping"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testTableHorizontalScrolling() throws {
+        let app = try makeSeededApp()
+        app.launch()
+        defer { app.terminate() }
+
+        let tableDoc = app.outlines["files-outline"].staticTexts["WIDE_TABLE.md"]
+        XCTAssertTrue(tableDoc.waitForExistence(timeout: 5))
+        tableDoc.click()
+
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        XCTAssertTrue(reader.waitForExistence(timeout: 5))
+        XCTAssertTrue(reader.staticTexts["Wide Table Fixture"].waitForExistence(timeout: 5))
+
+        let tableScrollView = reader.descendants(matching: .any)["table-scroll-view"].firstMatch
+        XCTAssertTrue(tableScrollView.waitForExistence(timeout: 5))
+
+        let col1Header = reader.staticTexts.matching(NSPredicate(format: "label == %@ OR value == %@", "Col 1", "Col 1")).firstMatch
+        let targetHeader = reader.staticTexts.matching(NSPredicate(format: "label == %@ OR value == %@", "Col 8 Target", "Col 8 Target")).firstMatch
+        let targetCell = reader.staticTexts.matching(NSPredicate(format: "label == %@ OR value == %@", "Cell 8 Theta Target", "Cell 8 Theta Target")).firstMatch
+
+        XCTAssertTrue(col1Header.waitForExistence(timeout: 5))
+        XCTAssertTrue(targetHeader.exists)
+        XCTAssertTrue(targetCell.exists)
+
+        // Target cell initially outside the scroll view's visible viewport
+        let initialTargetX = targetCell.frame.minX
+        let initialScrollViewMaxX = tableScrollView.frame.maxX
+        XCTAssertGreaterThanOrEqual(initialTargetX, initialScrollViewMaxX - 5)
+
+        // Native horizontal scroll interaction on the table scroll view with sufficient delta
+        tableScrollView.scroll(byDeltaX: -800, deltaY: 0)
+
+        // Poll using predicate expectation for settled frame with entire target cell inside viewport
+        let insideViewportPredicate = NSPredicate { _, _ in
+            let cellFrame = targetCell.frame
+            let scrollFrame = tableScrollView.frame
+            return cellFrame.minX >= scrollFrame.minX - 10 && cellFrame.maxX <= scrollFrame.maxX + 10
+        }
+        let settledExpectation = XCTNSPredicateExpectation(predicate: insideViewportPredicate, object: nil)
+        let waiterResult = XCTWaiter().wait(for: [settledExpectation], timeout: 5.0)
+        XCTAssertEqual(waiterResult, .completed)
+
+        // Verify actual movement (X coordinate decreased)
+        let scrolledTargetX = targetCell.frame.minX
+        XCTAssertLessThan(scrolledTargetX, initialTargetX)
+
+        // Capture screenshot attachment for supervisor visual validation
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "TableHorizontalScrolling"
         attachment.lifetime = .keepAlways
         add(attachment)
     }

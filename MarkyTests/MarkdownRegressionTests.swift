@@ -327,7 +327,16 @@ struct MarkdownRegressionTests {
             return false
         }
         #expect(!isTable)
-        #expect(!prepared.isEmpty)
+        #expect(prepared.count == 1)
+        guard case .paragraph(let text) = prepared.first?.kind else {
+            Issue.record("Expected paragraph fallback preserving entire source")
+            return
+        }
+        #expect(text == "| Col A | Col B | | --- | not-a-delimiter | | Val A | Val B |")
+        let rendered = MarkdownRenderer.render(from: markdown)
+        #expect(rendered.string.contains("| Col A | Col B |"))
+        #expect(rendered.string.contains("| --- | not-a-delimiter |"))
+        #expect(rendered.string.contains("| Val A | Val B |"))
     }
 
     @Test("Italic emphasis supports stars and underscores while ignoring intra-word underscores")
@@ -362,13 +371,24 @@ struct MarkdownRegressionTests {
 
     @Test("Triple stars and triple underscores render as combined bold and italic")
     func boldItalicCombined() throws {
-        let triple = MarkdownRenderer.render(from: "***bold and italic***")
+        let triple = MarkdownRenderer.render(from: "***bold and italic***", mode: .systemHeadingsSerifBody)
         #expect(triple.string == "bold and italic")
         let font = try #require(triple.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
-        #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+        let regular = try #require(MarkdownRenderer.render(from: "regular", mode: .systemHeadingsSerifBody).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(font.familyName == regular.familyName)
+        let traits = NSFontManager.shared.traits(of: font)
+        #expect(traits.contains(.boldFontMask))
+        let hasItalic = traits.contains(.italicFontMask) || triple.attribute(.obliqueness, at: 0, effectiveRange: nil) != nil
+        #expect(hasItalic)
 
-        let tripleUnderscore = MarkdownRenderer.render(from: "___bold and italic underscore___")
+        let tripleUnderscore = MarkdownRenderer.render(from: "___bold and italic underscore___", mode: .systemHeadingsSerifBody)
         #expect(tripleUnderscore.string == "bold and italic underscore")
+        let uFont = try #require(tripleUnderscore.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(uFont.familyName == regular.familyName)
+        let uTraits = NSFontManager.shared.traits(of: uFont)
+        #expect(uTraits.contains(.boldFontMask))
+        let uHasItalic = uTraits.contains(.italicFontMask) || tripleUnderscore.attribute(.obliqueness, at: 0, effectiveRange: nil) != nil
+        #expect(uHasItalic)
     }
 
     @Test("Strikethrough applies single strikethrough line attribute")
@@ -632,33 +652,47 @@ struct MarkdownRegressionTests {
         let codeRef = "[go][ref]"
         ```
 
-        Here is `[go][ref]` in code span and \\[go\\][ref] escaped.
+        Here is `[go][ref]` in code span and \\[go\\]\\[ref\\] escaped.
 
         [ref]: https://example.com/target
         """
         let rendered = MarkdownRenderer.render(from: markdown)
         let str = rendered.string
+        let nsStr = str as NSString
 
         // 1. [go][ref] before fence resolved
-        let firstGoRange = (str as NSString).range(of: "go")
-        #expect(firstGoRange.location != NSNotFound)
+        let rawFirstGo = nsStr.range(of: "go")
+        let firstGoRange = try #require(rawFirstGo.location != NSNotFound ? rawFirstGo : nil)
         let link = try #require(rendered.attribute(.link, at: firstGoRange.location, effectiveRange: nil) as? URL)
         #expect(link.absoluteString == "https://example.com/target")
+        #expect(rendered.attribute(.backgroundColor, at: firstGoRange.location, effectiveRange: nil) == nil)
 
-        // 2. Fenced code remains literal
-        #expect(str.contains("let codeRef = \"[go][ref]\""))
+        // 2. Fenced occurrence first: remains literal
+        let rawFencedSubstring = nsStr.range(of: "let codeRef = \"[go][ref]\"")
+        let fencedSubstringRange = try #require(rawFencedSubstring.location != NSNotFound ? rawFencedSubstring : nil)
+        let rawFencedRef = nsStr.range(of: "[go][ref]", options: [], range: fencedSubstringRange)
+        let requiredFenced = try #require(rawFencedRef.location != NSNotFound ? rawFencedRef : nil)
+        #expect(rendered.attribute(.link, at: requiredFenced.location, effectiveRange: nil) == nil)
 
-        // 3. Inline code span remains literal and has code background, no link
-        let inlineCodeRange = (str as NSString).range(of: "[go][ref]")
-        #expect(inlineCodeRange.location != NSNotFound)
-        #expect(rendered.attribute(.link, at: inlineCodeRange.location, effectiveRange: nil) == nil)
-        #expect(rendered.attribute(.backgroundColor, at: inlineCodeRange.location, effectiveRange: nil) != nil)
+        // 3. Inline occurrence search AFTER fenced substring
+        let searchAfterFence = NSRange(
+            location: fencedSubstringRange.location + fencedSubstringRange.length,
+            length: nsStr.length - (fencedSubstringRange.location + fencedSubstringRange.length)
+        )
+        let inlineCodeRange = nsStr.range(of: "[go][ref]", options: [], range: searchAfterFence)
+        let requiredInline = try #require(inlineCodeRange.location != NSNotFound ? inlineCodeRange : nil)
+        #expect(rendered.attribute(.link, at: requiredInline.location, effectiveRange: nil) == nil)
+        #expect(rendered.attribute(.backgroundColor, at: requiredInline.location, effectiveRange: nil) != nil)
 
-        // 4. Escaped brackets remain literal, no link
-        let escapedRange = (str as NSString).range(of: "[go][ref]", options: [], range: NSRange(location: inlineCodeRange.location + inlineCodeRange.length, length: str.count - (inlineCodeRange.location + inlineCodeRange.length)))
-        if escapedRange.location != NSNotFound {
-            #expect(rendered.attribute(.link, at: escapedRange.location, effectiveRange: nil) == nil)
-        }
+        // 4. Escaped occurrence search AFTER inline occurrence
+        let searchAfterInline = NSRange(
+            location: requiredInline.location + requiredInline.length,
+            length: nsStr.length - (requiredInline.location + requiredInline.length)
+        )
+        let escapedRange = nsStr.range(of: "[go][ref]", options: [], range: searchAfterInline)
+        let requiredEscaped = try #require(escapedRange.location != NSNotFound ? escapedRange : nil)
+        #expect(rendered.attribute(.link, at: requiredEscaped.location, effectiveRange: nil) == nil)
+        #expect(rendered.attribute(.backgroundColor, at: requiredEscaped.location, effectiveRange: nil) == nil)
     }
 
     @Test("Four-space indented reference definition is preserved as literal code")
@@ -776,6 +810,261 @@ struct MarkdownRegressionTests {
         #expect(MarkyTheme.tableCellMinWidth >= 60)
         #expect(MarkyTheme.tableCellMaxWidth <= 450)
         #expect(MarkyTheme.tableCellMinWidth < MarkyTheme.tableCellMaxWidth)
+    }
+
+    @Test("Reference label normalization collapses internal whitespace and case-folds consistently, keeping first definition")
+    func referenceLabelNormalization() throws {
+        #expect(MarkdownContentBlocks.normalizeReferenceLabel("  a   b\t c  ") == "a b c")
+        #expect(MarkdownContentBlocks.normalizeReferenceLabel("FOO   BAR") == "foo bar")
+        #expect(MarkdownContentBlocks.normalizeReferenceLabel("") == "")
+
+        let markdown = """
+        [Test Label][a  b] and [Shortcut][a b] and [Uppercase][A   B]
+
+        [a b]: https://example.com/first
+        [a  b]: https://example.com/second
+        """
+        let (cleaned, links) = MarkdownContentBlocks.extractDocumentReferenceLinks(from: markdown)
+        #expect(links["a b"]?.absoluteString == "https://example.com/first")
+        #expect(cleaned.contains("[Test Label][a  b]"))
+
+        let rendered = MarkdownRenderer.render(from: markdown)
+        let str = rendered.string
+        let firstRange = (str as NSString).range(of: "Test Label")
+        let firstLink = try #require(rendered.attribute(.link, at: firstRange.location, effectiveRange: nil) as? URL)
+        #expect(firstLink.absoluteString == "https://example.com/first")
+
+        let secondRange = (str as NSString).range(of: "Shortcut")
+        let secondLink = try #require(rendered.attribute(.link, at: secondRange.location, effectiveRange: nil) as? URL)
+        #expect(secondLink.absoluteString == "https://example.com/first")
+
+        let thirdRange = (str as NSString).range(of: "Uppercase")
+        let thirdLink = try #require(rendered.attribute(.link, at: thirdRange.location, effectiveRange: nil) as? URL)
+        #expect(thirdLink.absoluteString == "https://example.com/first")
+    }
+
+    @Test("Invalid reference destinations remain in source text and are not removed")
+    func invalidReferenceDestinationPreserved() {
+        let markdown = """
+        Intro paragraph
+
+        [bad1]: http://[bad
+        [bad2]: <http://[bad>
+
+        After paragraph
+        """
+        let (cleaned, links) = MarkdownContentBlocks.extractDocumentReferenceLinks(from: markdown)
+        #expect(links.isEmpty)
+        #expect(cleaned.contains("[bad1]: http://[bad"))
+        #expect(cleaned.contains("[bad2]: <http://[bad>"))
+
+        let rendered = MarkdownRenderer.render(from: markdown)
+        #expect(rendered.string.contains("[bad1]: http://[bad"))
+        #expect(rendered.string.contains("[bad2]: http://[bad"))
+    }
+
+    @Test("Table bodies accept pipe-free short rows and terminate on real block boundaries")
+    func tableShortRowsAndQuotedPipes() {
+        let shortRowMarkdown = """
+        | Header 1 | Header 2 | Header 3 |
+        | :--- | :---: | ---: |
+        | C1 | C2 | C3 |
+        Single Cell Only
+
+        Following paragraph after blank line.
+        """
+        let preparedShort = MarkdownContentBlocks.prepare(from: shortRowMarkdown)
+        #expect(preparedShort.count == 2)
+        if case .table(let headers, _, let rows) = preparedShort[0].kind {
+            #expect(headers.count == 3)
+            #expect(rows.count == 2)
+            #expect(rows[0] == ["C1", "C2", "C3"])
+            #expect(rows[1] == ["Single Cell Only", "", ""])
+        } else {
+            Issue.record("Expected table block with padded short row")
+        }
+        if case .paragraph(let text) = preparedShort[1].kind {
+            #expect(text.contains("Following paragraph"))
+        } else {
+            Issue.record("Expected following paragraph preserved")
+        }
+
+        let quoteMarkdown = """
+        | Col A | Col B |
+        | --- | --- |
+        | Val A | Val B |
+        > Quoted block | with | pipes
+        """
+        let preparedQuote = MarkdownContentBlocks.prepare(from: quoteMarkdown)
+        #expect(preparedQuote.count == 2)
+        if case .table(let headers, _, let rows) = preparedQuote[0].kind {
+            #expect(headers == ["Col A", "Col B"])
+            #expect(rows.count == 1)
+            #expect(rows[0] == ["Val A", "Val B"])
+        } else {
+            Issue.record("Expected table to terminate before quote")
+        }
+        if case .quote(let source) = preparedQuote[1].kind {
+            #expect(source.contains("Quoted block | with | pipes"))
+        } else {
+            Issue.record("Expected quote block containing pipes")
+        }
+    }
+
+    @Test("Table splitting and pipe recognition share backtick matching semantics")
+    func tableCodeSpanBackticksRecognitionAndSplitting() {
+        #expect(!MarkdownContentBlocks.containsUnescapedPipe("`pipe | inside code`"))
+        #expect(!MarkdownContentBlocks.containsUnescapedPipe("``double `tick` | code``"))
+
+        #expect(MarkdownContentBlocks.containsUnescapedPipe("`unmatched backtick | separator"))
+        #expect(MarkdownContentBlocks.containsUnescapedPipe("``unmatched double | separator"))
+
+        #expect(!MarkdownContentBlocks.containsUnescapedPipe("escaped \\| pipe only"))
+        #expect(MarkdownContentBlocks.containsUnescapedPipe("escaped \\| pipe | real separator"))
+
+        let unmatchedCells = MarkdownContentBlocks.splitTableRow("`literal tick | second cell")
+        #expect(unmatchedCells == ["`literal tick", "second cell"])
+
+        let matchedCells = MarkdownContentBlocks.splitTableRow("`a | b` | second cell")
+        #expect(matchedCells == ["`a | b`", "second cell"])
+
+        let multiCells = MarkdownContentBlocks.splitTableRow("``nested `tick` | inner`` | outer cell")
+        #expect(multiCells == ["``nested `tick` | inner``", "outer cell"])
+    }
+
+    @Test("Standalone image parser accepts angle-bracket destinations with spaces and rejects unbracketed spaces")
+    func standaloneImageAngleBracketSpaces() {
+        let bracketedWithSpaces = "![Alt text](<my photo.png> \"Image Title\")"
+        let parsed = MarkdownContentBlocks.parseStandaloneImage(bracketedWithSpaces)
+        #expect(parsed?.alt == "Alt text")
+        #expect(parsed?.url == "my photo.png")
+        #expect(parsed?.title == "Image Title")
+
+        let bracketedNoTitle = "![Alt text](<path/with spaces/image.jpg>)"
+        let parsedNoTitle = MarkdownContentBlocks.parseStandaloneImage(bracketedNoTitle)
+        #expect(parsedNoTitle?.alt == "Alt text")
+        #expect(parsedNoTitle?.url == "path/with spaces/image.jpg")
+        #expect(parsedNoTitle?.title == nil)
+
+        let unbracketedSpace = "![Alt text](my photo.png)"
+        #expect(MarkdownContentBlocks.parseStandaloneImage(unbracketedSpace) == nil)
+
+        let unbracketedWithTitle = "![Alt text](my photo.png \"Title\")"
+        #expect(MarkdownContentBlocks.parseStandaloneImage(unbracketedWithTitle) == nil)
+    }
+
+    @Test("Explicit undefined reference links remain untouched and destination parentheses serialize safely")
+    func explicitUndefinedReferenceLinks() throws {
+        let markdown = """
+        [foo][missing] and [unknown][foo] and [foo][] and [parens][dest_parens]
+
+        [foo]: https://example.com/foo
+        [dest_parens]: https://example.com/a)b
+        """
+        let rendered = MarkdownRenderer.render(from: markdown)
+        let str = rendered.string
+        let nsStr = str as NSString
+
+        // 1. [foo][missing] where 'foo' is defined but 'missing' is undefined: remains literal untouched text, not linked
+        #expect(str.contains("[foo][missing]"))
+        let rawFooMissing = nsStr.range(of: "[foo][missing]")
+        let fooMissingRange = try #require(rawFooMissing.location != NSNotFound ? rawFooMissing : nil)
+        #expect(rendered.attribute(.link, at: fooMissingRange.location, effectiveRange: nil) == nil)
+
+        // 2. [unknown][foo] where 'foo' is defined is a valid full reference: renders label 'unknown' linked to foo URL
+        let rawUnknown = nsStr.range(of: "unknown")
+        let unknownRange = try #require(rawUnknown.location != NSNotFound ? rawUnknown : nil)
+        let unknownLink = try #require(rendered.attribute(.link, at: unknownRange.location, effectiveRange: nil) as? URL)
+        #expect(unknownLink.absoluteString == "https://example.com/foo")
+
+        // 3. [foo][] with defined foo expands
+        let searchAfterUnknown = NSRange(
+            location: unknownRange.location + unknownRange.length,
+            length: nsStr.length - (unknownRange.location + unknownRange.length)
+        )
+        let rawFoo = nsStr.range(of: "foo", options: [], range: searchAfterUnknown)
+        let fooRange = try #require(rawFoo.location != NSNotFound ? rawFoo : nil)
+        let fooLink = try #require(rendered.attribute(.link, at: fooRange.location, effectiveRange: nil) as? URL)
+        #expect(fooLink.absoluteString == "https://example.com/foo")
+
+        // 4. [dest_parens] with UNMATCHED close parenthesis in destination expands with angle brackets and no trailing content
+        let rawParens = nsStr.range(of: "parens")
+        let parensRange = try #require(rawParens.location != NSNotFound ? rawParens : nil)
+        let parensLink = try #require(rendered.attribute(.link, at: parensRange.location, effectiveRange: nil) as? URL)
+        #expect(parensLink.absoluteString == "https://example.com/a)b")
+        #expect(!str.contains(")b"))
+    }
+
+    @Test("Remote URL scheme normalization validates case-insensitive HTTPS before dispatch")
+    func remoteURLSchemeNormalization() {
+        let upperHTTPS = MarkdownImageView.remoteURL(from: "HTTPS://example.com/mascot.png")
+        #expect(upperHTTPS?.scheme == "https")
+        #expect(upperHTTPS?.absoluteString == "https://example.com/mascot.png")
+
+        let mixedHTTP = MarkdownImageView.remoteURL(from: "hTtP://example.com/banner.jpg")
+        #expect(mixedHTTP?.scheme == "http")
+        #expect(mixedHTTP?.absoluteString == "http://example.com/banner.jpg")
+
+        #expect(MarkdownImageView.remoteURL(from: "file:///Users/test/photo.png") == nil)
+        #expect(MarkdownImageView.remoteURL(from: "ftp://example.com/file.png") == nil)
+        #expect(MarkdownImageView.remoteURL(from: "javascript:alert(1)") == nil)
+        #expect(MarkdownImageView.remoteURL(from: "not a url") == nil)
+    }
+
+    @Test("Local image loader manages security-scoped resource access and balances stopAccessing")
+    func localImageLoaderAccess() async throws {
+        final class MockResourceAccess: ProjectResourceAccessing {
+            var startCount = 0
+            var stopCount = 0
+
+            func startAccessing(_ url: URL) -> Bool {
+                startCount += 1
+                return true
+            }
+
+            func stopAccessing(_ url: URL) {
+                stopCount += 1
+            }
+        }
+
+        let mock = MockResourceAccess()
+        let tempDir = FileManager.default.temporaryDirectory
+        let nonExistentURL = tempDir.appendingPathComponent("non_existent_\(UUID().uuidString).png")
+
+        // 1. Failure: Missing file throws typed error and balances stopAccessing
+        await #expect(throws: LocalImageLoadError.self) {
+            try await LocalImageLoader.loadImage(at: nonExistentURL, under: tempDir, resourceAccess: mock)
+        }
+        #expect(mock.startCount == 1)
+        #expect(mock.stopCount == 1)
+
+        // 2. Success: Valid image loads and balances stopAccessing
+        let validURL = tempDir.appendingPathComponent("valid_test_\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: validURL) }
+        let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .calibratedRGB, bytesPerRow: 8, bitsPerPixel: 32))
+        let pngData = try #require(rep.representation(using: .png, properties: [:]))
+        try pngData.write(to: validURL)
+        let loaded = try await LocalImageLoader.loadImage(at: validURL, under: tempDir, resourceAccess: mock)
+        #expect(loaded.size.width > 0)
+        #expect(mock.startCount == 2)
+        #expect(mock.stopCount == 2)
+
+        // 3. Cancellation: Cancelled task asserts CancellationError and balances start/stop
+        let cancelMock = MockResourceAccess()
+        let cancelTask = Task { @MainActor in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await LocalImageLoader.loadImage(at: nonExistentURL, under: tempDir, resourceAccess: cancelMock)
+        }
+        do {
+            _ = try await cancelTask.value
+            Issue.record("Expected cancellation error to be thrown")
+        } catch is CancellationError {
+            // Expected CancellationError
+        } catch {
+            Issue.record("Expected CancellationError but got \(error)")
+        }
+        #expect(cancelMock.startCount == 1)
+        #expect(cancelMock.stopCount == 1)
     }
 }
 
