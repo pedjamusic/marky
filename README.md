@@ -59,8 +59,21 @@ CLI UI tests (example focused run):
 xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' test -only-testing:MarkyUITests/MarkyUITests
 ```
 
+## Standalone C++ core build
+
+The independent C++20 static-library scaffold and dependency-free CTest harness live in [core/](core/README.md). The Mac app continues to use its existing Swift implementation. From the repository root:
+
+```bash
+cmake -S core -B /tmp/MarkyCore-Debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build /tmp/MarkyCore-Debug
+ctest --test-dir /tmp/MarkyCore-Debug --output-on-failure --no-tests=error
+```
+
+Repeat with a separate Release build directory and `-DCMAKE_BUILD_TYPE=Release`. See the core README for prerequisites and deliberate harness failure checks; [T03.S1 evidence](docs/core-rewrite/T03-S1-CORE-BUILD.md) records executed configurations and limits.
+
 ## Repository Layout
 
+- `core/`: standalone C++20 static core and CTest harness (not yet integrated into the app)
 - `Marky/`: app source code (SwiftUI app, views, theme, markdown rendering)
 - `MarkyTests/`: unit tests
 - `MarkyUITests/`: UI tests
