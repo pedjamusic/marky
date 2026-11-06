@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## [0.2.4] - 2026-11-06
 
-Manual validation pending.
+Manual validation passed on 2026-11-06.
 
 - Reader feature suite: added native GFM table grids with column alignment, bounded multi-line cell wrapping, and horizontal scrolling; expanded inline and block Markdown styling across headings, lists, quotes, and links; and introduced native standalone presentation for local project images and remote HTTPS images with accessible fallbacks.
 - GFM pipe tables: added support for pipe-free short rows padded to column count, block boundary termination for lists, blockquotes, headings, rules, and images, and shared code-span backtick matching between table row splitting and pipe detection.

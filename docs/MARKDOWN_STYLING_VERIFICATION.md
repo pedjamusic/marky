@@ -19,18 +19,20 @@
   - `testTableGeometryAndRowWrapping`: verifies column alignment across rows, multi-line wrapped cell heights (> 40pt vs single-line cells), multi-row intrinsic height (> 150pt), and sequential row vertical positioning within the unclipped table scroll view bounds with an `XCTAttachment` screenshot.
   - `testTableHorizontalScrolling`: verifies that a wide 8-column table fixture initially places distant target cells outside the viewport and smoothly scrolls them into view via native horizontal scroll interactions.
 - **CodeRabbit Review Fixes (2026-11-06)**: Addressed all 11 inline findings, two test nits, and the destination/scheme concerns in the review summary. Supervisor-reviewed regression coverage includes unmatched destination parentheses, distinct fenced/inline/escaped reference occurrences, and balanced image security-scope access on success, failure, and cancellation.
-- **Final automated results**: 104 unit tests passed (107 runs including parameters), recorded in `/tmp/MarkyMarkdownReview/Logs/Test/Test-Marky-2026.11.06_02-25-03-+0100.xcresult`. All seven UI tests passed in the preceding combined run (`Test-Marky-2026.11.06_02-23-06-+0100.xcresult`); that run's two unit-fixture failures were corrected and covered by the final unit run. The horizontal-scroll test verifies the complete target cell enters the viewport. User manual acceptance remains pending.
+- **Final automated results**: 104 unit tests passed (107 runs including parameters), recorded in `/tmp/MarkyMarkdownReview/Logs/Test/Test-Marky-2026.11.06_02-25-03-+0100.xcresult`. All seven UI tests passed in the preceding combined run (`Test-Marky-2026.11.06_02-23-06-+0100.xcresult`); that run's two unit-fixture failures were corrected and covered by the final unit run. The horizontal-scroll test verifies the complete target cell enters the viewport. The user reported manual validation **pass** on 2026-11-06.
 - **Scope limits**: This native presentation does not claim full CommonMark/GFM conformance. Standalone images render as images; images embedded within paragraph text currently display their alt text. Arbitrary HTML is not executed.
 
-## Manual Acceptance Checklist (Pending User Confirmation)
-- [ ] Open `docs/MARKDOWN_SHOWCASE.md` in the Marky reader.
-- [ ] Verify GFM pipe tables display with borders, header fill, and zebra striping without raw pipes.
-- [ ] Verify short table rows without pipes are padded and displayed as valid rows.
-- [ ] Verify quotes with pipes immediately following tables are rendered as blockquotes.
-- [ ] Verify the 3-column roadmap table cells wrap onto multiple lines without bottom row truncation.
-- [ ] Verify narrow windows enable horizontal scrolling for wide tables.
-- [ ] Verify italic and bold markers are parsed and invisible.
-- [ ] Verify task list checkboxes render with distinct unchecked (`☐`) and checked (`☑`) states.
-- [ ] Verify local mascot image loads from `../Marky/Assets.xcassets/` and remote images load or show fallback cards.
-- [ ] Verify local images without folder permission show the "Choose Folder…" / "Grant Folder Access…" button and load once granted.
-- [ ] Verify switching typography modes (All System / Serif Headings + System Body / System Headings + Serif Body) and text size presets rerenders cleanly.
+## Manual Acceptance
+
+The user reported **pass** on 2026-11-06 for the reviewed Markdown reader changes. The following checklist records the acceptance scope:
+- [x] Open `docs/MARKDOWN_SHOWCASE.md` in the Marky reader.
+- [x] Verify GFM pipe tables display with borders, header fill, and zebra striping without raw pipes.
+- [x] Verify short table rows without pipes are padded and displayed as valid rows.
+- [x] Verify quotes with pipes immediately following tables are rendered as blockquotes.
+- [x] Verify the 3-column roadmap table cells wrap onto multiple lines without bottom row truncation.
+- [x] Verify narrow windows enable horizontal scrolling for wide tables.
+- [x] Verify italic and bold markers are parsed and invisible.
+- [x] Verify task list checkboxes render with distinct unchecked (`☐`) and checked (`☑`) states.
+- [x] Verify local mascot image loads from `../Marky/Assets.xcassets/` and remote images load or show fallback cards.
+- [x] Verify local images without folder permission show the "Choose Folder…" / "Grant Folder Access…" button and load once granted.
+- [x] Verify switching typography modes (All System / Serif Headings + System Body / System Headings + Serif Body) and text size presets rerenders cleanly.
