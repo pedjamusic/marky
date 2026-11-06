@@ -61,15 +61,16 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' 
 
 ## Standalone C++ core build
 
-The independent C++20 static-library scaffold and dependency-free CTest harness live in [core/](core/README.md). The Mac app continues to use its existing Swift implementation. From the repository root:
+The independent C++20 static-library scaffold and dependency-free CTest harness live in [core/](core/README.md). The Mac app continues to use its existing Swift implementation. CMake/CTest 3.21+ presets provide Debug/Release configurations for macOS/Apple Clang, Windows/MSVC and Linux/GCC. From the repository root on macOS:
 
 ```bash
-cmake -S core -B /tmp/MarkyCore-Debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build /tmp/MarkyCore-Debug
-ctest --test-dir /tmp/MarkyCore-Debug --output-on-failure --no-tests=error
+cd core
+cmake --preset macos-appleclang-debug
+cmake --build --preset macos-appleclang-debug
+ctest --preset macos-appleclang-debug
 ```
 
-Repeat with a separate Release build directory and `-DCMAKE_BUILD_TYPE=Release`. See the core README for prerequisites and deliberate harness failure checks; [T03.S1 evidence](docs/core-rewrite/T03-S1-CORE-BUILD.md) records executed configurations and limits.
+Repeat with `macos-appleclang-release`. See the [core procedures](core/README.md) for platform prerequisites, Windows/Linux commands, deliberate failure/recovery checks, and manual CMake 3.20+ builds. [T03.S2 evidence](docs/core-rewrite/T03-S2-PLATFORM-BUILDS.md) distinguishes executed Mac smoke tests from unexecuted Windows/Linux configurations.
 
 ## Repository Layout
 

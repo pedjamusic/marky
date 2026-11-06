@@ -10,7 +10,7 @@ Read [STATUS](../STATUS.md), [interface/lifetime rules](../CONTRACT.md#boundary-
 
 **Inputs:** [Xcode project](../../../Marky.xcodeproj/project.pbxproj), [current commands](../../../README.md), [document types/preparation](../../../Marky/MarkdownContentBlocks.swift), [build contract](../CONTRACT.md#build-and-portability), and [scope/dependency limits](../CONTRACT.md#scope-and-dependencies).
 
-Build-source discovery: [standalone core commands](../../../core/README.md), [production source manifest](../../../core/CMakeLists.txt), [test harness](../../../core/tests/CoreTests.cpp), and [T03.S1 execution evidence](../T03-S1-CORE-BUILD.md). Live progress and acceptance remain in STATUS.
+Build-source discovery: [standalone core commands](../../../core/README.md), [production source manifest](../../../core/CMakeLists.txt), [test harness](../../../core/tests/CoreTests.cpp), and [T03.S1 execution evidence](../T03-S1-CORE-BUILD.md), [platform presets](../../../core/CMakePresets.json), and [T03.S2 platform procedures/evidence](../T03-S2-PLATFORM-BUILDS.md). Live progress and acceptance remain in STATUS.
 
 **Slices:**
 
