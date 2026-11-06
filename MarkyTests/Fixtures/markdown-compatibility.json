@@ -1549,6 +1549,2005 @@
           ]
         }
       ]
+    },
+    {
+      "id": "MD-041",
+      "requirements": [
+        "D02",
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "Before ``first\nsecond`` after",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before ",
+              "traits": []
+            },
+            {
+              "text": "first second",
+              "traits": [
+                "code"
+              ]
+            },
+            {
+              "text": " after",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "legacyRuns": [
+        {
+          "text": "Before ``first\nsecond`` after",
+          "traits": []
+        }
+      ],
+      "inlineRuns": [
+        {
+          "text": "Before ",
+          "traits": []
+        },
+        {
+          "text": "first second",
+          "traits": [
+            "code"
+          ]
+        },
+        {
+          "text": " after",
+          "traits": []
+        }
+      ]
+    },
+    {
+      "id": "MD-042",
+      "requirements": [
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "Before ``unclosed `tick` after",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before ``unclosed ",
+              "traits": []
+            },
+            {
+              "text": "tick",
+              "traits": [
+                "code"
+              ]
+            },
+            {
+              "text": " after",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "legacyRuns": [
+        {
+          "text": "Before ``unclosed ",
+          "traits": []
+        },
+        {
+          "text": "tick",
+          "traits": [
+            "code"
+          ]
+        },
+        {
+          "text": " after",
+          "traits": []
+        }
+      ]
+    },
+    {
+      "id": "MD-043",
+      "requirements": [
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "Before `` padded `` after",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before ",
+              "traits": []
+            },
+            {
+              "text": "padded",
+              "traits": [
+                "code"
+              ]
+            },
+            {
+              "text": " after",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "legacyRuns": [
+        {
+          "text": "Before ",
+          "traits": []
+        },
+        {
+          "text": "padded",
+          "traits": [
+            "code"
+          ]
+        },
+        {
+          "text": " after",
+          "traits": []
+        }
+      ]
+    },
+    {
+      "id": "MD-044",
+      "requirements": [
+        "D02",
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "`first\n\nsecond`",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "`first",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "second`",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "legacyRuns": [
+        {
+          "text": "`first\n\nsecond`",
+          "traits": []
+        }
+      ],
+      "inlineRuns": [
+        {
+          "text": "first  second",
+          "traits": [
+            "code"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-045",
+      "requirements": [
+        "D01",
+        "D02"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "first  \nsecond\r\nthird",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "first\nsecond third",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "inlineRuns": [
+        {
+          "text": "first  \nsecond\nthird",
+          "traits": []
+        }
+      ]
+    },
+    {
+      "id": "MD-046",
+      "requirements": [
+        "D02"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "first\\\nsecond",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "first\nsecond",
+              "traits": []
+            }
+          ]
+        }
+      ],
+      "inlineRuns": [
+        {
+          "text": "first\nsecond",
+          "traits": []
+        }
+      ]
+    },
+    {
+      "id": "MD-047",
+      "requirements": [
+        "D02",
+        "D14"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "first\\\\\nsecond",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "first\\\nsecond",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-048",
+      "requirements": [
+        "D01",
+        "D06",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "𝄞 é **𝄢** `é`",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "𝄞 é ",
+              "traits": []
+            },
+            {
+              "text": "𝄢",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "é",
+              "traits": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-049",
+      "requirements": [
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "#no\n####### seven\n#\n# tab\t",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "#no ####### seven #",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "tab",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-050",
+      "requirements": [
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "# closed ###\n## attached###",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "closed",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 2,
+          "runs": [
+            {
+              "text": "attached###",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-051",
+      "requirements": [
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "first\nsecond\n=\n\nnext\n-",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "first second",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 2,
+          "runs": [
+            {
+              "text": "next",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-052",
+      "requirements": [
+        "D03",
+        "D05"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "   # heading\n\n    # code\n\tmore",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "heading",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "text": "# code\nmore"
+        }
+      ]
+    },
+    {
+      "id": "MD-053",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "```bad`info\nbody",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "```bad`info body",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-054",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "   ~~~ info`ok\nbody\n   ~~~~\nafter",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "body"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "after",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-055",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "```\n~~~\n``\n```suffix\n```",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "~~~\n``\n```suffix"
+        }
+      ]
+    },
+    {
+      "id": "MD-056",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "```\n```",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "MD-057",
+      "requirements": [
+        "D05"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "    one\n\n    two\n\nplain\n    continuation",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "one\n\ntwo"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "plain continuation",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-058",
+      "requirements": [
+        "D07",
+        "D08"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "- first\n  > literal quote continuation\nplain\n> quote",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "first\n> literal quote continuation",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "plain",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "quote",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-059",
+      "requirements": [
+        "D07"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "- [x]yes\n- [ ] \n01) item\n  - child\n\t- tab",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "[x]yes",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "taskUnchecked",
+              "runs": []
+            },
+            {
+              "depth": 0,
+              "marker": "01)",
+              "runs": [
+                {
+                  "text": "item",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 1,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "child",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "tab",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-060",
+      "requirements": [
+        "D08",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "> **first\n> second**\n>\n>> nested",
+      "blocks": [
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "first",
+                  "traits": [
+                    "strong"
+                  ]
+                }
+              ]
+            },
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "second",
+                  "traits": [
+                    "strong"
+                  ]
+                }
+              ]
+            },
+            {
+              "depth": 1,
+              "runs": []
+            },
+            {
+              "depth": 2,
+              "runs": [
+                {
+                  "text": "nested",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-061",
+      "requirements": [
+        "D07",
+        "D08",
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "- one\n\n- two\n> quote\n# heading",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "one",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "two",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "quote",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "heading",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-062",
+      "requirements": [
+        "D09",
+        "D10"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n- | :-:\nx\\|y | `a|b`\nend\\|",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "center"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "x|y",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "a|b",
+                  "traits": [
+                    "code"
+                  ]
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "end|",
+                  "traits": []
+                }
+              ],
+              []
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-063",
+      "requirements": [
+        "D09",
+        "D10"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\nx\\\\|y\nx\\\\\\|z | q",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "x\\",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "y",
+                  "traits": []
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "x\\|z",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "q",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-064",
+      "requirements": [
+        "D09",
+        "D10",
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n`open | tail\n``a`b|c`` | d",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "`open",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "tail",
+                  "traits": []
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "a`b|c",
+                  "traits": [
+                    "code"
+                  ]
+                }
+              ],
+              [
+                {
+                  "text": "d",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-065",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--x | ---\nrow | next",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "A | B --x | --- row | next",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-066",
+      "requirements": [
+        "D09",
+        "D11",
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n# heading",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "heading",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-067",
+      "requirements": [
+        "D09",
+        "D11",
+        "D07"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n- item",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "item",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-068",
+      "requirements": [
+        "D09",
+        "D11",
+        "D05"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n    literal",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "code",
+          "text": "literal"
+        }
+      ]
+    },
+    {
+      "id": "MD-069",
+      "requirements": [
+        "D06",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "**before `a*b` after** ~~*gone*~~",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "before ",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": "a*b",
+              "traits": [
+                "strong",
+                "code"
+              ]
+            },
+            {
+              "text": " after",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "gone",
+              "traits": [
+                "emphasis",
+                "strike"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-070",
+      "requirements": [
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "**open *half ~~gone _tail",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "**open *half ~~gone _tail",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-071",
+      "requirements": [
+        "D03",
+        "D07",
+        "D08",
+        "D12",
+        "D13",
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "# [**head**](https://h.test)\n- ~~item~~\n> *quote*",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "head",
+              "traits": [
+                "strong"
+              ],
+              "destination": "https://h.test"
+            }
+          ]
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "item",
+                  "traits": [
+                    "strike"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "quote",
+                  "traits": [
+                    "emphasis"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-072",
+      "requirements": [
+        "D01",
+        "D16"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "[CAFÉ] [café] [STRASSE] [straße]\n\n[café]: https://accent.test\n[straße]: https://street.test",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "CAFÉ",
+              "traits": [],
+              "destination": "https://accent.test"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "café",
+              "traits": [],
+              "destination": "https://accent.test"
+            },
+            {
+              "text": " [STRASSE] ",
+              "traits": []
+            },
+            {
+              "text": "straße",
+              "traits": [],
+              "destination": "https://street.test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-073",
+      "requirements": [
+        "D14"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "&bogus; &amp &#x1F3B5; &#0; &#x110000; &NotEqualTilde;",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "&bogus; &amp 🎵 � � ≂̸",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-074",
+      "requirements": [
+        "D06",
+        "D14"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "\\\\*yes* \\*no\\* `&copy; \\*x\\*`",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "\\",
+              "traits": []
+            },
+            {
+              "text": "yes",
+              "traits": [
+                "emphasis"
+              ]
+            },
+            {
+              "text": " *no* ",
+              "traits": []
+            },
+            {
+              "text": "&copy; \\*x\\*",
+              "traits": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-075",
+      "requirements": [
+        "D04",
+        "D16",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "```\n[ref]: https://shadow.test\n```\n[ref]\n\n[ref]: https://real.test",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "[ref]: https://shadow.test"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "ref",
+              "traits": [],
+              "destination": "https://real.test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-076",
+      "requirements": [
+        "D16",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "[ref]: https://one.test \"title\"\n[ref]: https://two.test\n[ref]\n\n[broken]:\n[broken]",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "ref",
+              "traits": [],
+              "destination": "https://one.test"
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[broken]: [broken]",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-077",
+      "requirements": [
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "[outer [inner](https://i.test)](https://o.test) [x](https://x.test \"title\")",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[outer ",
+              "traits": []
+            },
+            {
+              "text": "inner",
+              "traits": [],
+              "destination": "https://i.test"
+            },
+            {
+              "text": "](",
+              "traits": []
+            },
+            {
+              "text": "https://o.test",
+              "traits": [],
+              "destination": "https://o.test"
+            },
+            {
+              "text": ") ",
+              "traits": []
+            },
+            {
+              "text": "x",
+              "traits": [],
+              "destination": "https://x.test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-078",
+      "requirements": [
+        "D15",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "[x](https://example.test/a(b) [bad](<http://[bad>)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[x](",
+              "traits": []
+            },
+            {
+              "text": "https://example.test/a(b)",
+              "traits": [],
+              "destination": "https://example.test/a(b)"
+            },
+            {
+              "text": " bad",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-079",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "![alt](my photo.png)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "![alt](my photo.png)",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-080",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "![outer [inner]](image.png)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "outer [inner]",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-081",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "![a\\]b](image.png)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "a]b",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-082",
+      "requirements": [
+        "D16",
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "![pic][asset]\n\n[asset]: image.png",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "pic",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-083",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "![**raw alt**](image.png 'title')",
+      "blocks": [
+        {
+          "kind": "image",
+          "alt": "**raw alt**",
+          "destination": "image.png",
+          "title": "title"
+        }
+      ]
+    },
+    {
+      "id": "MD-084",
+      "requirements": [
+        "D19"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "<b>bold</b> <script>alert(1)</script> <iframe src=\"https://example.test\"></iframe>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "<b>bold</b> <script>alert(1)</script> <iframe src=\"https://example.test\"></iframe>",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-085",
+      "requirements": [
+        "D19",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "<div>\n**text**\n</div>\n\n<!-- comment -->",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "<div> ",
+              "traits": []
+            },
+            {
+              "text": "text",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": " </div>",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "<!-- comment -->",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-086",
+      "requirements": [
+        "D14",
+        "D19"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "&lt;script&gt;hi&lt;/script&gt; <broken",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "<script>hi</script> <broken",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-087",
+      "requirements": [
+        "D04",
+        "D19"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownRenderer.renderInline",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "```html\n<script>**raw**</script>\n```",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "<script>**raw**</script>"
+        }
+      ]
+    },
+    {
+      "id": "MD-088",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownContentBlocks.parse",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n===",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "===",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-089",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownContentBlocks.parse",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n***",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "thematicBreak"
+        }
+      ]
+    },
+    {
+      "id": "MD-090",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownContentBlocks.parse",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n![alt](image.png)",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "image",
+          "alt": "alt",
+          "destination": "image.png"
+        }
+      ]
+    },
+    {
+      "id": "MD-091",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownContentBlocks.parse",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n```\nliteral\n```",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "code",
+          "text": "literal"
+        }
+      ]
+    },
+    {
+      "id": "MD-092",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks",
+        "MarkdownContentBlocks.parse",
+        "T01-S3-CHARACTERIZATION.md"
+      ],
+      "input": "A | B\n--- | ---\n\nplain",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": []
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "plain",
+              "traits": []
+            }
+          ]
+        }
+      ]
     }
   ]
 }

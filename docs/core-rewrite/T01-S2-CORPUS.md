@@ -1,6 +1,6 @@
 # T01.S2 — Shared Markdown compatibility corpus
 
-The [JSON corpus](../../MarkyTests/Fixtures/markdown-compatibility.json) contains 40 hand-authored fixtures, `MD-001`–`MD-040`. Inputs and expected values were transcribed or adapted from the existing tests, accepted showcase, and owning production source identified in each fixture's `evidence`. These are supporting provenance references, not claims that every adapted input already had an exact assertion. Expected results were written before executing the corpus, independently of parser output. The [Swift checks](../../MarkyTests/MarkdownCompatibilityTests.swift) compare them with the current production reader. There is no replacement parser in this slice.
+T01.S2 delivered 40 hand-authored fixtures, `MD-001`–`MD-040`, in the [JSON corpus](../../MarkyTests/Fixtures/markdown-compatibility.json). [T01.S3 characterization](T01-S3-CHARACTERIZATION.md) extends it to 92 while retaining those original expectations unchanged. For the original S2 fixtures, inputs and expected values were transcribed or adapted from the existing tests, accepted showcase, and owning production source identified in each fixture's `evidence`. These are supporting provenance references, not claims that every adapted input already had an exact assertion. Those S2 expected results were written before executing the corpus, independently of parser output. S3 discloses its four observation-based revisions separately. The [Swift checks](../../MarkyTests/MarkdownCompatibilityTests.swift) compare them with the current production reader. There is no replacement parser in this slice.
 
 User approval is recorded separately in [STATUS](STATUS.md). Passing tests alone do not approve this behavior contract or close T01. No app source, version, parser selection, native UI, or dependency changes accompany this corpus.
 
@@ -10,7 +10,7 @@ The UTF-8 JSON file has a `version` and a `fixtures` array. Version 1 has the fo
 
 - Each fixture has a permanent `id`, coverage-map `requirements`, supporting `evidence`, exact Markdown `input`, and ordered expected `blocks`. JSON escapes preserve CRLF, tabs, backslashes and newlines. IDs are never renumbered or reused.
 - Each block has a `kind` and only the fields listed below. Empty input produces an empty block array. Order and all visible text are significant.
-- An inline `runs` array contains contiguous `{text, traits, destination?}` values. Traits are ordered `strong`, `emphasis`, `strike`, `code`; the array includes every applicable trait and is empty for plain text. Missing `destination` means no link. Adjacent runs with identical traits and destination are merged. Empty inline content has no runs.
+- An inline `runs` array contains contiguous `{text, traits, destination?}` values. Traits are ordered `strong`, `emphasis`, `strike`, `code`; the array includes every applicable trait and is empty for plain text. Missing `destination` means no link. Adjacent runs with identical traits and destination are merged. Empty inline content has no runs. S3 adds optional `legacyRuns` and `inlineRuns` route evidence, defined in its characterization document; portable consumers still compare `blocks`.
 - Text comparison preserves exact Unicode scalar spelling, including decomposed combining marks. Concatenation gives the complete visible text. Cumulative UTF-8 byte lengths give portable run ranges; the Mac check additionally inspects every UTF-16 code unit, including both halves of a surrogate pair. Explicit line breaks remain LF in text; a future semantic model may represent these as break nodes while comparing the same visible text and traits.
 - Destinations are data, never fetched or activated by these tests. Native file grants, path resolution, decoding, loading and link opening remain separate checks.
 
@@ -29,9 +29,9 @@ The fixture data uses no Swift types, NSRanges, font names, absolute filesystem 
 
 ## Production checks and limits
 
-The executable path is `MarkdownContentBlocks.prepare(from:)`, followed by `MarkdownRenderer.renderInline` on prepared content with the block's document-wide reference map. It does **not** call the older line-based `MarkdownRenderer.render(from:)` helper. Inline content is rendered in plain body context to exclude implicit heading/table-header font styles from semantic expectations. Native attributes are projected to complete traits and destinations, including absence of unwanted styles/links. Code blocks compare exact text without inline rendering.
+The executable path is `MarkdownContentBlocks.prepare(from:)`, followed by `MarkdownRenderer.renderInline` on prepared content with the block's document-wide reference map. The semantic block comparison does **not** use the older line-based `MarkdownRenderer.render(from:)` helper; S3 calls it separately only for explicit `legacyRuns` route evidence. Inline content is rendered in plain body context to exclude implicit heading/table-header font styles from semantic expectations. Native attributes are projected to complete traits and destinations, including absence of unwanted styles/links. Code blocks compare exact text without inline rendering.
 
-List marker glyphs are translated to the portable values above. Quote source markers provide per-line depth; the simple quote cases render each line independently. Cross-line quote emphasis is not covered here and remains G04/G06 characterization. No recursive Markdown interpretation is introduced in this test projection.
+List marker glyphs are translated to the portable values above. Quote source markers provide per-line depth. S3 corrects the check to parse the complete stripped quote body before splitting attributed lines, covering cross-line emphasis; its characterization document records the representation limits. No recursive Markdown interpretation is introduced in this test projection.
 
 The tests also call the actual `MarkdownContentBlocks.render(preparedBlocks:)` path and compare every heading/paragraph/list body/code/quote/table-cell visible string and image alt value. Expected quote nesting indicators are added only for that native text check. This second check covers production container wiring; semantic traits are checked at the inline seam. Native heading/header fonts, colors, geometry, accessibility and image/link operations retain their existing tests and manual acceptance owners (N01–N08).
 
@@ -63,6 +63,8 @@ Each JSON fixture includes the source/test names used to write its expectation. 
 | MD-040 | Indented definition remains literal and cannot populate the reference map | D05, D17 |
 
 ## T01.S3 handoff
+
+The following records the S2 handoff. The [S3 characterization](T01-S3-CHARACTERIZATION.md) supplies the subsequent fixture evidence; acceptance remains in STATUS.
 
 These fixtures are a reviewable starting corpus, not closure of the S1 gap matrix. Preserve G01/B04: multiline and partially matched code-span expectations have **not** been approved or silently inferred from the older helper. Assign new stable IDs during characterization and compare the production and helper routes explicitly.
 

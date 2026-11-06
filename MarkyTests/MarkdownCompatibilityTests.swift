@@ -12,8 +12,9 @@ struct MarkdownCompatibilityTests {
         for fixture in corpus.fixtures {
             let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
             let actual = prepared.map(project)
+            let diagnostic = try describe(actual)
             // Compare encoded bytes: Swift String equality alone hides normalization changes.
-            #expect(try encoded(actual) == encoded(fixture.blocks), "Fixture \(fixture.id)")
+            #expect(try encoded(actual) == encoded(fixture.blocks), "Fixture \(fixture.id): \(diagnostic)")
 
             let rendered = MarkdownContentBlocks.render(
                 preparedBlocks: prepared, mode: .allSystem, isDarkMode: false
@@ -21,6 +22,19 @@ struct MarkdownCompatibilityTests {
             let visible = rendered.flatMap(visibleText)
             let expected = fixture.blocks.flatMap(expectedVisibleText)
             #expect(try encoded(visible) == encoded(expected), "Production display text: \(fixture.id)")
+
+            if let legacy = fixture.legacyRuns {
+                let actual = runs(MarkdownRenderer.render(from: fixture.input))
+                let diagnostic = try describe(actual)
+                #expect(try encoded(actual) == encoded(legacy),
+                        "Older line-based helper \(fixture.id): \(diagnostic)")
+            }
+            if let inline = fixture.inlineRuns {
+                let actual = runs(MarkdownRenderer.renderInline(from: fixture.input))
+                let diagnostic = try describe(actual)
+                #expect(try encoded(actual) == encoded(inline),
+                        "Direct inline seam \(fixture.id): \(diagnostic)")
+            }
         }
     }
 
@@ -63,10 +77,18 @@ struct MarkdownCompatibilityTests {
     }
 
     private func encoded<T: Encodable>(_ value: T) throws -> String {
+        // Hex prevents String's canonical-equivalence comparison from hiding normalization changes.
+        try json(value).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func describe<T: Encodable>(_ value: T) throws -> String {
+        String(decoding: try json(value), as: UTF8.self)
+    }
+
+    private func json<T: Encodable>(_ value: T) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        // Hex prevents String's canonical-equivalence comparison from hiding normalization changes.
-        return try encoder.encode(value).map { String(format: "%02x", $0) }.joined()
+        return try encoder.encode(value)
     }
 
     private func project(_ block: MarkdownPreparedBlock) -> Block {
@@ -96,15 +118,29 @@ struct MarkdownCompatibilityTests {
                 return Item(depth: item.nestingLevel, marker: marker, runs: inline(item.body))
             })
         case .quote(let source):
-            let lines = source.components(separatedBy: "\n").map { line in
+            let bodies = source.components(separatedBy: "\n").map { line in
                 var body = line.trimmingCharacters(in: .whitespaces)
                 var depth = 0
                 while body.hasPrefix(">") {
                     depth += 1
                     body = String(body.dropFirst()).trimmingCharacters(in: .whitespaces)
                 }
-                return QuoteLine(depth: depth, runs: inline(body))
+                return (depth: depth, body: body)
             }
+            // Production parses the whole quote once, so styles can cross source lines.
+            let rendered = MarkdownRenderer.renderInline(
+                from: bodies.map(\.body).joined(separator: "\n"), referenceLinks: block.referenceLinks
+            )
+            var offset = 0
+            let lines = rendered.string.components(separatedBy: "\n").enumerated().map { index, line in
+                let length = (line as NSString).length
+                let content = rendered.attributedSubstring(from: NSRange(location: offset, length: length))
+                offset += length + 1
+                #expect(index < bodies.count, "Quote line count must retain source depth mapping")
+                return QuoteLine(depth: index < bodies.count ? bodies[index].depth : 1, runs: runs(content))
+            }
+            #expect(lines.count == bodies.count)
+            #expect(offset == rendered.length + 1)
             return Block(kind: "quote", lines: lines)
         case .table(let headers, let alignments, let rows):
             return Block(kind: "table", headers: headers.map(inline),
@@ -190,6 +226,8 @@ private struct Fixture: Decodable {
     let evidence: [String]
     let input: String
     let blocks: [Block]
+    let legacyRuns: [Run]?
+    let inlineRuns: [Run]?
 }
 
 private struct Block: Codable {
