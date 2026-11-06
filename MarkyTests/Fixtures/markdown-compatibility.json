@@ -1,0 +1,1554 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "MD-001",
+      "requirements": [
+        "D01",
+        "D02"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.proseBlocks"
+      ],
+      "input": "",
+      "blocks": []
+    },
+    {
+      "id": "MD-002",
+      "requirements": [
+        "D01",
+        "D02"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.sourceLines",
+        "MarkdownContentBlocks.proseBlocks"
+      ],
+      "input": " \r\n\t\r\n",
+      "blocks": []
+    },
+    {
+      "id": "MD-003",
+      "requirements": [
+        "D01",
+        "D02"
+      ],
+      "evidence": [
+        "MarkyTests.markdownContentBlocksPrepareLightweightBlocks"
+      ],
+      "input": "First line\r\nsecond line\r\n\r\nNext",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "First line second line",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Next",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-004",
+      "requirements": [
+        "D01",
+        "D06",
+        "D13",
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.literalCode"
+      ],
+      "input": "🎵 é **bold** [site](https://example.com) `**literal**`",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "🎵 é ",
+              "traits": []
+            },
+            {
+              "text": "bold",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "site",
+              "traits": [],
+              "destination": "https://example.com"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "**literal**",
+              "traits": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-005",
+      "requirements": [
+        "D03",
+        "D12"
+      ],
+      "evidence": [
+        "MARKDOWN_SHOWCASE.headings",
+        "MarkdownContentBlocks.headingLevel"
+      ],
+      "input": "# Heading 1\n## Heading 2\n### Heading 3\n#### Heading 4\n##### Heading 5\n###### Heading 6",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "Heading 1",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 2,
+          "runs": [
+            {
+              "text": "Heading 2",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 3,
+          "runs": [
+            {
+              "text": "Heading 3",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 4,
+          "runs": [
+            {
+              "text": "Heading 4",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 5,
+          "runs": [
+            {
+              "text": "Heading 5",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 6,
+          "runs": [
+            {
+              "text": "Heading 6",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-006",
+      "requirements": [
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.setextHeadings"
+      ],
+      "input": "Heading 1\n=========\n\nHeading 2\n---------",
+      "blocks": [
+        {
+          "kind": "heading",
+          "level": 1,
+          "runs": [
+            {
+              "text": "Heading 1",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "heading",
+          "level": 2,
+          "runs": [
+            {
+              "text": "Heading 2",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-007",
+      "requirements": [
+        "D03"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.thematicBreaks"
+      ],
+      "input": "---\n***\n___\n- - -\n* * * *",
+      "blocks": [
+        {
+          "kind": "thematicBreak"
+        },
+        {
+          "kind": "thematicBreak"
+        },
+        {
+          "kind": "thematicBreak"
+        },
+        {
+          "kind": "thematicBreak"
+        },
+        {
+          "kind": "thematicBreak"
+        }
+      ]
+    },
+    {
+      "id": "MD-008",
+      "requirements": [
+        "D04",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.fenceDelimiters"
+      ],
+      "input": "````example\n```\n**literal**\n```` trailing text\n````\nAfter",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "```\n**literal**\n```` trailing text"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "After",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-009",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.fenceDelimiters"
+      ],
+      "input": "~~~~example\n~~~\n**literal**\n~~~~ trailing text\n~~~~\nAfter",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "~~~\n**literal**\n~~~~ trailing text"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "After",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-010",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.fenceDelimiters"
+      ],
+      "input": "```\nunclosed **literal**",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "unclosed **literal**"
+        }
+      ]
+    },
+    {
+      "id": "MD-011",
+      "requirements": [
+        "D04"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.indentedFenceClosers"
+      ],
+      "input": "~~~\n    ~~~\n**literal**\n~~~\nAfter",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "    ~~~\n**literal**"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "After",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-012",
+      "requirements": [
+        "D05"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.indentedCodeBlocks"
+      ],
+      "input": "Intro\n\n    let value = 42\n    print(value)\n\nAfter",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Intro",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "text": "let value = 42\nprint(value)"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "After",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-013",
+      "requirements": [
+        "D06",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.codeDelimiterRuns"
+      ],
+      "input": "Before ``code containing `tick` and **literal**`` after **bold**",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before ",
+              "traits": []
+            },
+            {
+              "text": "code containing `tick` and **literal**",
+              "traits": [
+                "code"
+              ]
+            },
+            {
+              "text": " after ",
+              "traits": []
+            },
+            {
+              "text": "bold",
+              "traits": [
+                "strong"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-014",
+      "requirements": [
+        "D06",
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.punctuationInsideStyledCode"
+      ],
+      "input": "[Use `array[index]`](https://example.com)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Use ",
+              "traits": [],
+              "destination": "https://example.com"
+            },
+            {
+              "text": "array[index]",
+              "traits": [
+                "code"
+              ],
+              "destination": "https://example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-015",
+      "requirements": [
+        "D07",
+        "D12"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.nestedListInsets"
+      ],
+      "input": "- parent\n  - child\n    - grandchild",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "parent",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 1,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "child",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 2,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "grandchild",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-016",
+      "requirements": [
+        "D07"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.listContinuation"
+      ],
+      "input": "- First line\n  Continuation line\n- Second item",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "First line\nContinuation line",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "Second item",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-017",
+      "requirements": [
+        "D07"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.taskLists"
+      ],
+      "input": "- [ ] Todo task\n- [x] Done task\n- [X] Upper done task",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "taskUnchecked",
+              "runs": [
+                {
+                  "text": "Todo task",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "taskChecked",
+              "runs": [
+                {
+                  "text": "Done task",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "taskChecked",
+              "runs": [
+                {
+                  "text": "Upper done task",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-018",
+      "requirements": [
+        "D07"
+      ],
+      "evidence": [
+        "MarkdownContentBlocks.parseListItem"
+      ],
+      "input": "1. one\n2) two\n+ plus\n* star\n• bullet",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "depth": 0,
+              "marker": "1.",
+              "runs": [
+                {
+                  "text": "one",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "2)",
+              "runs": [
+                {
+                  "text": "two",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "plus",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "star",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 0,
+              "marker": "bullet",
+              "runs": [
+                {
+                  "text": "bullet",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-019",
+      "requirements": [
+        "D08"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.nestedBlockquotesRendering"
+      ],
+      "input": "> Outer\n> > Inner",
+      "blocks": [
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "Outer",
+                  "traits": []
+                }
+              ]
+            },
+            {
+              "depth": 2,
+              "runs": [
+                {
+                  "text": "Inner",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-020",
+      "requirements": [
+        "D09"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tableBasicAndAlignment"
+      ],
+      "input": "| Left | Center | Right |\n| :--- | :---: | ---: |\n| L1 | C1 | R1 |\n| L2 | C2 | R2 |",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "Left",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "Center",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "Right",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "center",
+            "right"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "L1",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "C1",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "R1",
+                  "traits": []
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "L2",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "C2",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "R2",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-021",
+      "requirements": [
+        "D09"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tableAbsentOuterPipes"
+      ],
+      "input": "Name | Age | City\n--- | :---: | ---:\nAlice | 30 | London",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "Name",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "Age",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "City",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "center",
+            "right"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "Alice",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "30",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "London",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-022",
+      "requirements": [
+        "D10",
+        "D12"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tablePipesEscapedAndInCode"
+      ],
+      "input": "| Syntax | Note |\n| --- | --- |\n| Escaped \\| pipe | Works |\n| `a | b` code | Also works |",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "Syntax",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "Note",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "Escaped | pipe",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "Works",
+                  "traits": []
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "a | b",
+                  "traits": [
+                    "code"
+                  ]
+                },
+                {
+                  "text": " code",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "Also works",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-023",
+      "requirements": [
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tableUnevenCells"
+      ],
+      "input": "| A | B | C |\n| --- | --- | --- |\nOnly A\n| A | B | C | D |",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "C",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "Only A",
+                  "traits": []
+                }
+              ],
+              [],
+              []
+            ],
+            [
+              [
+                {
+                  "text": "A",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "B",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "C",
+                  "traits": []
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-024",
+      "requirements": [
+        "D08",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tableShortRowsAndQuotedPipes"
+      ],
+      "input": "| A | B |\n| --- | --- |\nSolo\n> Quote with | pipes",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "A",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "B",
+                "traits": []
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "Solo",
+                  "traits": []
+                }
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "kind": "quote",
+          "lines": [
+            {
+              "depth": 1,
+              "runs": [
+                {
+                  "text": "Quote with | pipes",
+                  "traits": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-025",
+      "requirements": [
+        "D09",
+        "D11"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.tableExactHeaderDelimiterMatch"
+      ],
+      "input": "| A | B | C |\n| --- | --- |\n| 1 | 2 |",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "| A | B | C | | --- | --- | | 1 | 2 |",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-026",
+      "requirements": [
+        "D12",
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.inlineTextCellHeadingIsolation",
+        "MARKDOWN_SHOWCASE.tables"
+      ],
+      "input": "| # Not A Heading | **Bold** |\n| --- | --- |\n| > Not A Quote | *italic* and ~~gone~~ |",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            [
+              {
+                "text": "# Not A Heading",
+                "traits": []
+              }
+            ],
+            [
+              {
+                "text": "Bold",
+                "traits": [
+                  "strong"
+                ]
+              }
+            ]
+          ],
+          "alignments": [
+            "left",
+            "left"
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "> Not A Quote",
+                  "traits": []
+                }
+              ],
+              [
+                {
+                  "text": "italic",
+                  "traits": [
+                    "emphasis"
+                  ]
+                },
+                {
+                  "text": " and ",
+                  "traits": []
+                },
+                {
+                  "text": "gone",
+                  "traits": [
+                    "strike"
+                  ]
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-027",
+      "requirements": [
+        "D13"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.boldItalicCombined",
+        "MarkdownRegressionTests.nestedEmphasisBothWays"
+      ],
+      "input": "***both*** **bold and *italic*** *italic and **bold*** foo_bar_baz",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "both",
+              "traits": [
+                "strong",
+                "emphasis"
+              ]
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "bold and ",
+              "traits": [
+                "strong"
+              ]
+            },
+            {
+              "text": "italic",
+              "traits": [
+                "strong",
+                "emphasis"
+              ]
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "italic and ",
+              "traits": [
+                "emphasis"
+              ]
+            },
+            {
+              "text": "bold",
+              "traits": [
+                "strong",
+                "emphasis"
+              ]
+            },
+            {
+              "text": " foo_bar_baz",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-028",
+      "requirements": [
+        "D14",
+        "D06"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.backslashEscapes"
+      ],
+      "input": "\\*literal\\* \\[label\\] `&amp; **raw**`",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "*literal* [label] ",
+              "traits": []
+            },
+            {
+              "text": "&amp; **raw**",
+              "traits": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-029",
+      "requirements": [
+        "D14"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.htmlEntitiesAndEmailAutolinks"
+      ],
+      "input": "&copy; 2026 Marky &amp; Co. &lt;tag&gt; &#65;",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "© 2026 Marky & Co. <tag> A",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-030",
+      "requirements": [
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.adjacentLinksAndBalancedDestinations"
+      ],
+      "input": "[one](https://one.test)[two](https://two.test) [Wiki](https://en.wikipedia.org/wiki/File_(format))",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "one",
+              "traits": [],
+              "destination": "https://one.test"
+            },
+            {
+              "text": "two",
+              "traits": [],
+              "destination": "https://two.test"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "Wiki",
+              "traits": [],
+              "destination": "https://en.wikipedia.org/wiki/File_(format)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-031",
+      "requirements": [
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.autolinks",
+        "MarkdownRegressionTests.htmlEntitiesAndEmailAutolinks"
+      ],
+      "input": "Visit <https://example.com/docs> Contact <mailto:user@example.com>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Visit ",
+              "traits": []
+            },
+            {
+              "text": "https://example.com/docs",
+              "traits": [],
+              "destination": "https://example.com/docs"
+            },
+            {
+              "text": " Contact ",
+              "traits": []
+            },
+            {
+              "text": "mailto:user@example.com",
+              "traits": [],
+              "destination": "mailto:user@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-032",
+      "requirements": [
+        "D13",
+        "D15"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.combinedStyles",
+        "MarkdownRegressionTests.sameLabelLinksWithDifferentAndSameURLs"
+      ],
+      "input": "[**linked**](https://one.test) **[linked](https://two.test)** [linked](https://two.test)",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "linked",
+              "traits": [
+                "strong"
+              ],
+              "destination": "https://one.test"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "linked",
+              "traits": [
+                "strong"
+              ],
+              "destination": "https://two.test"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "linked",
+              "traits": [],
+              "destination": "https://two.test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-033",
+      "requirements": [
+        "D16"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.referenceLinksWithContext",
+        "MarkdownRegressionTests.referenceLabelNormalization"
+      ],
+      "input": "[Learn Swift][SWIFT] [swift][] [swift]\n\n[swift]: https://swift.org\n[SWIFT]: https://ignored.test",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Learn Swift",
+              "traits": [],
+              "destination": "https://swift.org"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "swift",
+              "traits": [],
+              "destination": "https://swift.org"
+            },
+            {
+              "text": " ",
+              "traits": []
+            },
+            {
+              "text": "swift",
+              "traits": [],
+              "destination": "https://swift.org"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-034",
+      "requirements": [
+        "D16",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.referenceLinksAcrossFencesAndCodeIsolation"
+      ],
+      "input": "[go][ref]\n\n```swift\nlet codeRef = \"[go][ref]\"\n```\n\nHere is `[go][ref]` in code span and \\[go\\]\\[ref\\] escaped.\n\n[ref]: https://example.com/target",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "go",
+              "traits": [],
+              "destination": "https://example.com/target"
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "text": "let codeRef = \"[go][ref]\""
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Here is ",
+              "traits": []
+            },
+            {
+              "text": "[go][ref]",
+              "traits": [
+                "code"
+              ]
+            },
+            {
+              "text": " in code span and [go][ref] escaped.",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-035",
+      "requirements": [
+        "D16",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.explicitUndefinedReferenceLinks"
+      ],
+      "input": "[foo][missing]\n\n[foo]: https://example.com",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[foo][missing]",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-036",
+      "requirements": [
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.invalidReferenceDestinationPreserved"
+      ],
+      "input": "[bad]: http://[bad\n\n[bad]",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[bad]: http://[bad",
+              "traits": []
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[bad]",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-037",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.imagesStandaloneAndInline"
+      ],
+      "input": "![Marky Mascot](assets/mascot.png \"Mascot\")",
+      "blocks": [
+        {
+          "kind": "image",
+          "alt": "Marky Mascot",
+          "destination": "assets/mascot.png",
+          "title": "Mascot"
+        }
+      ]
+    },
+    {
+      "id": "MD-038",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.standaloneImageAngleBracketSpaces"
+      ],
+      "input": "![A photo](<my photo.png>)",
+      "blocks": [
+        {
+          "kind": "image",
+          "alt": "A photo",
+          "destination": "my photo.png"
+        }
+      ]
+    },
+    {
+      "id": "MD-039",
+      "requirements": [
+        "D18"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.imagesStandaloneAndInline"
+      ],
+      "input": "See ![icon](icon.png) inline",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "See icon inline",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MD-040",
+      "requirements": [
+        "D05",
+        "D17"
+      ],
+      "evidence": [
+        "MarkdownRegressionTests.indentedReferenceDefinitionPreservedAsCode"
+      ],
+      "input": "    [ref]: https://code.test\n\n[ref]",
+      "blocks": [
+        {
+          "kind": "code",
+          "text": "[ref]: https://code.test"
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "[ref]",
+              "traits": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
