@@ -39,7 +39,7 @@ Read [STATUS](../STATUS.md), [document semantics](../CONTRACT.md#document-semant
 | Slice | Output | Verification and exit |
 | --- | --- | --- |
 | T02.S1 | [Current Mac build, unit/UI results, and exact baseline candidate identity](../T02-S1-MAC-BASELINE.md). | Record commands, revision/dirty state, toolchain/OS/architecture, signing, results, and limits. Resolve unexpected failures or name pre-existing blockers and affected later checks. Historical logs alone do not establish the new baseline. |
-| T02.S2 | Fixed representative large-document and large-folder inputs plus repeatable measurement procedures/results. | Record reproducible fixture generation/identity, comparable build/hardware conditions, run count/warm-up method, processing-time medians, peak memory, and cancellation observations. Include semantic preparation and end-to-end app costs so work cannot be hidden in an adapter. |
+| T02.S2 | [Fixed large-document/folder inputs, tooling and measurement report](../T02-S2-PERFORMANCE.md), with [raw samples/identities](../measurements/t02-s2-v1.json). | Record reproducible fixture generation/identity, comparable build/hardware conditions, run count/warm-up method, processing-time medians, peak memory, and cancellation observations. Include semantic preparation and end-to-end app costs so work cannot be hidden in an adapter. |
 
 **Blockers:** baseline build/UI access or measurement failures must name their resolver and effects in STATUS. A known baseline defect is not permission to conceal a replacement regression.
 

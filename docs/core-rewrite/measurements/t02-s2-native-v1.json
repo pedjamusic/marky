@@ -1,0 +1,419 @@
+{
+  "schema": 1,
+  "measured_date": "2026-11-06",
+  "status": "automated_baseline_supplied_user_acceptance_pending",
+  "candidate": {
+    "base_revision": "f910e20f6a0eb0a296843aa7cfd327d0230075f9",
+    "branch": "codex/t02-s2-performance-baseline",
+    "app_version": "0.2.4 (5)",
+    "production_source_unchanged": true,
+    "app_executable_sha256": "4a847f4f6db471091de9d7366e527eb5a5a4cef7787e22530d9cc622a78fd86a",
+    "app_cdhash": "54a0e6d76a8bd462ff0b2bafae621d2765cf0e22",
+    "tooling_sha256": {
+      "tools/performance/NativeReaderProbe.swift": "3585a341befcac075f8f5a5a194a06de222b4fc3cba933273fdfd52cbbf63059",
+      "tools/performance/fixtures.py": "a05ec301e3b953feb2e73c2672c4bab9cc7c54bb935e180fdad2c5cd5b43c9ad",
+      "tools/performance/MemoryWatch.swift": "f7649e77e28c38803157384e7fe8d98a69a67a077681a1e1cacb8420008e85f3"
+    },
+    "driver_executable_sha256": "59d14cdb5c34edcb366033b4fdd2e58875959dc6a606adb4c577c09633e69d17",
+    "driver_flags": "-O -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos26.2; no default actor override",
+    "app_configuration": "Release; ENABLE_TESTABILITY=YES; code coverage NO; serial; ad-hoc signed; Xcode sandbox test exceptions; NSWorkspace launch, no XCTest injection",
+    "initial_record_sha256": "4a3ec80fdc8ece1446b9bd6c516ffbfc7f011beb99895d49e12ba2311890e9a5"
+  },
+  "environment": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "xcode": "27.2 (27B52)",
+    "sdk": "macOS 27.2",
+    "swift": "6.4.2",
+    "model": "Mac16,12 MacBook Air",
+    "chip": "Apple M4",
+    "cpu_cores": 10,
+    "performance_cores": 4,
+    "efficiency_cores": 6,
+    "ram_bytes": 17179869184,
+    "power": "AC; charged battery",
+    "desktop_background_activity": "uncontrolled; not a quiescent laboratory",
+    "ui_window_points": [
+      1252,
+      833
+    ],
+    "screen_image_pixels": [
+      2560,
+      1440
+    ],
+    "thermal_state": "all final samples fair (1); preserve for comparison",
+    "background_load": "Several unrelated high-CPU Node processes were observed after the exploratory series; the batch was absent before the final run. Other desktop load remains uncontrolled; no process was stopped."
+  },
+  "procedure": {
+    "warmup_processes": 1,
+    "measured_processes": 5,
+    "endpoint": "CGEvent click after native sidebar positioning to window capture recognizing both reader heading and Section 0000; no accessibility queries",
+    "settings": "Light; allSystem; default; existing full-project seed and isolated test model preferences",
+    "ocr": "Vision fast; en-US; language correction off; nominal 250 ms polling; screenshot/OCR costs included",
+    "geometry_points": [
+      1252,
+      833
+    ],
+    "observation_limit_seconds": 60,
+    "limit_is_nominal_due_to_synchronous_capture_ocr": true,
+    "outer_command_timeout_seconds": 600,
+    "memory": "unchanged external MemoryWatch, nominal 50 ms kernel lifetime high-water reads; driver excluded; 250 ms post-confirmation hold",
+    "screenshot_review": "Supervisor inspected all six final endpoint captures; heading, Section 0000, prose, list, table and code visible. App-only temporary PNGs; capture hashes retained."
+  },
+  "native_visual_baseline": {
+    "fixture": {
+      "schema": 1,
+      "id": "marky-t02-s2-v1",
+      "files": 5703,
+      "bytes": 908579,
+      "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+      "large_document_bytes": 704577,
+      "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+      "visible_markdown_files": 5002,
+      "visible_directories_including_root": 601,
+      "empty_directories": 100,
+      "sections": 512,
+      "prepared_blocks": 3585
+    },
+    "samples": [
+      {
+        "click_to_reader_ms": 11693.425708333962,
+        "driver_peak_footprint_bytes": 73679664,
+        "last_absent_capture_ms": 11058.234875003109,
+        "observations": 29,
+        "process_id": 15550,
+        "run": 0,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 11458.711833343841,
+        "warmup": true,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2206190304,
+        "endpoint_capture_sha256": "e8eecf00948520ff007050c8fd76dc14ac499619f35ff2149650ba23d6c5979c"
+      },
+      {
+        "click_to_reader_ms": 11929.951291676844,
+        "driver_peak_footprint_bytes": 77988680,
+        "last_absent_capture_ms": 11283.171708346345,
+        "observations": 29,
+        "process_id": 15590,
+        "run": 1,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 11709.36512501794,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2186414864,
+        "endpoint_capture_sha256": "a04857f9d712edba30bb33f3611afe08ce5df3656782f4a8a74ba52b02200f66"
+      },
+      {
+        "click_to_reader_ms": 14801.918958342867,
+        "driver_peak_footprint_bytes": 81920816,
+        "last_absent_capture_ms": 14085.79320833087,
+        "observations": 34,
+        "process_id": 15644,
+        "run": 2,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 14583.738166664261,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2223901360,
+        "endpoint_capture_sha256": "e8eecf00948520ff007050c8fd76dc14ac499619f35ff2149650ba23d6c5979c"
+      },
+      {
+        "click_to_reader_ms": 13274.632999993628,
+        "driver_peak_footprint_bytes": 81920816,
+        "last_absent_capture_ms": 12694.017374975374,
+        "observations": 32,
+        "process_id": 16099,
+        "run": 3,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 13103.098749998026,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2193132304,
+        "endpoint_capture_sha256": "e8eecf00948520ff007050c8fd76dc14ac499619f35ff2149650ba23d6c5979c"
+      },
+      {
+        "click_to_reader_ms": 14802.259958320064,
+        "driver_peak_footprint_bytes": 81920816,
+        "last_absent_capture_ms": 14181.261041667312,
+        "observations": 34,
+        "process_id": 16164,
+        "run": 4,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 14614.984916668618,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2198244088,
+        "endpoint_capture_sha256": "3cefcf65cf318322bc0acd651cfd27d9e98ec3ad49dc49bfd3499cb1d19a33e6"
+      },
+      {
+        "click_to_reader_ms": 14861.292916670209,
+        "driver_peak_footprint_bytes": 81920816,
+        "last_absent_capture_ms": 14238.037125003757,
+        "observations": 34,
+        "process_id": 16228,
+        "run": 5,
+        "thermal_state": 1,
+        "visible": true,
+        "visible_capture_started_ms": 14664.694125007372,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 2192509640,
+        "endpoint_capture_sha256": "3cefcf65cf318322bc0acd651cfd27d9e98ec3ad49dc49bfd3499cb1d19a33e6"
+      }
+    ],
+    "summary": {
+      "median_click_to_reader_ms": 14801.918958342867,
+      "max_peak_footprint_bytes": 2223901360,
+      "measured_time_range_ms": [
+        11929.951291676844,
+        14861.292916670209
+      ],
+      "driver_max_peak_footprint_bytes": 81920816
+    },
+    "memory_observer": [
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 2206190304,
+        "process_id": 15550,
+        "successful_reads": 301
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 2186414864,
+        "process_id": 15590,
+        "successful_reads": 303
+      },
+      {
+        "last_error": 3,
+        "peak_footprint_bytes": 2223901360,
+        "process_id": 15644,
+        "successful_reads": 356
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 2193132304,
+        "process_id": 16099,
+        "successful_reads": 331
+      },
+      {
+        "last_error": 3,
+        "peak_footprint_bytes": 2198244088,
+        "process_id": 16164,
+        "successful_reads": 357
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 2192509640,
+        "process_id": 16228,
+        "successful_reads": 360
+      }
+    ]
+  },
+  "exploratory_native_series": {
+    "reason_not_selected": "Earlier unpooled driver, no driver-memory diagnostic; wider timing drift and background CPU contention. Retained, not combined with final samples.",
+    "results": {
+      "fixture": {
+        "schema": 1,
+        "id": "marky-t02-s2-v1",
+        "files": 5703,
+        "bytes": 908579,
+        "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+        "large_document_bytes": 704577,
+        "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+        "visible_markdown_files": 5002,
+        "visible_directories_including_root": 601,
+        "empty_directories": 100,
+        "sections": 512,
+        "prepared_blocks": 3585
+      },
+      "samples": [
+        {
+          "click_to_reader_ms": 11749.390000011772,
+          "last_absent_capture_ms": 11192.095625010552,
+          "observations": 29,
+          "process_id": 14286,
+          "run": 0,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 11597.270583355566,
+          "warmup": true,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2187840248
+        },
+        {
+          "click_to_reader_ms": 11741.95037499885,
+          "last_absent_capture_ms": 11189.524749992415,
+          "observations": 29,
+          "process_id": 14381,
+          "run": 1,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 11586.963750014547,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2194000584
+        },
+        {
+          "click_to_reader_ms": 13114.448583335616,
+          "last_absent_capture_ms": 12344.856375013478,
+          "observations": 30,
+          "process_id": 14480,
+          "run": 2,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 12826.203375007026,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2217462448
+        },
+        {
+          "click_to_reader_ms": 18927.313249994768,
+          "last_absent_capture_ms": 18077.31512497412,
+          "observations": 29,
+          "process_id": 14643,
+          "run": 3,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 18582.974208315136,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2231945976
+        },
+        {
+          "click_to_reader_ms": 17140.402208344312,
+          "last_absent_capture_ms": 16365.660333336564,
+          "observations": 31,
+          "process_id": 14717,
+          "run": 4,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 16849.05195835745,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2186545912
+        },
+        {
+          "click_to_reader_ms": 21621.135541674448,
+          "last_absent_capture_ms": 20569.142083346378,
+          "observations": 35,
+          "process_id": 14859,
+          "run": 5,
+          "thermal_state": 1,
+          "visible": true,
+          "visible_capture_started_ms": 21134.345541679068,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 2225359608
+        }
+      ],
+      "summary": {
+        "median_click_to_reader_ms": 17140.402208344312,
+        "max_peak_footprint_bytes": 2231945976
+      },
+      "memory_observer": [
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 2187840248,
+          "process_id": 14286,
+          "successful_reads": 303
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 2194000584,
+          "process_id": 14381,
+          "successful_reads": 300
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 2217462448,
+          "process_id": 14480,
+          "successful_reads": 328
+        },
+        {
+          "last_error": 3,
+          "peak_footprint_bytes": 2231945976,
+          "process_id": 14643,
+          "successful_reads": 442
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 2186545912,
+          "process_id": 14717,
+          "successful_reads": 406
+        },
+        {
+          "last_error": 3,
+          "peak_footprint_bytes": 2225359608,
+          "process_id": 14859,
+          "successful_reads": 487
+        }
+      ]
+    }
+  },
+  "retained_diagnostics": {
+    "xctest_reproduction": {
+      "result": "failed",
+      "command": "Original testDenseDocumentObservation, same Release app/fixture/flags; executed outside restricted shell",
+      "observation_ms": 74160.15608332236,
+      "visible": false,
+      "main_thread_samples": 974,
+      "sampled_stack": "NSHostingView layout -> AccessibilityNode.updateFocus/updateFocusResponder -> focus responder traversal",
+      "screen": "Loading; inspected window during stall",
+      "nominal_timeout_limit": "30 seconds starts checking only after a blocking XCTest click returns"
+    },
+    "native_cua_check": {
+      "result": "AX inspection noWindowsAvailable; screenshot request timeoutReached",
+      "xctest_injection": false,
+      "project_scope": "same full project",
+      "main_thread_samples": 540,
+      "sampled_stack": "SwiftUI accessibility focus-update action and focus responder traversal",
+      "limit": "No native timing baseline from this diagnostic; cannot attribute cause to XCTest injection alone"
+    },
+    "initial_no_ax_trial": {
+      "visible": true,
+      "observed_ms": 13437.769666663371,
+      "app_peak_at_endpoint_bytes": 2198588152,
+      "limit": "single exploratory run, not included in final baseline"
+    },
+    "restricted_reproduction": "testmanagerd sandbox restriction prevented the first attempt from executing; approved Xcode execution retry reproduced the actual test failure"
+  },
+  "verification": {
+    "final_driver_exit": 0,
+    "final_memory_observer_exit": 0,
+    "new_swift_compiler_warnings": 0,
+    "summarizer_negative_controls": [
+      "invisible endpoint rejected",
+      "duplicate PID rejected",
+      "missing memory record rejected",
+      "wrong geometry rejected"
+    ],
+    "existing_folder_summary": "new summarizer reproduces prior six-sample folder result byte-for-value",
+    "fixture_exact_inventory_and_bytes": "verified before and after measurements",
+    "signature": "strict deep codesign verification passed for unchanged measured app",
+    "regression_suites": "not rerun in B05 follow-up; source/tests/settings and measured executable unchanged from E17; prior unit/UI evidence retains original scope"
+  },
+  "comparison": {
+    "B05": "measurement endpoint supplied by six successful full-project native runs; user acceptance pending",
+    "B06": "large-document accessibility/focus traversal remains unresolved for T12 native acceptance; no production fix or VoiceOver acceptance",
+    "gate": "T17 must repeat this external endpoint and existing original probe/folder metrics under matched conditions; <= baseline * 1.20; replacement gate still open",
+    "variability": "Final range still about 25% from smallest to largest; includes screenshot/OCR and uncontrolled desktop activity. Repeat/investigate a comparison near the 20% gate; a single later noisy median does not settle it."
+  }
+}

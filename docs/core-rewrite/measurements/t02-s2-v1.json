@@ -1,0 +1,861 @@
+{
+  "schema": 1,
+  "measured_date": "2026-11-06",
+  "candidate": {
+    "base_revision": "f910e20f6a0eb0a296843aa7cfd327d0230075f9",
+    "branch": "codex/t02-s2-performance-baseline",
+    "app_version": "0.2.4 (5)",
+    "production_source_unchanged": true,
+    "tooling_sha256": {
+      "tools/performance/fixtures.py": "c78b2872087654e955bc7657cce3606320fd7e2e7eee424e449043171805d861",
+      "tools/performance/Probe.swift": "a2faa8f2aa2361043fa29f27f8b2d8e9a13736e19c5849643d5f7a46562b5a8c",
+      "tools/performance/MemoryWatch.swift": "f7649e77e28c38803157384e7fe8d98a69a67a077681a1e1cacb8420008e85f3",
+      "MarkyUITests/LargeInputPerformanceTests.swift": "24c468e23f67521557af9a719d06219e657f6e1f946f65987c52eed9b8e14101"
+    },
+    "probe_sha256": "83c8638eedfe0c58c525b77d55e8d9eef927540762e66672cf08dcbe937af99e",
+    "memory_observer_sha256": "9099c8b926a5b98ffee9410da44a3edaf158ac8b651081c0dbeb2ed2214b971f",
+    "ui_app_executable_sha256": "4a847f4f6db471091de9d7366e527eb5a5a4cef7787e22530d9cc622a78fd86a",
+    "ui_app_cdhash": "54a0e6d76a8bd462ff0b2bafae621d2765cf0e22"
+  },
+  "environment": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "xcode": "27.2 (27B52)",
+    "sdk": "macOS 27.2",
+    "swift": "6.4.2",
+    "model": "Mac16,12 MacBook Air",
+    "chip": "Apple M4",
+    "cpu_cores": 10,
+    "performance_cores": 4,
+    "efficiency_cores": 6,
+    "ram_bytes": 17179869184,
+    "power": "AC; charged battery",
+    "desktop_background_activity": "uncontrolled; not a quiescent laboratory",
+    "ui_window_points": [
+      1252,
+      833
+    ],
+    "screen_image_pixels": [
+      2560,
+      1440
+    ]
+  },
+  "procedure": {
+    "warmup_processes_per_scenario": 1,
+    "measured_processes_per_scenario": 5,
+    "timing": "monotonic system uptime; median measured samples",
+    "memory": "maximum observed process-lifetime physical footprint; probe also peak RSS",
+    "probe_configuration": "-O -whole-module-optimization -swift-version 6 -strict-concurrency=complete -default-isolation MainActor -enable-upcoming-feature MemberImportVisibility -target arm64-apple-macos26.2",
+    "ui_configuration": "Release; ENABLE_TESTABILITY=YES; code coverage NO; serial; ad-hoc signed; Xcode sandbox test exceptions",
+    "ui_memory_poll_ms": 50,
+    "ui_post_timing_hold_ms": 250,
+    "no_cold_io_claim": true
+  },
+  "probe": {
+    "fixture": {
+      "schema": 1,
+      "id": "marky-t02-s2-v1",
+      "files": 5703,
+      "bytes": 908579,
+      "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+      "large_document_bytes": 704577,
+      "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+      "visible_markdown_files": 5002,
+      "visible_directories_including_root": 601,
+      "empty_directories": 100,
+      "sections": 512,
+      "prepared_blocks": 3585
+    },
+    "samples": [
+      {
+        "blocks": 3585,
+        "elapsed_ms": 103.23004167003091,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 102.62950000469573,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 101.77354166808072,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 101.43037499801721,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 104.60170832811855,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 104.23833332606591,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 103.79312498844229,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 103.42150001088157,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 106.45645833574235,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 106.10658333462197,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 105.17433333734516,
+        "peak_footprint_bytes": 9929208,
+        "peak_rss_bytes": 15646720,
+        "processing_ms": 104.80879167153034,
+        "scenario": "prepare",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 907.0455000037327,
+        "peak_footprint_bytes": 86885048,
+        "peak_rss_bytes": 100417536,
+        "processing_ms": 906.694499994046,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 904.8855416767765,
+        "peak_footprint_bytes": 86852280,
+        "peak_rss_bytes": 100384768,
+        "processing_ms": 904.4807916652644,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 928.3191249996889,
+        "peak_footprint_bytes": 86950608,
+        "peak_rss_bytes": 100466688,
+        "processing_ms": 927.9406666610157,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 908.0210416723276,
+        "peak_footprint_bytes": 87081704,
+        "peak_rss_bytes": 100581376,
+        "processing_ms": 907.6294583355775,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 908.4779583354248,
+        "peak_footprint_bytes": 86885048,
+        "peak_rss_bytes": 100417536,
+        "processing_ms": 908.1115833250806,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 907.3013333400013,
+        "peak_footprint_bytes": 86885048,
+        "peak_rss_bytes": 100417536,
+        "processing_ms": 906.9482916675042,
+        "scenario": "render",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 910.3364166658139,
+        "peak_footprint_bytes": 86950608,
+        "peak_rss_bytes": 100483072,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 905.410416671657,
+        "peak_footprint_bytes": 86999784,
+        "peak_rss_bytes": 100515840,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 900.875958337565,
+        "peak_footprint_bytes": 86983376,
+        "peak_rss_bytes": 100515840,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 908.4275416680612,
+        "peak_footprint_bytes": 87016144,
+        "peak_rss_bytes": 100548608,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 910.1105000008829,
+        "peak_footprint_bytes": 86950608,
+        "peak_rss_bytes": 100483072,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "blocks": 3585,
+        "elapsed_ms": 913.555291670491,
+        "peak_footprint_bytes": 87016144,
+        "peak_rss_bytes": 100548608,
+        "scenario": "document",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 176.14945833338425,
+        "files": 5002,
+        "peak_footprint_bytes": 17711656,
+        "peak_rss_bytes": 28835840,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "elapsed_ms": 176.83420833782293,
+        "files": 5002,
+        "peak_footprint_bytes": 17744424,
+        "peak_rss_bytes": 28868608,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 176.9392499991227,
+        "files": 5002,
+        "peak_footprint_bytes": 17711656,
+        "peak_rss_bytes": 28835840,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 175.17391666478943,
+        "files": 5002,
+        "peak_footprint_bytes": 17744424,
+        "peak_rss_bytes": 28868608,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 175.36408333398867,
+        "files": 5002,
+        "peak_footprint_bytes": 17711656,
+        "peak_rss_bytes": 28835840,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 175.82854167267215,
+        "files": 5002,
+        "peak_footprint_bytes": 17711656,
+        "peak_rss_bytes": 28835840,
+        "scenario": "scan",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 242.36120833666064,
+        "matches": 500,
+        "peak_footprint_bytes": 21103192,
+        "peak_rss_bytes": 32555008,
+        "scenario": "project",
+        "search_ms": 4.602666667778976,
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "elapsed_ms": 237.02162499830592,
+        "matches": 500,
+        "peak_footprint_bytes": 21103192,
+        "peak_rss_bytes": 32555008,
+        "scenario": "project",
+        "search_ms": 4.590083335642703,
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 236.178374994779,
+        "matches": 500,
+        "peak_footprint_bytes": 21103192,
+        "peak_rss_bytes": 32555008,
+        "scenario": "project",
+        "search_ms": 4.572250007186085,
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 239.61504167527892,
+        "matches": 500,
+        "peak_footprint_bytes": 21103192,
+        "peak_rss_bytes": 32555008,
+        "scenario": "project",
+        "search_ms": 4.678124998463318,
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 234.91662500600796,
+        "matches": 500,
+        "peak_footprint_bytes": 21103192,
+        "peak_rss_bytes": 32555008,
+        "scenario": "project",
+        "search_ms": 4.6091666736174375,
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 238.28333332494367,
+        "matches": 500,
+        "peak_footprint_bytes": 21070424,
+        "peak_rss_bytes": 32522240,
+        "scenario": "project",
+        "search_ms": 4.7043749946169555,
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 99.05554167926311,
+        "elapsed_ms": 105.4512499977136,
+        "peak_footprint_bytes": 10437136,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 98.43479166738689,
+        "elapsed_ms": 104.8187916749157,
+        "peak_footprint_bytes": 10453544,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 99.87837499647867,
+        "elapsed_ms": 105.20333333988674,
+        "peak_footprint_bytes": 10453544,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 99.19999999692664,
+        "elapsed_ms": 105.58412500540726,
+        "peak_footprint_bytes": 10437136,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 98.79362500214484,
+        "elapsed_ms": 105.17812499892898,
+        "peak_footprint_bytes": 10453544,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "cancel_requested_before_completion": true,
+        "cancel_to_completion_ms": 99.05629165587015,
+        "elapsed_ms": 105.45483333407901,
+        "peak_footprint_bytes": 10437136,
+        "peak_rss_bytes": 17268736,
+        "published_blocks": 0,
+        "scenario": "cancel-document",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "cancel_to_completion_ms": 0.08637498831376433,
+        "elapsed_ms": 6.449583335779607,
+        "peak_footprint_bytes": 3719720,
+        "peak_rss_bytes": 14909440,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "cancel_to_completion_ms": 0.0702499964972958,
+        "elapsed_ms": 6.415791678591631,
+        "peak_footprint_bytes": 3736104,
+        "peak_rss_bytes": 14925824,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "cancel_to_completion_ms": 0.058999998145736754,
+        "elapsed_ms": 6.404500003554858,
+        "peak_footprint_bytes": 3785256,
+        "peak_rss_bytes": 14974976,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "cancel_to_completion_ms": 0.07912500586826354,
+        "elapsed_ms": 6.427791668102145,
+        "peak_footprint_bytes": 3818024,
+        "peak_rss_bytes": 15007744,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "cancel_to_completion_ms": 0.07516666664741933,
+        "elapsed_ms": 6.432041671359912,
+        "peak_footprint_bytes": 3785256,
+        "peak_rss_bytes": 14974976,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "cancel_to_completion_ms": 0.0767083402024582,
+        "elapsed_ms": 6.43283333920408,
+        "peak_footprint_bytes": 3801640,
+        "peak_rss_bytes": 14991360,
+        "scenario": "cancel-scan",
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 117.30270832777023,
+        "peak_footprint_bytes": 4473384,
+        "peak_rss_bytes": 15974400,
+        "replacement_ready_ms": 2.943875006167218,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 0,
+        "warmup": true
+      },
+      {
+        "elapsed_ms": 119.50408332631923,
+        "peak_footprint_bytes": 4473408,
+        "peak_rss_bytes": 15958016,
+        "replacement_ready_ms": 4.450333333807066,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 1,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 113.47249998652842,
+        "peak_footprint_bytes": 4440616,
+        "peak_rss_bytes": 15941632,
+        "replacement_ready_ms": 4.033375007566065,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 2,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 118.18608333123848,
+        "peak_footprint_bytes": 4293160,
+        "peak_rss_bytes": 15794176,
+        "replacement_ready_ms": 3.4495416621211916,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 3,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 114.21416666416917,
+        "peak_footprint_bytes": 4293160,
+        "peak_rss_bytes": 15794176,
+        "replacement_ready_ms": 3.8354583375621587,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 4,
+        "warmup": false
+      },
+      {
+        "elapsed_ms": 117.83620834467001,
+        "peak_footprint_bytes": 4342312,
+        "peak_rss_bytes": 15843328,
+        "replacement_ready_ms": 3.2860416686162353,
+        "scenario": "replace-project",
+        "settle_ms": 100,
+        "thermal_state": 0,
+        "run": 5,
+        "warmup": false
+      }
+    ],
+    "summary": {
+      "prepare": {
+        "median_elapsed_ms": 104.60170832811855,
+        "median_processing_ms": 104.23833332606591,
+        "max_peak_footprint_bytes": 9929208,
+        "max_peak_rss_bytes": 15646720
+      },
+      "render": {
+        "median_elapsed_ms": 908.0210416723276,
+        "median_processing_ms": 907.6294583355775,
+        "max_peak_footprint_bytes": 87081704,
+        "max_peak_rss_bytes": 100581376
+      },
+      "document": {
+        "median_elapsed_ms": 908.4275416680612,
+        "max_peak_footprint_bytes": 87016144,
+        "max_peak_rss_bytes": 100548608
+      },
+      "scan": {
+        "median_elapsed_ms": 175.82854167267215,
+        "max_peak_footprint_bytes": 17744424,
+        "max_peak_rss_bytes": 28868608
+      },
+      "project": {
+        "median_elapsed_ms": 237.02162499830592,
+        "median_search_ms": 4.6091666736174375,
+        "max_peak_footprint_bytes": 21103192,
+        "max_peak_rss_bytes": 32555008
+      },
+      "cancel-document": {
+        "median_elapsed_ms": 105.20333333988674,
+        "median_cancel_to_completion_ms": 99.05629165587015,
+        "max_peak_footprint_bytes": 10453544,
+        "max_peak_rss_bytes": 17268736
+      },
+      "cancel-scan": {
+        "median_elapsed_ms": 6.427791668102145,
+        "median_cancel_to_completion_ms": 0.07516666664741933,
+        "max_peak_footprint_bytes": 3818024,
+        "max_peak_rss_bytes": 15007744
+      },
+      "replace-project": {
+        "median_elapsed_ms": 117.83620834467001,
+        "median_replacement_ready_ms": 3.8354583375621587,
+        "max_peak_footprint_bytes": 4473408,
+        "max_peak_rss_bytes": 15958016
+      }
+    }
+  },
+  "ui_large_folder": {
+    "fixture": {
+      "schema": 1,
+      "id": "marky-t02-s2-v1",
+      "files": 5703,
+      "bytes": 908579,
+      "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+      "large_document_bytes": 704577,
+      "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+      "visible_markdown_files": 5002,
+      "visible_directories_including_root": 601,
+      "empty_directories": 100,
+      "sections": 512,
+      "prepared_blocks": 3585
+    },
+    "samples": [
+      {
+        "launch_to_reader_ms": 4334.155041666236,
+        "process_id": 3443,
+        "run": 0,
+        "search_to_outline_ms": 5519.842458321364,
+        "thermal_state": 0,
+        "warmup": true,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 106464216
+      },
+      {
+        "launch_to_reader_ms": 1800.2877499966417,
+        "process_id": 3491,
+        "run": 1,
+        "search_to_outline_ms": 3183.793791671633,
+        "thermal_state": 0,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 106775512
+      },
+      {
+        "launch_to_reader_ms": 1776.7490833357442,
+        "process_id": 3500,
+        "run": 2,
+        "search_to_outline_ms": 3247.6839583396213,
+        "thermal_state": 0,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 107430872
+      },
+      {
+        "launch_to_reader_ms": 1776.007041655248,
+        "process_id": 3511,
+        "run": 3,
+        "search_to_outline_ms": 3214.7357083304087,
+        "thermal_state": 0,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 106857432
+      },
+      {
+        "launch_to_reader_ms": 2900.384374996065,
+        "process_id": 3571,
+        "run": 4,
+        "search_to_outline_ms": 11723.692166662659,
+        "thermal_state": 0,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 106529752
+      },
+      {
+        "launch_to_reader_ms": 4057.368833338842,
+        "process_id": 3611,
+        "run": 5,
+        "search_to_outline_ms": 3703.1940416636644,
+        "thermal_state": 0,
+        "warmup": false,
+        "window_height": 833,
+        "window_width": 1252,
+        "peak_footprint_bytes": 106906584
+      }
+    ],
+    "summary": {
+      "median_launch_to_reader_ms": 1800.2877499966417,
+      "median_search_to_outline_ms": 3247.6839583396213,
+      "max_peak_footprint_bytes": 107430872
+    },
+    "memory_observer": [
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 106464216,
+        "process_id": 3443,
+        "successful_reads": 177
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 106775512,
+        "process_id": 3491,
+        "successful_reads": 96
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 107430872,
+        "process_id": 3500,
+        "successful_reads": 96
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 106857432,
+        "process_id": 3511,
+        "successful_reads": 97
+      },
+      {
+        "last_error": 3,
+        "peak_footprint_bytes": 106529752,
+        "process_id": 3571,
+        "successful_reads": 280
+      },
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 106906584,
+        "process_id": 3611,
+        "successful_reads": 141
+      }
+    ]
+  },
+  "dense_document": {
+    "status": "blocked; failed baseline observation, no successful median",
+    "observation": {
+      "observation_ms": 30767.113208334194,
+      "process_id": 3869,
+      "visible": false
+    },
+    "memory_observer": [
+      {
+        "last_error": 0,
+        "peak_footprint_bytes": 1337952176,
+        "process_id": 3869,
+        "successful_reads": 1160
+      }
+    ],
+    "screenshot_review": "Supervisor inspected final timeout PNG: selected LARGE.md, Loading spinner still visible; no heading or document content. Desktop image not checked in.",
+    "bundle": "/tmp/MarkyT02S2-UI-dense-final.xcresult",
+    "assertion": "Dense document heading did not become visible; retain this failed observation."
+  },
+  "earlier_failures": [
+    {
+      "kind": "accessibility endpoint",
+      "attempts": 2,
+      "result": "Failed to get matching snapshots: Timed out while evaluating UI query",
+      "duration_about_seconds": 60,
+      "profile": "997/997 main-thread samples in XCTest matching snapshots -> AppKit accessibility children -> SwiftUI accessibility/focus responders; two-second sample, physical footprint about 1.0 GiB."
+    },
+    {
+      "kind": "visual endpoint",
+      "result": "heading not recognized during nominal 120-second attempt; no successful timing"
+    },
+    {
+      "kind": "bounded visual diagnostic",
+      "result": "30-second timeout; retained screenshot inspected, still Loading"
+    },
+    {
+      "kind": "UI runner memory access",
+      "result": "proc_pid_rusage returned -1; external observer resolved memory collection"
+    }
+  ],
+  "comparison": {
+    "time_multiplier_limit": 1.2,
+    "memory_multiplier_limit": 1.2,
+    "future_gate": "open pending T17 replacement measurements",
+    "dense_document_full_app_gate": "blocked B05; missing successful baseline median; failure peak cannot substitute for it"
+  },
+  "verification": {
+    "unit_debug": {
+      "result": "Passed",
+      "functions": 106,
+      "executions": 109,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "/tmp/MarkyT02S2-Unit-Debug.xcresult"
+    },
+    "ui_release_regression": {
+      "existing_passed": 8,
+      "opt_in_skipped": 2,
+      "failed_ui_tests": 0,
+      "bundle": "/tmp/MarkyT02S2-Regression.xcresult"
+    },
+    "combined_release_regression": {
+      "result": "Failed",
+      "exit_code": 65,
+      "reason": "Unit bundle failed to load: ad-hoc Release library validation reported different Team IDs; no unit execution claimed."
+    },
+    "large_folder_performance": {
+      "result": "Passed",
+      "iterations": 6,
+      "warmups": 1,
+      "measured": 5,
+      "bundle": "/tmp/MarkyT02S2-UI-folder-observed.xcresult"
+    },
+    "dense_observation": {
+      "result": "Failed",
+      "exit_code": 65,
+      "blocker": "B05"
+    },
+    "fixture_controls": "Independent generation identical; altered file bytes and extra empty directory rejected.",
+    "production_behavior_change": false,
+    "user_acceptance": "pending; T02.S2 exit remains blocked"
+  },
+  "native_qualitative_check": {
+    "status": "First heading/Section 0000/formatted prose visibly rendered; untimed, not a baseline median",
+    "app": "/tmp/MarkyT02S2Native.app",
+    "source": "Copy of unchanged T02.S1 Release app; no source edits; Info.plist bundle ID changed then ad-hoc re-signed",
+    "bundle_id": "rocks.toodear.Marky.PerformanceBaseline",
+    "original_executable_sha256": "471660af7e2dc91b30d26d9df6233eb5f3a54bbb34e2ac6cae3b0257fdd985e0",
+    "resigned_executable_sha256": "4cede5d308f21d0bb8e21fb7fe52327a7ecf8b454d59451120b06a93462c15bd",
+    "cdhash": "ad35348da104829a618662934e13eb428f8d5495",
+    "signature": "strict verification passed; same original four sandbox/read-only/network/get-task-allow entitlements; no XCTest exceptions",
+    "opening": "Native file picker selected same project/LARGE.md; sidebar showed only LARGE.md, single-file scope",
+    "automation": "CUA; AX inspection slow/incomplete; screenshot showed first reader content",
+    "differences_from_timed_ui": "No XCTest injection; non-testable S1 Release; isolated bundle/defaults; single-file grant versus full-project seed; different window geometry",
+    "limits": "No five-run timing or memory metric, no root-cause attribution, no restoration claim; B05 remains open",
+    "cleanup": "Quit; exact temporary app process absent at final process inspection",
+    "post_measurement_metadata": "Native file panel added project/.DS_Store after all timed runs; exact verifier rejected it. Removed only this generated OS metadata and reverified the original fixed fixture inventory/bytes."
+  }
+}
