@@ -5,12 +5,12 @@ Updated: 2026-11-07. This is the authoritative live ledger. [README](README.md) 
 ## Current checkpoint
 
 - Active ticket/slice: **T04.S2 accepted/done**. The verified candidate implements typed failures, thread-safe cancellation and cleanup at the C document interface.
-- Scope authorized: the user selected T04.S2 and requested a spec and implementation on 2026-11-07. The [spec and evidence](T04-S2-FAILURES-AND-CANCELLATION.md) identify the candidate based on clean `main/5eb7a1b` and record its commands and build input hashes.
-- Delivery: the verified patch is applied on `codex/t04-s2-failures-and-cancellation` at base `5eb7a1b`. The nine applied files matched the isolated snapshot before this handoff update. The changes are uncommitted.
+- Scope authorized: the user selected T04.S2 and requested a spec and implementation on 2026-11-07, then approved the local branch and patch application. The [spec and evidence](T04-S2-FAILURES-AND-CANCELLATION.md) record commands and build input hashes for the candidate based on clean `main/5eb7a1b`.
+- Delivery: the accepted candidate was committed as `c66948f`, fast-forwarded into `main`, and pushed. The merged local branch was deleted (E36).
 - Verification: E34 records Mac Debug and Release, failure and race regression controls, ASan/UBSan, TSan, macOS leak detection, C11 and Swift consumers, and the Xcode Debug build and Marky unit suite. Fresh Debug and Release CMake builds from the branch each passed 2/2 CTest suites.
 - Acceptance: user **PASS** ("pass"), 2026-11-07, for the applied core candidate and automated evidence (E35). T04.S3 owns the Swift value adapter and native paragraph proof.
 - Blockers/owes: B03/OWE-T03 still carry Windows/MSVC and Linux/GCC execution and final portability evidence. B06 and OWE-T01/OWE-T02 remain with their existing consumers.
-- Exact next action: integrate the accepted T04.S2 candidate. T04.S3 is the next implementation slice.
+- Exact next action: T04.S3, the Swift value adapter and native Mac paragraph proof. Start from the accepted T04.S2 interface and verified T03.S3 static Xcode integration after user selection.
 
 ## Ticket and slice state
 
@@ -22,7 +22,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T01 | [01](phases/01-behavior-and-baselines.md) | done | T01.S1 done; T01.S2 done; T01.S3 done | S1/S2 accepted and integrated (E04–E10). S3: 92 total fixtures, route comparison, full unit suite and four negative controls passed (E11); user PASS in E12 and integration in E13. No core implementation. |
 | T02 | [01](phases/01-behavior-and-baselines.md) | done | T02.S1 done; T02.S2 done | S1 accepted/integrated (E14–E16). E17 original probe/folder evidence and retained failures; E18 supplies six successful dense full-project native visual samples. [S2 report](T02-S2-PERFORMANCE.md); B05 measurement resolved, B06 accessibility remains open. User PASS in E19; integration in E20. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
-| T04 | [02](phases/02-core-and-swift-seam.md) | in_progress | T04.S1 done; T04.S2 done; T04.S3 queued | T04.S1 verified, accepted and integrated (E31–E33). T04.S2 verified (E34) and accepted (E35); [spec and evidence](T04-S2-FAILURES-AND-CANCELLATION.md). |
+| T04 | [02](phases/02-core-and-swift-seam.md) | in_progress | T04.S1 done; T04.S2 done; T04.S3 queued | T04.S1 verified, accepted and integrated (E31–E33). T04.S2 verified, accepted and integrated (E34–E36); [spec and evidence](T04-S2-FAILURES-AND-CANCELLATION.md). |
 | T05 | [03](phases/03-document-blocks.md) | queued | T05.S1 queued; T05.S2 queued; T05.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -123,6 +123,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E33 | T04.S1 integration | Accepted eleven-file candidate committed as `ef686cb3257925cdf494ab0996039038b3afc4a7`, 2026-11-07. | Local `main` fast-forwarded with `git merge --ff-only codex/t04-s1-document-interface` and pushed to `origin/main`. Verified remote main at the candidate commit before deleting the merged local task branch. This STATUS-only handoff uses the same authorized main push. | T04.S1 delivered. T04.S2 is next. Windows/MSVC and Linux/GCC execution remain with B03/OWE-T03. |
 | E34 | T04.S2 failures and cancellation | Verified snapshot based on clean `main/5eb7a1b2bd6e2b6577e9b599061caa36846fc72a`. [Spec and evidence](T04-S2-FAILURES-AND-CANCELLATION.md) record commands, input hashes and the patch. | Mac arm64 Debug/Release 2/2 CTest, expected exit 8 and recovery, 100 Release repeats, ASan/UBSan and TSan 2/2, and zero leaks in the fault executable. Negative controls detected early publication, abandoned ownership and a non-atomic flag. C11/Swift consumers, static package and Xcode Debug unit suite passed. | Applied on the approved local branch. Fresh branch Debug/Release builds each passed 2/2 CTest. Acceptance is recorded in E35. Windows/Linux remain with B03/OWE-T03. |
 | E35 | T04.S2 acceptance | User **PASS** ("pass"), 2026-11-07, for the applied candidate on `codex/t04-s2-failures-and-cancellation` at base `5eb7a1b`. | Verified all eight build input hashes against the E34 report. Reran both suites in the existing branch Debug and Release build directories with 2/2 passing in each. | T04.S2 accepted/done. PASS authorizes commit, local main merge, main push and merged local branch cleanup. |
+| E36 | T04.S2 integration | Accepted nine-file candidate committed as `c66948f4936e0184e77ada46d59d9345046a7c68`, 2026-11-07. | Fast-forwarded `main` with `git merge --ff-only codex/t04-s2-failures-and-cancellation`, pushed to `origin/main`, and verified remote main at the candidate commit before deleting the merged local branch. This STATUS-only handoff uses the same authorized main push. | T04.S2 delivered. T04.S3 is next. Windows/MSVC and Linux/GCC execution remain with B03/OWE-T03. |
 
 ## Git authorization and integration
 
@@ -217,7 +218,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Spec, core implementation and verification | User selected T04.S2 and asked to design a spec and implement it, 2026-11-07 | Implemented and verified in an isolated source snapshot (E34). |
 | Create local task branch and apply candidate | User replied **“yes”** to creating `codex/t04-s2-failures-and-cancellation` and applying the verified patch, 2026-11-07 | Created from clean `main/5eb7a1b` after the restricted ref write was denied. The nine applied files matched the snapshot before handoff bookkeeping. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-07, accepts the applied E34 candidate under repository policy | Authorized in E35. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-07, accepts the applied E34 candidate under repository policy | Executed in E36. |
 
 ## Contract amendments
 
