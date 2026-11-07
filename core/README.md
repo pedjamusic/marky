@@ -103,14 +103,14 @@ Keep build directories outside `core/`. For a multi-configuration generator, use
 
 `marky_core` is explicitly `STATIC`. Its production source list is explicit in [CMakeLists.txt](CMakeLists.txt); test sources are a separate executable. C++20 is required and compiler language extensions are disabled. There are no fetched packages, generated data downloads, third-party test frameworks or third-party runtime libraries. `-DBUILD_TESTING=OFF` builds just the archive without presets.
 
-- `src/BuildInfo.cpp` and its private header supply one internal link probe. Calling it from the test executable proves that production code in the archive is actually linked and compiled in C++20 mode. It uses `_MSVC_LANG` where available because MSVC can leave `__cplusplus` at its legacy value.
-- `tests/CoreTests.cpp` supplies the smoke check and deliberate failure path. Failure injection exists only in the test executable, never the library.
-- There is no public core interface yet. T04 supplies the C-compatible declarations, ownership and document semantics; replace the bootstrap probe when those real calls can prove linkage. Do not treat the private C++ header as the Swift seam.
+- [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows caller-validated UTF-8 for the call and returns an opaque owned document. A view borrows the document's bytes until release. Copy views before releasing the document if the text must outlive it.
+- [`src/Document.cpp`](src/Document.cpp) implements the initial ownership proof. A nonempty input produces one literal paragraph. Empty input produces a document with zero blocks. UTF-8 validation and line handling belong to T05. T04.S2 adds cancellation and exercises exception translation and cleanup with failure injection.
+- [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links against the actual document interface and exercises byte lengths, input and view lifetimes, independent results, empty input, invalid arguments and release. The deliberate failure switch is confined to the test executable.
 
-No Markdown fixture has been ported or run by this scaffold. Parser compatibility, unexecuted Windows/MSVC and Linux/GCC tests, and final dependency inspection remain in their named roadmap slices. See [the phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
+Windows/MSVC and Linux/GCC executions and final dependency inspection remain in their named roadmap slices. See the [phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
 
 ## Xcode integration
 
 [Package.swift](Package.swift) supplies the local, static `MarkyCore` product used by the Marky app target. Build the Marky scheme normally in Xcode. The package has no external dependencies and uses C++20. When adding or removing a production source, update both explicit source lists in `Package.swift` and `CMakeLists.txt`. The CTest executable stays separate.
 
-`include/` is reserved for the public C-compatible headers planned for T04. The private probe header stays in `src/`. The app currently has no caller for the probe, so its linker can discard the unused code. See [T03.S3 verification](../docs/core-rewrite/T03-S3-XCODE-INTEGRATION.md) for the link and dependency checks.
+SwiftPM exposes the C header from `include/`. The production reader uses Swift. T04.S3 introduces the Swift value adapter and a native paragraph proof.

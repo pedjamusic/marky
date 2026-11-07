@@ -4,13 +4,13 @@ Updated: 2026-11-07. This is the authoritative live ledger. [README](README.md) 
 
 ## Current checkpoint
 
-- Active ticket/slice: **T03.S3 accepted/done** — local Swift package and static Xcode integration. All T03 slices are accepted. The remaining platform execution is assigned to T19.
-- Scope authorized: user selected T03.S3 on 2026-11-07 and replied **“go for it”** to creating `codex/t03-s3-xcode-integration` and applying the verified patch. The seven-file candidate was built in a temporary snapshot of clean `main/dd7c7e0`, then applied to the approved local branch at that base. After user PASS, implementation commit `7bab1fa` was fast-forwarded into `main` and pushed, and the merged local branch was deleted. E30 records execution.
-- Delivery: [local SwiftPM manifest](../../core/Package.swift), Xcode app-target product dependency, package header directory reserved for T04, build discovery and [S3 report](T03-S3-XCODE-INTEGRATION.md). Both build systems compile the same C++20 production source. Existing Swift reader behavior and version 0.2.4 (5) are unchanged.
-- Verification: E28 records native Mac Xcode Debug and Release builds, 106 unit tests and one reader UI smoke, signature and entitlements, static linker inputs, C++ smoke against each Xcode object, local dependency resolution, standalone SwiftPM archive and fresh Mac CMake/CTest pass/fail/recovery.
-- Acceptance: user **PASS** ("pass"), 2026-11-07, for the signed, sandbox-enabled Release bundle at `/tmp/MarkyT03S3.cfOmdD/checks/xcode-release/Build/Products/Release/Marky.app`. E29 records acceptance separately from Git integration. The [S3 report](T03-S3-XCODE-INTEGRATION.md#acceptance-and-handoff) gives the focused steps and binary identity.
+- Active ticket/slice: **T04.S1 accepted/done** — minimal C document interface and owned result lifetime.
+- Scope authorized: user selected T04.S1 on 2026-11-07. Prepared and verified in an isolated snapshot of clean `main/6a56976`. The [candidate report](T04-S1-DOCUMENT-INTERFACE.md) identifies the exact build inputs and commands. User replied **“YES please”** to creating `codex/t04-s1-document-interface` and applying the patch. The local branch was created at the clean base and all applied files matched the verified snapshot before handoff bookkeeping.
+- Delivery: [public C header](../../core/include/MarkyCore.h), opaque owned document, byte-counted UTF-8 views and explicit release. Both build systems compile the same C++20 implementation. The ownership proof yields one literal paragraph for nonempty input or zero blocks for empty input.
+- Verification: E31 records Mac Debug/Release CTest, expected failures and recovery, ownership regression control, sanitizer run, C11 and Swift consumers, and Xcode Debug static linkage with 106 passing app unit tests.
+- Acceptance: user **PASS** ("pass"), 2026-11-07, for the applied core interface and automated evidence (E32). The Mac production reader uses the existing Swift implementation.
 - Blockers/owes: B03/OWE-T03 still carry Windows/MSVC and Linux/GCC execution and final portability evidence. B06 and OWE-T01/OWE-T02 remain with their existing consumers.
-- Exact next action: T04.S1 — minimal C-compatible interface and owned result lifetime. Use the accepted T03 build and [boundary contract](CONTRACT.md#boundary-and-lifetime). T04.S1 is queued for user selection.
+- Exact next action: integrate the accepted T04.S1 candidate under the PASS authorization. T04.S2 is next after handoff and covers cancellation, injected failure and concurrent operation tests.
 
 ## Ticket and slice state
 
@@ -22,7 +22,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T01 | [01](phases/01-behavior-and-baselines.md) | done | T01.S1 done; T01.S2 done; T01.S3 done | S1/S2 accepted and integrated (E04–E10). S3: 92 total fixtures, route comparison, full unit suite and four negative controls passed (E11); user PASS in E12 and integration in E13. No core implementation. |
 | T02 | [01](phases/01-behavior-and-baselines.md) | done | T02.S1 done; T02.S2 done | S1 accepted/integrated (E14–E16). E17 original probe/folder evidence and retained failures; E18 supplies six successful dense full-project native visual samples. [S2 report](T02-S2-PERFORMANCE.md); B05 measurement resolved, B06 accessibility remains open. User PASS in E19; integration in E20. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
-| T04 | [02](phases/02-core-and-swift-seam.md) | queued | T04.S1 queued; T04.S2 queued; T04.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T04 | [02](phases/02-core-and-swift-seam.md) | in_progress | T04.S1 done; T04.S2 queued; T04.S3 queued | T04.S1 verified (E31) and accepted (E32); [report](T04-S1-DOCUMENT-INTERFACE.md). |
 | T05 | [03](phases/03-document-blocks.md) | queued | T05.S1 queued; T05.S2 queued; T05.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -118,6 +118,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E28 | T03.S3 SwiftPM/static Xcode integration | Verified seven-file candidate prepared from clean `main/dd7c7e0` in an isolated snapshot. [S3 report](T03-S3-XCODE-INTEGRATION.md) records commands, build input hashes and signed Release app identity. | PASS on macOS arm64: Xcode Debug and Release builds, 106 unit tests, 1 focused reader UI test, Release signature and sandbox entitlement checks, static link evidence and a C++20 smoke linked against each Xcode-built object. No fetched packages. Standalone SwiftPM static archive and CMake Debug/Release 1/1 smoke, expected exit 8 and 1/1 recovery passed. | Submitted for user review and focused Release smoke. E29 records acceptance. Windows/Linux remain with B03/OWE-T03. |
 | E29 | T03.S3 acceptance | User **PASS** ("pass"), 2026-11-07, for the signed Release candidate 0.2.4 (5) from E28. | Confirmed Release executable hash, exact build inputs and retained successful Xcode and CTest failure-control logs. Acceptance bookkeeping adds no runtime execution. | T03.S3 and T03 accepted/done. PASS authorizes commit, local main merge, main push and merged local branch cleanup. |
 | E30 | T03.S3 integration | Accepted seven-file candidate committed as `7bab1fa667b72f3167402828e88823c72bec58f1`, 2026-11-07. | Local `main` fast-forwarded with `git merge --ff-only codex/t03-s3-xcode-integration` and pushed to `origin/main`. Remote main verified at the candidate commit before deleting the merged local task branch. This STATUS-only handoff uses the same authorized main push. | T03.S3 delivered. T04.S1 is next. Windows/Linux execution and final dependency inspection remain with B03/OWE-T03. |
+| E31 | T04.S1 C document interface and result lifetime | Verified snapshot based on clean `main/6a569764fd35e3ace7e7ff373d2197b8ab158174`. [Report](T04-S1-DOCUMENT-INTERFACE.md) records commands and build input hashes. | macOS arm64 Debug/Release 1/1 CTest, intentional exit 8 and 1/1 recovery; the borrowed-input regression control also failed with exit 8. ASan/UBSan 1/1, strict C11 and Swift consumer executions, static local package and Xcode Debug build with 106 unit tests passed. | The verified patch was applied on the approved local branch and accepted in E32. Windows/Linux execution remains with B03/OWE-T03. |
+| E32 | T04.S1 acceptance | User **PASS** ("pass"), 2026-11-07, for the applied candidate on `codex/t04-s1-document-interface` at base `6a56976`. | Verified that the applied core files match the E31 snapshot. The previous fresh Debug run on the branch passed 1/1 CTest. Acceptance bookkeeping adds no new runtime execution. | T04.S1 accepted/done. PASS authorizes commit, local main merge, main push and merged local branch cleanup. |
 
 ## Git authorization and integration
 
@@ -197,6 +199,14 @@ This is independent of technical completion and user acceptance. Record the actu
 | Swift package, static Xcode integration and verification | User selected T03.S3, 2026-11-07 | Seven-file candidate prepared and verified in a temporary snapshot (E28). |
 | Create local task branch and apply candidate | User replied **“go for it”** to creating `codex/t03-s3-xcode-integration` and applying the verified patch | Created from clean `main/dd7c7e0` after the restricted ref write was denied. Applied the patch and compared build inputs with the verified snapshot. |
 | Commit / merge / main push / delete merged branch | User **PASS** ("pass"), 2026-11-07, accepts E28 under repository policy | Executed in E30. |
+
+### T04.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| C interface, ownership tests and evidence edits | User selected T04.S1, 2026-11-07 | Implemented and verified in an isolated snapshot (E31). |
+| Create local task branch and apply candidate | User replied **“YES please”**, 2026-11-07 | Created `codex/t04-s1-document-interface` from clean `main/6a56976` and applied the verified patch. Compared each applied file to the snapshot before handoff bookkeeping. |
+| Commit / merge / main push / delete merged branch | User **PASS** ("pass"), 2026-11-07, accepts the applied E31 candidate under repository policy | Integration execution tracked separately from E32. |
 
 ## Contract amendments
 
