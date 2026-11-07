@@ -6,7 +6,7 @@ Updated: 2026-11-07. This is the authoritative live ledger. [README](README.md) 
 
 - Active ticket/slice: **T04.S3 accepted/done**. T04 is complete. The [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md) cover the Swift value adapter and hosted AppKit paragraph proof.
 - Acceptance: user **PASS** ("pass"), 2026-11-07, for the reviewed E37 candidate and verification. The user directed this small slice to stay on `main` and asked that future task branches be created before code changes.
-- Delivery: applied the four-file patch directly to clean `main/1c304d7` and compared all four files with the verified snapshot before acceptance bookkeeping (E38).
+- Delivery: applied the four-file patch directly to clean `main/1c304d7` and compared all four files with the verified snapshot before acceptance bookkeeping (E38). Committed as `6c33854` and pushed directly to `origin/main` (E39).
 - Verification: E37 records Mac Debug unit and reader UI results, Release signing/static linkage, standalone CTest, and handle-lifetime and cancellation checks with negative controls. E38 rechecks the applied inputs and Release executable.
 - Blockers/owes: B03/OWE-T03 still carry Windows/MSVC and Linux/GCC execution and final portability evidence. B06 and OWE-T01/OWE-T02 remain with their existing consumers. OWE-T04 carries syntax and production integration to its receiving tickets.
 - Exact next action: T05.S1 after user selection. Start with the accepted T04 seam, relevant fixtures and the T05 phase definition.
@@ -21,7 +21,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T01 | [01](phases/01-behavior-and-baselines.md) | done | T01.S1 done; T01.S2 done; T01.S3 done | S1/S2 accepted and integrated (E04–E10). S3: 92 total fixtures, route comparison, full unit suite and four negative controls passed (E11); user PASS in E12 and integration in E13. No core implementation. |
 | T02 | [01](phases/01-behavior-and-baselines.md) | done | T02.S1 done; T02.S2 done | S1 accepted/integrated (E14–E16). E17 original probe/folder evidence and retained failures; E18 supplies six successful dense full-project native visual samples. [S2 report](T02-S2-PERFORMANCE.md); B05 measurement resolved, B06 accessibility remains open. User PASS in E19; integration in E20. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
-| T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified and accepted (E37–E38); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
+| T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
 | T05 | [03](phases/03-document-blocks.md) | queued | T05.S1 queued; T05.S2 queued; T05.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -126,6 +126,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 
 | E37 | T04.S3 Swift value adapter and native paragraph proof | Reviewed uncommitted snapshot based on clean `main/1c304d759476306c97a71d048d74d5c2db4a46c4`; [report](T04-S3-SWIFT-PARAGRAPH.md) records candidate hashes and commands. | PASS on arm64 macOS: 110 unit tests, including four adapter tests, one reader UI smoke, signed Release/static linkage, 2/2 standalone CTest in Debug and Release. Disposable probe verified cleanup, typed failures, overlapping work and in-flight cancellation. Missing releases and cancellation forwarding failed as expected. | User PASS recorded in E38. The native control proof runs in the hosted test target. Windows/Linux and production parity remain with their named gates. |
 | E38 | T04.S3 acceptance | User **PASS** ("pass"), 2026-11-07, accepts the reviewed E37 candidate. User authorized this small slice directly on `main`. | Applied the exact four-file patch to clean `main/1c304d7` and compared all four files with the snapshot before bookkeeping. The two Swift input hashes and signed Release executable hash match E37. Acceptance bookkeeping adds no runtime execution. | T04.S3 and T04 accepted/done. PASS authorizes the focused commit and main push. |
+| E39 | T04.S3 integration | Accepted four-file candidate committed directly on `main` as `6c33854a225656a80782473b1940d0493f381cfc`, 2026-11-07. | `git push origin main` succeeded, and `git ls-remote --exit-code origin refs/heads/main` verified the candidate revision. The user directed this small slice to stay on `main`. This STATUS-only closeout uses the same main push authorization. | T04 accepted and delivered. T05.S1 is next. Windows/Linux and production parity remain with their named gates. |
 
 ## Git authorization and integration
 
@@ -228,7 +229,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Spec, implementation handoff and review | User selected T04.S3 and requested a spec, implementer handoff and supervisor review, 2026-11-07 | Implemented in an isolated source snapshot, reviewed and verified (E37). |
 | Apply on local main | User directed this small slice to stay on `main`, 2026-11-07 | Applied the reviewed patch directly to clean `main/1c304d7` and verified candidate identity (E38). |
-| Commit and push main | User **PASS** ("pass"), 2026-11-07, accepts E37 under repository policy | Authorized in E38. |
+| Commit and push main | User **PASS** ("pass"), 2026-11-07, accepts E37 under repository policy | Executed in E39. |
 
 ## Contract amendments
 
