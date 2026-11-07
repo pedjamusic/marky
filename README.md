@@ -72,9 +72,11 @@ ctest --preset macos-appleclang-debug
 
 Repeat with `macos-appleclang-release`. See the [core procedures](core/README.md) for platform prerequisites, Windows/Linux commands, deliberate failure/recovery checks, and manual CMake 3.20+ builds. [T03.S2 evidence](docs/core-rewrite/T03-S2-PLATFORM-BUILDS.md) distinguishes executed Mac smoke tests from unexecuted Windows/Linux configurations.
 
+The Marky Xcode target links the [local static Swift package](core/README.md#xcode-integration) from the same C++ sources. The reader still uses its Swift implementation.
+
 ## Repository Layout
 
-- `core/`: standalone C++20 static core and CTest harness (not yet integrated into the app)
+- `core/`: C++20 static core, CTest harness, and local Swift package for Xcode
 - `Marky/`: app source code (SwiftUI app, views, theme, markdown rendering)
 - `MarkyTests/`: unit tests
 - `MarkyUITests/`: UI tests

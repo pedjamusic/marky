@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		58C01BD62F658DC0002DE7A3 /* MarkyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 58C01BD52F658DC0002DE7A3 /* MarkyCore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		07EE562E2F59B0BF00D19F62 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				58C01BD62F658DC0002DE7A3 /* MarkyCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Marky;
 			packageProductDependencies = (
+				58C01BD52F658DC0002DE7A3 /* MarkyCore */,
 			);
 			productName = Marky;
 			productReference = 07EE561E2F59B0BE00D19F62 /* Marky.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 07EE56152F59B0BE00D19F62;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				58C01BD42F658DC0002DE7A3 /* XCLocalSwiftPackageReference "core" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 07EE561F2F59B0BE00D19F62 /* Products */;
 			projectDirPath = "";
@@ -585,6 +594,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		58C01BD42F658DC0002DE7A3 /* XCLocalSwiftPackageReference "core" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = core;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		58C01BD52F658DC0002DE7A3 /* MarkyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 58C01BD42F658DC0002DE7A3 /* XCLocalSwiftPackageReference "core" */;
+			productName = MarkyCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 07EE56162F59B0BE00D19F62 /* Project object */;
 }

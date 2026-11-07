@@ -107,4 +107,10 @@ Keep build directories outside `core/`. For a multi-configuration generator, use
 - `tests/CoreTests.cpp` supplies the smoke check and deliberate failure path. Failure injection exists only in the test executable, never the library.
 - There is no public core interface yet. T04 supplies the C-compatible declarations, ownership and document semantics; replace the bootstrap probe when those real calls can prove linkage. Do not treat the private C++ header as the Swift seam.
 
-No Markdown fixture has been ported or run by this scaffold. Parser compatibility, SwiftPM/Xcode integration, unexecuted Windows/MSVC and Linux/GCC tests, and final dependency inspection remain in their named roadmap slices. See [the phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
+No Markdown fixture has been ported or run by this scaffold. Parser compatibility, unexecuted Windows/MSVC and Linux/GCC tests, and final dependency inspection remain in their named roadmap slices. See [the phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
+
+## Xcode integration
+
+[Package.swift](Package.swift) supplies the local, static `MarkyCore` product used by the Marky app target. Build the Marky scheme normally in Xcode. The package has no external dependencies and uses C++20. When adding or removing a production source, update both explicit source lists in `Package.swift` and `CMakeLists.txt`. The CTest executable stays separate.
+
+`include/` is reserved for the public C-compatible headers planned for T04. The private probe header stays in `src/`. The app currently has no caller for the probe, so its linker can discard the unused code. See [T03.S3 verification](../docs/core-rewrite/T03-S3-XCODE-INTEGRATION.md) for the link and dependency checks.
