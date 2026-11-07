@@ -9,13 +9,15 @@ extern "C" {
 #endif
 
 typedef struct MarkyDocument MarkyDocument;
+typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
 
 enum {
     MARKY_STATUS_OK = 0,
     MARKY_STATUS_INVALID_ARGUMENT = 1,
     MARKY_STATUS_ALLOCATION_FAILURE = 2,
-    MARKY_STATUS_INTERNAL_ERROR = 3
+    MARKY_STATUS_INTERNAL_ERROR = 3,
+    MARKY_STATUS_CANCELLED = 4
 };
 
 typedef struct {
@@ -34,6 +36,37 @@ typedef struct {
  */
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document);
+
+/*
+ * Creates an owned, initially active cancellation token. out_token must point
+ * to writable storage and is set to NULL on failure. Release any previously
+ * owned token before reusing the slot.
+ */
+MarkyStatus marky_cancellation_token_create(MarkyCancellationToken** out_token);
+
+/*
+ * Requests cancellation permanently. Safe to call repeatedly and concurrently
+ * while the token remains alive. NULL is a no-op.
+ */
+void marky_cancellation_token_request(MarkyCancellationToken* token);
+
+/*
+ * Releases an owned token once. All operations borrowing it and all callers
+ * requesting cancellation must finish before release. NULL is a no-op.
+ */
+void marky_cancellation_token_release(MarkyCancellationToken* token);
+
+/*
+ * Uses the same input and result rules as marky_document_create. A NULL token
+ * disables cancellation. Otherwise the call borrows the token until return.
+ * Concurrent calls may share the token but must use separate output slots.
+ * Cancellation is cooperative. A request racing the final cancellation check
+ * may still yield a complete result. A completed document is independent of
+ * the token. Any failure, including cancellation, leaves the output NULL.
+ */
+MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_count,
+                                              const MarkyCancellationToken* token,
+                                              MarkyDocument** out_document);
 
 /* Returns the semantic block count, or zero for a NULL document. */
 size_t marky_document_block_count(const MarkyDocument* document);

@@ -103,9 +103,10 @@ Keep build directories outside `core/`. For a multi-configuration generator, use
 
 `marky_core` is explicitly `STATIC`. Its production source list is explicit in [CMakeLists.txt](CMakeLists.txt); test sources are a separate executable. C++20 is required and compiler language extensions are disabled. There are no fetched packages, generated data downloads, third-party test frameworks or third-party runtime libraries. `-DBUILD_TESTING=OFF` builds just the archive without presets.
 
-- [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows caller-validated UTF-8 for the call and returns an opaque owned document. A view borrows the document's bytes until release. Copy views before releasing the document if the text must outlive it.
-- [`src/Document.cpp`](src/Document.cpp) implements the initial ownership proof. A nonempty input produces one literal paragraph. Empty input produces a document with zero blocks. UTF-8 validation and line handling belong to T05. T04.S2 adds cancellation and exercises exception translation and cleanup with failure injection.
-- [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links against the actual document interface and exercises byte lengths, input and view lifetimes, independent results, empty input, invalid arguments and release. The deliberate failure switch is confined to the test executable.
+- [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows caller-validated UTF-8 and an optional cancellation token for the call. The result owns its bytes. Copy a view if it must outlive its document.
+- [`src/Document.cpp`](src/Document.cpp) implements the literal paragraph proof. Nonempty input produces one paragraph and empty input produces zero blocks. UTF-8 validation and line handling belong to T05. The [T04.S2 spec](../docs/core-rewrite/T04-S2-FAILURES-AND-CANCELLATION.md) defines status handling and token lifetime.
+- [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links the production archive and tests ownership, argument handling, cancellation, and parallel calls. The deliberate harness failure switch is confined to this executable.
+- [`tests/DocumentFaultTests.cpp`](tests/DocumentFaultTests.cpp) builds the same implementation with private checkpoints to test exceptions, in-flight cancellation, and cleanup. The production archives omit the checkpoints.
 
 Windows/MSVC and Linux/GCC executions and final dependency inspection remain in their named roadmap slices. See the [phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
 
