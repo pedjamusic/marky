@@ -4,8 +4,8 @@ Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) 
 
 ## Current checkpoint
 
-- **T06.S2 accepted.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53. T06.S2 integration is pending.
-- **Next when selected is T07.S1.** Implement table recognition, alignment, normalization, and termination using the T05.S1 literal helper and the accepted T06 quote/list boundary fixtures. T10.S3 owns formatted quote semantics, including styles or code spanning source lines. T11.S2 owns native list and quote presentation, and T12 owns production cutover. [Phase definition](phases/03-document-blocks.md#t06--lists-and-blockquotes)
+- **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
+- **Next when selected is T07.S1.** Implement table recognition, alignment, normalization, and termination using the T05.S1 literal helper and the accepted T06 quote/list boundary fixtures. T10.S3 owns formatted quote semantics, including styles or code spanning source lines. T11.S2 owns native list and quote presentation, and T12 owns production cutover. [Phase definition](phases/03-document-blocks.md#t07--tables-and-image-blocks)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T06's OWE-T01 and OWE-T04 receipts are closed. OWE-T06 is open for T11.S2.
 
 ## Ticket and slice state
@@ -20,7 +20,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
-| T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS. |
+| T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -141,6 +141,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E53 | T06.S1 integration | Accepted candidate and acceptance record committed as `76d2f3dd1a31832a83cecab3fc81899dac61f209`, 2026-11-08. | `git merge --ff-only codex/t06-s1-lists-and-task-items` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T06.S1 delivered. T06.S2 is next. |
 | E54 | T06.S2 blockquote structure | Uncommitted on `codex/t06-s2-blockquote-structure` at `3fbeaff52b2bfd1b1af0028b5a4be8ab1c2e457e`. Eight-file patch SHA-256 `ced2de49be10d3ac2a153751f7dbfbb03f7cbb885f009f1cd944b018cc8a412b` excludes this ledger. Patch and logs are in `/tmp/MarkyT06S2.SOm5R9/`. | [Verification below](#t06s2-mac-run). macOS arm64 Debug/Release and ASan/UBSan CTest passed 2/2 each. Both normal builds detected intentional harness failure and recovered. Fault tests injected allocation failure and cross-thread cancellation after an owned quote line was buffered. Apple `leaks` reported zero leaks. Six Swift compatibility tests and the full Mac test scheme passed. In-session standards and spec review found no remaining actionable findings. | E55 records user PASS. MD-024 verifies separation from table source while table recognition is pending in T07.S1. Inline interpretation and native quote presentation remain with their receiving slices. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E55 | T06.S2 acceptance | User **PASS** ("pass"), 2026-11-08, for E54 on `codex/t06-s2-blockquote-structure`. | The eight-file patch matched E54 byte for byte. Debug and Release CTest reruns each passed 2/2. Remote main matched the candidate base `3fbeaff`. | T06.S2 and T06 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
+| E56 | T06.S2 and T06 integration | Accepted candidate and acceptance record committed as `bd91edea992d946a4481257244cc993f2bd219df`, 2026-11-08. | `git merge --ff-only codex/t06-s2-blockquote-structure` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T06 delivered. T07.S1 is next. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -325,7 +326,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T06.S2 | User selected T06.S2 and replied **"Yes, create the local branch"**, 2026-11-08 | Created `codex/t06-s2-blockquote-structure` from clean `main/3fbeaff` before edits. The restricted shell could not write the ref. The authorized execution-access retry succeeded. E54 identifies the verified candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts the verified E54 candidate under repository policy, 2026-11-08 | Authorized in E55. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts the verified E54 candidate under repository policy, 2026-11-08 | Authorized in E55 and executed in E56. |
 
 ## Contract amendments
 
