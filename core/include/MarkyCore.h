@@ -28,7 +28,8 @@ enum {
     MARKY_BLOCK_CODE = 2,
     MARKY_BLOCK_HEADING = 3,
     MARKY_BLOCK_THEMATIC_BREAK = 4,
-    MARKY_BLOCK_LIST = 5
+    MARKY_BLOCK_LIST = 5,
+    MARKY_BLOCK_QUOTE = 6
 };
 
 enum {
@@ -51,6 +52,11 @@ typedef struct {
     MarkyUtf8View source;
 } MarkyListItemView;
 
+typedef struct {
+    size_t depth;
+    MarkyUtf8View source;
+} MarkyQuoteLineView;
+
 /*
  * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
  * The input may be NULL for zero bytes. Embedded NUL bytes are preserved.
@@ -63,8 +69,9 @@ typedef struct {
  * content after stripping the required indentation and trailing blank lines.
  * Paragraph and heading text is prepared Markdown awaiting inline parsing.
  * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
- * breaks and list blocks have empty block text. List items expose prepared
- * Markdown source, with continuation lines separated by LF.
+ * breaks, lists and quotes have empty block text. List items expose prepared
+ * Markdown source, with continuation lines separated by LF. Quote lines expose
+ * prepared Markdown source and marker depth in source order.
  */
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document);
@@ -139,6 +146,20 @@ size_t marky_document_list_item_count(const MarkyDocument* document, size_t bloc
  */
 MarkyStatus marky_document_list_item_at(const MarkyDocument* document, size_t block_index,
                                        size_t item_index, MarkyListItemView* out_item);
+
+/* Returns the quote's line count, or zero for an invalid index or non-quote. */
+size_t marky_document_quote_line_count(const MarkyDocument* document, size_t block_index);
+
+/*
+ * Reads a line in source order. Both indices are zero-based. Depth counts
+ * stripped quote markers, with 1 denoting a top-level quote line. A line may
+ * have empty source. Depth can be 0 if a leading non-LF newline is ignored
+ * for block recognition but preserved during quote preparation. The UTF-8
+ * view is valid until document release.
+ * On invalid arguments, a non-NULL out_line is reset to zero and an empty view.
+ */
+MarkyStatus marky_document_quote_line_at(const MarkyDocument* document, size_t block_index,
+                                        size_t line_index, MarkyQuoteLineView* out_line);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

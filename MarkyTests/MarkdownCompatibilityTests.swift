@@ -51,20 +51,7 @@ struct MarkdownCompatibilityTests {
         #expect(Set(fixtures.map(\.id)) == ids)
         for fixture in fixtures {
             let document = try await CoreMarkdownParser.parse(fixture.input)
-            let actual = document.blocks.map { block in
-                switch block {
-                case .heading(let level, let source):
-                    BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
-                case .paragraph(let source):
-                    BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
-                case .code(let text):
-                    BaseBlock(kind: "code", bytes: Array(text.utf8))
-                case .thematicBreak:
-                    BaseBlock(kind: "thematicBreak")
-                case .list:
-                    BaseBlock(kind: "list")
-                }
-            }
+            let actual = document.blocks.map(projectCoreBlock)
             let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
             let expected = prepared.compactMap { block -> BaseBlock? in
                 switch block.kind {
@@ -86,6 +73,50 @@ struct MarkdownCompatibilityTests {
             #expect(actual.map(\.level) == fixture.blocks.map(\.level), "Heading levels: \(fixture.id)")
             #expect(actual.filter { $0.kind == "code" }.compactMap(\.bytes) == literalBytes(fixture),
                     "Literal code: \(fixture.id)")
+        }
+    }
+
+    @Test("Core quote lines retain shared fixture depth, prepared source and block order")
+    func coreQuotes() async throws {
+        let fixtures = try loadCorpus().fixtures.filter { $0.blocks.contains { $0.kind == "quote" } }
+        #expect(Set(fixtures.map(\.id)).isSuperset(of: ["MD-019", "MD-024", "MD-058", "MD-060", "MD-061", "MD-071"]))
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
+            // T07.S1 will replace the core's paragraph fallback with a table block.
+            let expectedKinds = fixture.blocks.map { $0.kind == "table" ? "paragraph" : $0.kind }
+            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == expectedKinds,
+                    "Block order: \(fixture.id)")
+            for (index, block) in document.blocks.enumerated() {
+                guard case .quote(let lines) = block else { continue }
+                guard fixture.blocks.indices.contains(index), let expected = fixture.blocks[index].lines,
+                      prepared.indices.contains(index), case .quote(let source) = prepared[index].kind
+                else {
+                    Issue.record("Unexpected quote block in \(fixture.id)")
+                    continue
+                }
+                let bodies = quoteBodies(from: source)
+                #expect(lines.map(\.depth) == expected.map(\.depth), "Quote depth: \(fixture.id)")
+                #expect(lines.map { Array($0.source.utf8) } == bodies.map { Array($0.body.utf8) },
+                        "Prepared quote source: \(fixture.id)")
+            }
+        }
+    }
+
+    private func projectCoreBlock(_ block: CoreMarkdownDocument.Block) -> BaseBlock {
+        switch block {
+        case .heading(let level, let source):
+            BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
+        case .paragraph(let source):
+            BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
+        case .code(let text):
+            BaseBlock(kind: "code", bytes: Array(text.utf8))
+        case .thematicBreak:
+            BaseBlock(kind: "thematicBreak")
+        case .list:
+            BaseBlock(kind: "list")
+        case .quote:
+            BaseBlock(kind: "quote")
         }
     }
 
@@ -233,15 +264,7 @@ struct MarkdownCompatibilityTests {
                 return Item(depth: item.nestingLevel, marker: marker, runs: inline(item.body))
             })
         case .quote(let source):
-            let bodies = source.components(separatedBy: "\n").map { line in
-                var body = line.trimmingCharacters(in: .whitespaces)
-                var depth = 0
-                while body.hasPrefix(">") {
-                    depth += 1
-                    body = String(body.dropFirst()).trimmingCharacters(in: .whitespaces)
-                }
-                return (depth: depth, body: body)
-            }
+            let bodies = quoteBodies(from: source)
             // Production parses the whole quote once, so styles can cross source lines.
             let rendered = MarkdownRenderer.renderInline(
                 from: bodies.map(\.body).joined(separator: "\n"), referenceLinks: block.referenceLinks
@@ -260,6 +283,18 @@ struct MarkdownCompatibilityTests {
         case .table(let headers, let alignments, let rows):
             return Block(kind: "table", headers: headers.map(inline),
                          alignments: alignments.map(\.rawValue), rows: rows.map { $0.map(inline) })
+        }
+    }
+
+    private func quoteBodies(from source: String) -> [(depth: Int, body: String)] {
+        source.components(separatedBy: "\n").map { line in
+            var body = line.trimmingCharacters(in: .whitespaces)
+            var depth = 0
+            while body.hasPrefix(">") {
+                depth += 1
+                body = String(body.dropFirst()).trimmingCharacters(in: .whitespaces)
+            }
+            return (depth: depth, body: body)
         }
     }
 

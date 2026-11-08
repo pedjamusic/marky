@@ -27,10 +27,17 @@ struct MarkyDocument {
 
     using List = std::vector<ListItem>;
 
+    struct QuoteLine {
+        size_t depth;
+        std::string source;
+    };
+
+    using Quote = std::vector<QuoteLine>;
+
     struct Block {
         MarkyBlockKind kind;
         uint32_t heading_level;
-        std::variant<std::string, List> content;
+        std::variant<std::string, List, Quote> content;
     };
 
     const std::vector<Block> blocks;
@@ -195,14 +202,14 @@ size_t list_indent(std::string_view line) {
     }
     // A space with an attached combining mark is not indentation in Swift.
     if (first_content != 0 && line[first_content - 1] == ' ' &&
-        marky::list_character_extension_width(line.substr(first_content)) != 0) {
+        marky::grapheme_suffix_width(line.substr(first_content)) != 0) {
         return first_content - 1;
     }
     return first_content;
 }
 
 bool list_separator(std::string_view suffix) {
-    return suffix.starts_with(' ') && marky::list_character_extension_width(suffix.substr(1)) == 0;
+    return suffix.starts_with(' ') && marky::grapheme_suffix_width(suffix.substr(1)) == 0;
 }
 
 struct ListMarker {
@@ -239,7 +246,7 @@ std::optional<ListMarker> list_marker(std::string_view line) {
     auto suffix = line;
     while (const auto number = marky::list_number_width(suffix)) {
         suffix.remove_prefix(number);
-        while (const auto extension = marky::list_character_extension_width(suffix)) {
+        while (const auto extension = marky::grapheme_suffix_width(suffix)) {
             suffix.remove_prefix(extension);
         }
     }
@@ -250,12 +257,31 @@ std::optional<ListMarker> list_marker(std::string_view line) {
     return ListMarker{line.size() - suffix.size() + 1, MARKY_LIST_MARKER_ORDERED, suffix.substr(2)};
 }
 
+bool starts_quote(std::string_view line) {
+    return line.starts_with('>') && marky::grapheme_suffix_width(line.substr(1)) == 0;
+}
+
+MarkyDocument::QuoteLine parse_quote_line(std::string_view line) {
+    // Match Swift's quote preparation, which trims horizontal whitespace only.
+    auto source = trim_whitespace(line);
+    size_t depth = 0;
+    while (starts_quote(source)) {
+        ++depth;
+        source.remove_prefix(1);
+        while (const auto width = horizontal_whitespace_width(source)) {
+            source.remove_prefix(width);
+        }
+    }
+    return {depth, std::string(source)};
+}
+
 std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
     std::string_view source, const MarkyCancellationToken* token) {
     std::vector<MarkyDocument::Block> blocks;
     std::optional<Fence> open;
     std::string text;
     MarkyDocument::List items;
+    MarkyDocument::Quote quote_lines;
     bool has_literal_line = false;
     bool hard_break = false;
     struct IndentedCode {
@@ -281,6 +307,9 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         } else if (!items.empty()) {
             blocks.push_back({MARKY_BLOCK_LIST, 0, std::move(items)});
             items.clear();
+        } else if (!quote_lines.empty()) {
+            blocks.push_back({MARKY_BLOCK_QUOTE, 0, std::move(quote_lines)});
+            quote_lines.clear();
         } else if (!text.empty()) {
             flush(MARKY_BLOCK_PARAGRAPH);
         }
@@ -344,7 +373,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             flush_pending();
             return;
         }
-        if (text.empty() && items.empty() && indent != 0) {
+        if (text.empty() && items.empty() && quote_lines.empty() && indent != 0) {
             indented.emplace();
             append_indented(line.substr(indent), false);
             return;
@@ -401,7 +430,14 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             items.back().source.append(trim_whitespace(line));
             return;
         }
-        if (!items.empty()) {
+        if (starts_quote(trimmed)) {
+            if (quote_lines.empty()) {
+                flush_pending();
+            }
+            quote_lines.push_back(parse_quote_line(line));
+            return;
+        }
+        if (!items.empty() || !quote_lines.empty()) {
             flush_pending();
         }
 
@@ -444,6 +480,13 @@ const MarkyDocument::List* list_at(const MarkyDocument* document, size_t block_i
         return nullptr;
     }
     return std::get_if<MarkyDocument::List>(&document->blocks[block_index].content);
+}
+
+const MarkyDocument::Quote* quote_at(const MarkyDocument* document, size_t block_index) {
+    if (block_index >= marky_document_block_count(document)) {
+        return nullptr;
+    }
+    return std::get_if<MarkyDocument::Quote>(&document->blocks[block_index].content);
 }
 
 }
@@ -590,6 +633,27 @@ MarkyStatus marky_document_list_item_at(const MarkyDocument* document, size_t bl
         {item.ordered_marker.data(), item.ordered_marker.size()},
         {item.source.data(), item.source.size()}
     };
+    return MARKY_STATUS_OK;
+}
+
+size_t marky_document_quote_line_count(const MarkyDocument* document, size_t block_index) {
+    const auto* lines = quote_at(document, block_index);
+    return lines != nullptr ? lines->size() : 0;
+}
+
+MarkyStatus marky_document_quote_line_at(const MarkyDocument* document, size_t block_index,
+                                        size_t line_index, MarkyQuoteLineView* out_line) {
+    if (out_line == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_line = {};
+    const auto* lines = quote_at(document, block_index);
+    if (lines == nullptr || line_index >= lines->size()) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+
+    const auto& line = (*lines)[line_index];
+    *out_line = {line.depth, {line.source.data(), line.source.size()}};
     return MARKY_STATUS_OK;
 }
 

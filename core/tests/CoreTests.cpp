@@ -135,7 +135,7 @@ void check_list_blocks(const auto& check) {
                {{0, ordered, "one", "1."}, {0, ordered, "two", "2)"}, {0, bullet, "plus"},
                 {0, bullet, "star"}, {0, bullet, "bullet"}},
                "MD-018 ordered spelling and bullet forms");
-    check_list(check, "- first\n  > literal quote continuation\nplain\n> quote", 2, 0,
+    check_list(check, "- first\n  > literal quote continuation\nplain\n> quote", 3, 0,
                {{0, bullet, "first\n> literal quote continuation"}},
                "MD-058 indented quote syntax remains in the list item");
     check_list(check, "- [x]yes\n- [ ] \n01) item\n  - child\n\t- tab", 1, 0,
@@ -231,6 +231,102 @@ void check_list_boundaries(const auto& check) {
                  {{MARKY_BLOCK_PARAGRAPH, "-"}, {MARKY_BLOCK_PARAGRAPH, "1)"},
                   {MARKY_BLOCK_PARAGRAPH, "- \xCC\x81" "accent"}, {MARKY_BLOCK_PARAGRAPH, "-\tno separator"}},
                  "bare markers and malformed separators remain readable");
+}
+
+struct ExpectedQuoteLine {
+    size_t depth;
+    std::string_view source;
+};
+
+void check_quote(const auto& check, std::string_view source, size_t block_index,
+                 std::initializer_list<ExpectedQuoteLine> expected, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    MarkyStatus status;
+    {
+        std::string input(source);
+        status = marky_document_create(input.data(), input.size(), &raw_document);
+        std::memset(input.data(), '?', input.size());
+    }
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+
+    MarkyBlockKind kind = MARKY_BLOCK_INVALID;
+    MarkyUtf8View text{};
+    bool matches = status == MARKY_STATUS_OK &&
+                   marky_document_block_at(document.get(), block_index, &kind, &text) == MARKY_STATUS_OK &&
+                   kind == MARKY_BLOCK_QUOTE && text.data != nullptr && text.byte_count == 0 &&
+                   marky_document_quote_line_count(document.get(), block_index) == expected.size() &&
+                   marky_document_paragraph_at(document.get(), block_index, &text) == MARKY_STATUS_INVALID_ARGUMENT;
+    size_t index = 0;
+    for (const auto& line : expected) {
+        MarkyQuoteLineView view{};
+        matches &= marky_document_quote_line_at(document.get(), block_index, index++, &view) == MARKY_STATUS_OK &&
+                   view.depth == line.depth && view.source.data != nullptr &&
+                   std::string_view(view.source.data, view.source.byte_count) == line.source;
+    }
+    check(matches, fixture);
+}
+
+void check_quote_blocks(const auto& check) {
+    constexpr auto quote = MARKY_BLOCK_QUOTE;
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto code = MARKY_BLOCK_CODE;
+    constexpr auto list = MARKY_BLOCK_LIST;
+    check_quote(check, "> Outer\n> > Inner", 0, {{1, "Outer"}, {2, "Inner"}}, "MD-019 quote depth");
+    check_quote(check, "> **first\n> second**\n>\n>> nested", 0,
+                {{1, "**first"}, {1, "second**"}, {1, ""}, {2, "nested"}},
+                "MD-060 retains lines and source for cross-line emphasis");
+    constexpr std::string_view table_boundary = "| A | B |\n| --- | --- |\nSolo\n> Quote with | pipes";
+    check_blocks(check, table_boundary, {{prose, "| A | B | | --- | --- | Solo"}, {quote, ""}},
+                 "MD-024 quote terminates still-unparsed table source");
+    check_quote(check, table_boundary, 1, {{1, "Quote with | pipes"}}, "MD-024 retains quoted pipes");
+    check_blocks(check, "- first\n  > literal quote continuation\nplain\n> quote",
+                 {{list, ""}, {prose, "plain"}, {quote, ""}}, "MD-058 list continuation and quote boundary");
+    check_blocks(check, "- one\n\n- two\n> quote\n# heading",
+                 {{list, ""}, {list, ""}, {quote, ""}, {MARKY_BLOCK_HEADING, "heading", 1}},
+                 "MD-061 quote separates list and ATX heading");
+    check_blocks(check, "    > indented\n~~~\n> fenced\n~~~\n> quote\n---\n"
+                        "> again\n\n> after blank\nunmarked\n- item",
+                 {{code, "> indented"}, {code, "> fenced"}, {quote, ""}, {MARKY_BLOCK_THEMATIC_BREAK, ""},
+                  {quote, ""}, {quote, ""}, {prose, "unmarked"}, {list, ""}},
+                 "quote boundaries preserve code, rule, blank line, prose and list precedence");
+
+    using namespace std::string_view_literals;
+    check_quote(check, " >\t>\xC2\xA0> caf\xC3\xA9\0!  \r\n    >>\r\n"
+                       "> \\> literal\r\n> `first\r\n>> second`"sv,
+                0, {{3, "caf\xC3\xA9\0!"sv}, {2, ""}, {1, "\\> literal"},
+                    {1, "`first"}, {2, "second`"}},
+                "owned CRLF quote lines preserve Unicode, empty depth and cross-line code source");
+    check_blocks(check, ">\xCC\x81 accent", {{prose, ">\xCC\x81 accent"}},
+                 "a greater-than sign with an attached accent remains prose");
+    check_quote(check, "> >\xEF\xB8\x8F variation\n\xE2\x80\xA8> literal",
+                0, {{1, ">\xEF\xB8\x8F variation"}, {0, "\xE2\x80\xA8> literal"}},
+                "preserve quote content when a marker is part of a grapheme or behind a Unicode newline");
+}
+
+void check_quote_accessor_arguments(const auto& check) {
+    constexpr std::string_view input = "Intro\n> quote";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(input.data(), input.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyQuoteLineView line{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_quote_line_at(document.get(), 1, 0, &line) == MARKY_STATUS_OK,
+          "argument checks require a valid quote line");
+    const auto rejects = [&](const MarkyDocument* candidate, size_t block, size_t index) {
+        auto output = line;
+        return marky_document_quote_line_at(candidate, block, index, &output) == MARKY_STATUS_INVALID_ARGUMENT &&
+               output.depth == 0 && output.source.data == nullptr && output.source.byte_count == 0;
+    };
+    check(rejects(document.get(), 1, 1) && rejects(document.get(), 0, 0) &&
+              rejects(document.get(), 2, 0) && rejects(nullptr, 1, 0) &&
+              marky_document_quote_line_at(document.get(), 1, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "invalid quote lookups must reject missing outputs and clear stale views");
+    check(marky_document_quote_line_count(document.get(), 0) == 0 &&
+              marky_document_quote_line_count(document.get(), 2) == 0 &&
+              marky_document_quote_line_count(nullptr, 1) == 0,
+          "non-quote, out-of-range and NULL documents must report zero lines");
 }
 
 void check_fences(const auto& check) {
@@ -509,6 +605,8 @@ int main() {
     check_list_blocks(check);
     check_list_accessor_arguments(check);
     check_list_boundaries(check);
+    check_quote_blocks(check);
+    check_quote_accessor_arguments(check);
     check_combining_delimiters(check);
     check_malformed_blocks(check);
     check_code_spans(check);
@@ -534,6 +632,6 @@ int main() {
     if (failures != 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: document ownership, base blocks, lists, code spans, cancellation and concurrency checks\n";
+    std::cout << "PASS: document ownership, base blocks, lists, quotes, code spans, cancellation and concurrency checks\n";
     return EXIT_SUCCESS;
 }

@@ -7,6 +7,7 @@ nonisolated struct CoreMarkdownDocument: Sendable {
         case code(String)
         case thematicBreak
         case list([ListItem])
+        case quote([QuoteLine])
     }
 
     struct ListItem: Equatable, Sendable {
@@ -18,6 +19,11 @@ nonisolated struct CoreMarkdownDocument: Sendable {
 
         let depth: Int
         let marker: Marker
+        let source: String
+    }
+
+    struct QuoteLine: Equatable, Sendable {
+        let depth: Int
         let source: String
     }
 
@@ -83,6 +89,8 @@ nonisolated enum CoreMarkdownParser {
                 blocks.append(.thematicBreak)
             case MarkyBlockKind(MARKY_BLOCK_LIST):
                 blocks.append(.list(try copyList(from: result, blockIndex: index)))
+            case MarkyBlockKind(MARKY_BLOCK_QUOTE):
+                blocks.append(.quote(try copyQuote(from: result, blockIndex: index)))
             default: throw ParseError.internalFailure
             }
         }
@@ -111,6 +119,22 @@ nonisolated enum CoreMarkdownParser {
             items.append(.init(depth: item.depth, marker: marker, source: try copyText(item.source)))
         }
         return items
+    }
+
+    private static func copyQuote(from document: OpaquePointer, blockIndex: Int) throws -> [CoreMarkdownDocument.QuoteLine] {
+        let count = marky_document_quote_line_count(document, blockIndex)
+        guard count > 0 else { throw ParseError.internalFailure }
+        var lines: [CoreMarkdownDocument.QuoteLine] = []
+        lines.reserveCapacity(count)
+        for index in 0..<count {
+            try Task.checkCancellation()
+            var line = MarkyQuoteLineView()
+            guard marky_document_quote_line_at(document, blockIndex, index, &line) == MarkyStatus(MARKY_STATUS_OK) else {
+                throw ParseError.internalFailure
+            }
+            lines.append(.init(depth: line.depth, source: try copyText(line.source)))
+        }
+        return lines
     }
 
     private static func copyText(_ view: MarkyUtf8View) throws -> String {

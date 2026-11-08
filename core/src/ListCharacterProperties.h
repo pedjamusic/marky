@@ -201,7 +201,7 @@ inline std::size_t list_number_width(std::string_view utf8) {
     return list_character_properties::non_ascii_width_in(utf8, list_character_properties::numeric_ranges);
 }
 
-inline std::size_t list_character_extension_width(std::string_view utf8) {
+inline std::size_t grapheme_suffix_width(std::string_view utf8) {
     return list_character_properties::non_ascii_width_in(utf8, list_character_properties::grapheme_suffix_ranges);
 }
 
