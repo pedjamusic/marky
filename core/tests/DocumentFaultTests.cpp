@@ -20,7 +20,7 @@ thread_local size_t destroyed_documents = 0;
 
 std::string block_input() {
     return "# Heading\n\n~~~\n" + std::string(128 * 1024, 'x') +
-           "\n~~~\n\n    indented\n\nAfter";
+           "\n~~~\n\n    indented\n\nAfter\n\n- [x] List item with owned source\n  continuation\n02) Next item";
 }
 
 void check_document_failure(const auto& check, Checkpoint injection_point,
@@ -49,7 +49,8 @@ void check_document_failure(const auto& check, Checkpoint injection_point,
 
     output = nullptr;
     check(marky_document_create(input.data(), input.size(), &output) == MARKY_STATUS_OK &&
-              output != existing && marky_document_block_count(output) == 4,
+              output != existing && marky_document_block_count(output) == 5 &&
+              marky_document_list_item_count(output, 4) == 2,
           "creation must recover all blocks after an injected failure");
     if (output != existing) {
         marky_document_release(output);
@@ -172,6 +173,11 @@ int main() {
     check_document_failure(check, Checkpoint::afterBlockLine,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), in_open_fence);
     check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), in_open_fence);
+    // After line twelve, the first list item has a continuation and the list is still open.
+    constexpr size_t in_list = 12;
+    check_document_failure(check, Checkpoint::afterBlockLine,
+                           MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), in_list);
+    check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), in_list);
     check_document_failure(check, Checkpoint::beforeDocumentAllocation,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get());
     check_document_failure(check, Checkpoint::beforeDocumentPublication,

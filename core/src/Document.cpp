@@ -1,4 +1,5 @@
 #include "MarkyCore.h"
+#include "ListCharacterProperties.h"
 #include "LiteralSyntax.h"
 
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
@@ -13,13 +14,23 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 struct MarkyDocument {
+    struct ListItem {
+        size_t depth;
+        MarkyListMarkerKind marker_kind;
+        std::string ordered_marker;
+        std::string source;
+    };
+
+    using List = std::vector<ListItem>;
+
     struct Block {
         MarkyBlockKind kind;
-        std::string text;
-        uint32_t heading_level = 0;
+        uint32_t heading_level;
+        std::variant<std::string, List> content;
     };
 
     const std::vector<Block> blocks;
@@ -177,11 +188,74 @@ bool thematic_break(std::string_view line) {
     return count >= 3;
 }
 
+size_t list_indent(std::string_view line) {
+    const auto first_content = line.find_first_not_of(" \t");
+    if (first_content == std::string_view::npos) {
+        return line.size();
+    }
+    // A space with an attached combining mark is not indentation in Swift.
+    if (first_content != 0 && line[first_content - 1] == ' ' &&
+        marky::list_character_extension_width(line.substr(first_content)) != 0) {
+        return first_content - 1;
+    }
+    return first_content;
+}
+
+bool list_separator(std::string_view suffix) {
+    return suffix.starts_with(' ') && marky::list_character_extension_width(suffix.substr(1)) == 0;
+}
+
+struct ListMarker {
+    size_t width;
+    MarkyListMarkerKind kind;
+    std::string_view source;
+};
+
+std::optional<ListMarker> list_marker(std::string_view line) {
+    size_t width = 0;
+    bool allows_task = false;
+    if (line.starts_with('-') || line.starts_with('*') || line.starts_with('+')) {
+        width = 1;
+        allows_task = true;
+    } else if (line.starts_with("\xE2\x80\xA2")) { // U+2022 bullet
+        width = 3;
+    }
+    if (width != 0) {
+        if (!list_separator(line.substr(width))) {
+            return std::nullopt;
+        }
+        const auto source = line.substr(width + 1);
+        if (allows_task && source.size() >= 4 && list_separator(source.substr(3))) {
+            if (source.starts_with("[ ]")) {
+                return ListMarker{width, MARKY_LIST_MARKER_TASK_UNCHECKED, source.substr(4)};
+            }
+            if (source.starts_with("[x]") || source.starts_with("[X]")) {
+                return ListMarker{width, MARKY_LIST_MARKER_TASK_CHECKED, source.substr(4)};
+            }
+        }
+        return ListMarker{width, MARKY_LIST_MARKER_BULLET, source};
+    }
+
+    auto suffix = line;
+    while (const auto number = marky::list_number_width(suffix)) {
+        suffix.remove_prefix(number);
+        while (const auto extension = marky::list_character_extension_width(suffix)) {
+            suffix.remove_prefix(extension);
+        }
+    }
+    if (suffix.size() == line.size() || (!suffix.starts_with('.') && !suffix.starts_with(')')) ||
+        !list_separator(suffix.substr(1))) {
+        return std::nullopt;
+    }
+    return ListMarker{line.size() - suffix.size() + 1, MARKY_LIST_MARKER_ORDERED, suffix.substr(2)};
+}
+
 std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
     std::string_view source, const MarkyCancellationToken* token) {
     std::vector<MarkyDocument::Block> blocks;
     std::optional<Fence> open;
     std::string text;
+    MarkyDocument::List items;
     bool has_literal_line = false;
     bool hard_break = false;
     struct IndentedCode {
@@ -194,7 +268,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
     std::optional<IndentedCode> indented;
 
     const auto flush = [&](MarkyBlockKind kind, uint32_t level = 0) {
-        blocks.push_back({kind, std::move(text), level});
+        blocks.push_back({kind, level, std::move(text)});
         text.clear();
         has_literal_line = false;
     };
@@ -204,6 +278,9 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             text.resize(at_prose_segment_end ? indented->prose_segment_end : indented->content_end);
             flush(MARKY_BLOCK_CODE);
             indented.reset();
+        } else if (!items.empty()) {
+            blocks.push_back({MARKY_BLOCK_LIST, 0, std::move(items)});
+            items.clear();
         } else if (!text.empty()) {
             flush(MARKY_BLOCK_PARAGRAPH);
         }
@@ -267,7 +344,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             flush_pending();
             return;
         }
-        if (text.empty() && indent != 0) {
+        if (text.empty() && items.empty() && indent != 0) {
             indented.emplace();
             append_indented(line.substr(indent), false);
             return;
@@ -303,6 +380,31 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             return;
         }
 
+        const auto leading = list_indent(line);
+        const auto content = line.substr(leading);
+        const auto marker = list_marker(content);
+        const bool continues_list = !items.empty() && leading >= 2;
+        // Swift recognizes a list from trimmed lines, then prepares each item
+        // from its original line. A bare marker is only read in a continuation.
+        if (marker && (trimmed.size() > marker->width || continues_list)) {
+            if (items.empty()) {
+                flush_pending();
+            }
+            const auto ordered_marker = marker->kind == MARKY_LIST_MARKER_ORDERED
+                                            ? content.substr(0, marker->width) : std::string_view{};
+            items.push_back({leading / 2, marker->kind, std::string(ordered_marker),
+                             std::string(marker->source)});
+            return;
+        }
+        if (continues_list) {
+            items.back().source.push_back('\n');
+            items.back().source.append(trim_whitespace(line));
+            return;
+        }
+        if (!items.empty()) {
+            flush_pending();
+        }
+
         if (!text.empty()) {
             text.push_back(hard_break ? '\n' : ' ');
         }
@@ -335,6 +437,13 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         flush_pending(true);
     }
     return blocks;
+}
+
+const MarkyDocument::List* list_at(const MarkyDocument* document, size_t block_index) {
+    if (block_index >= marky_document_block_count(document)) {
+        return nullptr;
+    }
+    return std::get_if<MarkyDocument::List>(&document->blocks[block_index].content);
 }
 
 }
@@ -429,7 +538,8 @@ MarkyStatus marky_document_block_at(const MarkyDocument* document, size_t index,
 
     const auto& block = document->blocks[index];
     *out_kind = block.kind;
-    *out_text = {block.text.data(), block.text.size()};
+    const auto* text = std::get_if<std::string>(&block.content);
+    *out_text = text != nullptr ? MarkyUtf8View{text->data(), text->size()} : MarkyUtf8View{"", 0};
     return MARKY_STATUS_OK;
 }
 
@@ -455,6 +565,31 @@ MarkyStatus marky_document_heading_level_at(const MarkyDocument* document, size_
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     *out_level = document->blocks[index].heading_level;
+    return MARKY_STATUS_OK;
+}
+
+size_t marky_document_list_item_count(const MarkyDocument* document, size_t block_index) {
+    const auto* items = list_at(document, block_index);
+    return items != nullptr ? items->size() : 0;
+}
+
+MarkyStatus marky_document_list_item_at(const MarkyDocument* document, size_t block_index,
+                                       size_t item_index, MarkyListItemView* out_item) {
+    if (out_item == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_item = {};
+    const auto* items = list_at(document, block_index);
+    if (items == nullptr || item_index >= items->size()) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+
+    const auto& item = (*items)[item_index];
+    *out_item = {
+        item.depth, item.marker_kind,
+        {item.ordered_marker.data(), item.ordered_marker.size()},
+        {item.source.data(), item.source.size()}
+    };
     return MARKY_STATUS_OK;
 }
 

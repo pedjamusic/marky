@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -77,6 +78,116 @@ void check_empty_document(const auto& check, const char* input) {
     marky_document_release(document);
 }
 
+struct ExpectedListItem {
+    size_t depth;
+    MarkyListMarkerKind marker_kind;
+    std::string_view source;
+    std::string_view ordered_marker{};
+};
+
+void check_list(const auto& check, std::string_view source, size_t block_count, size_t block_index,
+                std::initializer_list<ExpectedListItem> expected, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    MarkyStatus status;
+    {
+        std::string input(source);
+        status = marky_document_create(input.data(), input.size(), &raw_document);
+        std::memset(input.data(), '?', input.size());
+    }
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+
+    MarkyBlockKind kind = MARKY_BLOCK_INVALID;
+    MarkyUtf8View text{};
+    bool matches = status == MARKY_STATUS_OK && marky_document_block_count(document.get()) == block_count &&
+                   marky_document_block_at(document.get(), block_index, &kind, &text) == MARKY_STATUS_OK &&
+                   kind == MARKY_BLOCK_LIST && text.data != nullptr && text.byte_count == 0 &&
+                   marky_document_list_item_count(document.get(), block_index) == expected.size() &&
+                   marky_document_paragraph_at(document.get(), block_index, &text) == MARKY_STATUS_INVALID_ARGUMENT;
+    size_t index = 0;
+    for (const auto& item : expected) {
+        MarkyListItemView view{};
+        matches &= marky_document_list_item_at(document.get(), block_index, index++, &view) == MARKY_STATUS_OK &&
+                   view.depth == item.depth && view.marker_kind == item.marker_kind &&
+                   view.ordered_marker.data != nullptr && view.source.data != nullptr &&
+                   std::string_view(view.ordered_marker.data, view.ordered_marker.byte_count) == item.ordered_marker &&
+                   std::string_view(view.source.data, view.source.byte_count) == item.source;
+    }
+    check(matches, fixture);
+}
+
+void check_list_blocks(const auto& check) {
+    constexpr auto bullet = MARKY_LIST_MARKER_BULLET;
+    constexpr auto ordered = MARKY_LIST_MARKER_ORDERED;
+    constexpr auto unchecked = MARKY_LIST_MARKER_TASK_UNCHECKED;
+    constexpr auto checked = MARKY_LIST_MARKER_TASK_CHECKED;
+
+    check_list(check, "- parent\n  - child\n    - grandchild", 1, 0,
+               {{0, bullet, "parent"}, {1, bullet, "child"}, {2, bullet, "grandchild"}},
+               "MD-015 nested list");
+    check_list(check, "- First line\n  Continuation line\n- Second item", 1, 0,
+               {{0, bullet, "First line\nContinuation line"}, {0, bullet, "Second item"}},
+               "MD-016 list continuation");
+    check_list(check, "- [ ] Todo task\n- [x] Done task\n- [X] Upper done task", 1, 0,
+               {{0, unchecked, "Todo task"}, {0, checked, "Done task"}, {0, checked, "Upper done task"}},
+               "MD-017 task states");
+    check_list(check, "1. one\n2) two\n+ plus\n* star\n\xE2\x80\xA2 bullet", 1, 0,
+               {{0, ordered, "one", "1."}, {0, ordered, "two", "2)"}, {0, bullet, "plus"},
+                {0, bullet, "star"}, {0, bullet, "bullet"}},
+               "MD-018 ordered spelling and bullet forms");
+    check_list(check, "- first\n  > literal quote continuation\nplain\n> quote", 2, 0,
+               {{0, bullet, "first\n> literal quote continuation"}},
+               "MD-058 indented quote syntax remains in the list item");
+    check_list(check, "- [x]yes\n- [ ] \n01) item\n  - child\n\t- tab", 1, 0,
+               {{0, bullet, "[x]yes"}, {0, unchecked, ""}, {0, ordered, "item", "01)"},
+                {1, bullet, "child"}, {0, bullet, "tab"}},
+               "MD-059 empty task, tab depth and zero padding");
+    constexpr std::string_view split = "- one\n\n- two\n> quote\n# heading";
+    check_list(check, split, 4, 0, {{0, bullet, "one"}}, "MD-061 list before blank");
+    check_list(check, split, 4, 1, {{0, bullet, "two"}}, "MD-061 list after blank");
+    check_list(check, "A | B\n--- | ---\n- item", 2, 1, {{0, bullet, "item"}}, "MD-067 list after table syntax");
+    check_list(check, "# [**head**](https://h.test)\n- ~~item~~\n> *quote*", 3, 1,
+               {{0, bullet, "~~item~~"}}, "MD-071 list retains source for inline parsing");
+
+    using namespace std::string_view_literals;
+    check_list(check, "Before\r\n* [x] caf\xC3\xA9\0!\r\n\t  continuation\r\n"
+                      "  \xD9\xA2) Unicode\r\n3\xEF\xB8\x8F\xE2\x83\xA3. Keycap"sv, 2, 1,
+               {{0, checked, "caf\xC3\xA9\0!\ncontinuation"sv}, {1, ordered, "Unicode", "\xD9\xA2)"},
+                {0, ordered, "Keycap", "3\xEF\xB8\x8F\xE2\x83\xA3."}},
+               "owned UTF-8 item source and ordered markers survive input release");
+    check_list(check, "- one\n  01) \n  - \n+ [X] done\n\xE2\x80\xA2 [x] literal\n1. [x] literal",
+               1, 0, {{0, bullet, "one"}, {1, ordered, "", "01)"}, {1, bullet, ""},
+                      {0, checked, "done"}, {0, bullet, "[x] literal"}, {0, ordered, "[x] literal", "1."}},
+               "bare indented markers and task syntax follow Swift preparation");
+}
+
+void check_list_accessor_arguments(const auto& check) {
+    constexpr std::string_view input = "Intro\n  1. item";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(input.data(), input.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyListItemView item{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_list_item_at(document.get(), 1, 0, &item) == MARKY_STATUS_OK,
+          "argument checks require a valid item");
+    const auto rejects = [&](const MarkyDocument* candidate, size_t block, size_t index) {
+        auto output = item;
+        return marky_document_list_item_at(candidate, block, index, &output) == MARKY_STATUS_INVALID_ARGUMENT &&
+               output.depth == 0 && output.marker_kind == MARKY_LIST_MARKER_INVALID &&
+               output.ordered_marker.data == nullptr && output.ordered_marker.byte_count == 0 &&
+               output.source.data == nullptr && output.source.byte_count == 0;
+    };
+    check(rejects(document.get(), 1, 1) && rejects(document.get(), 0, 0) &&
+              rejects(document.get(), 2, 0) && rejects(nullptr, 1, 0) &&
+              marky_document_list_item_at(document.get(), 1, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "invalid item lookups must reject missing outputs and clear stale views");
+    check(marky_document_list_item_count(document.get(), 0) == 0 &&
+              marky_document_list_item_count(document.get(), 2) == 0 &&
+              marky_document_list_item_count(nullptr, 1) == 0,
+          "non-list, out-of-range and NULL documents must report zero items");
+}
+
 struct ExpectedBlock {
     MarkyBlockKind kind;
     std::string_view text;
@@ -105,6 +216,21 @@ void check_blocks(const auto& check, std::string_view input,
                                                                  MARKY_STATUS_INVALID_ARGUMENT);
     }
     check(matches, fixture);
+}
+
+void check_list_boundaries(const auto& check) {
+    check_blocks(check, "Title\n---\n- item\n---\n- next\n  ===\n  # Heading\n    - literal\n"
+                        "- after code\n~~~\n* fenced\n~~~\n- last",
+                 {{MARKY_BLOCK_HEADING, "Title", 2}, {MARKY_BLOCK_LIST, ""}, {MARKY_BLOCK_THEMATIC_BREAK, ""},
+                  {MARKY_BLOCK_LIST, ""}, {MARKY_BLOCK_HEADING, "Heading", 1}, {MARKY_BLOCK_CODE, "- literal"},
+                  {MARKY_BLOCK_LIST, ""}, {MARKY_BLOCK_CODE, "* fenced"}, {MARKY_BLOCK_LIST, ""}},
+                 "list boundaries preserve Setext, rules, ATX and literal code precedence");
+    check_list(check, "- item\n  ===", 1, 0, {{0, MARKY_LIST_MARKER_BULLET, "item\n==="}},
+               "Setext underlines can continue a list item without making a heading");
+    check_blocks(check, "- \n\n1) \n\n- \xCC\x81" "accent\n\n-\tno separator",
+                 {{MARKY_BLOCK_PARAGRAPH, "-"}, {MARKY_BLOCK_PARAGRAPH, "1)"},
+                  {MARKY_BLOCK_PARAGRAPH, "- \xCC\x81" "accent"}, {MARKY_BLOCK_PARAGRAPH, "-\tno separator"}},
+                 "bare markers and malformed separators remain readable");
 }
 
 void check_fences(const auto& check) {
@@ -380,6 +506,9 @@ int main() {
     check_empty_document(check, "");
     check_fences(check);
     check_base_blocks(check);
+    check_list_blocks(check);
+    check_list_accessor_arguments(check);
+    check_list_boundaries(check);
     check_combining_delimiters(check);
     check_malformed_blocks(check);
     check_code_spans(check);
@@ -405,6 +534,6 @@ int main() {
     if (failures != 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: document ownership, base blocks, code spans, cancellation and concurrency checks\n";
+    std::cout << "PASS: document ownership, base blocks, lists, code spans, cancellation and concurrency checks\n";
     return EXIT_SUCCESS;
 }

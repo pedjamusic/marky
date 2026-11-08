@@ -61,6 +61,8 @@ struct MarkdownCompatibilityTests {
                     BaseBlock(kind: "code", bytes: Array(text.utf8))
                 case .thematicBreak:
                     BaseBlock(kind: "thematicBreak")
+                case .list:
+                    BaseBlock(kind: "list")
                 }
             }
             let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
@@ -100,6 +102,44 @@ struct MarkdownCompatibilityTests {
                 return Array(text.utf8)
             }
             #expect(code == literalBytes(fixture), "Literal code: \(fixture.id)")
+        }
+    }
+
+    @Test("Core list items match shared fixture order, marker state, depth and prepared source")
+    func coreLists() async throws {
+        let ids: Set = ["MD-015", "MD-016", "MD-017", "MD-018", "MD-058", "MD-059", "MD-061", "MD-067", "MD-071"]
+        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
+        #expect(Set(fixtures.map(\.id)) == ids)
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
+            let lists: [(index: Int, items: [CoreMarkdownDocument.ListItem])] = document.blocks.enumerated().compactMap { index, block in
+                if case .list(let items) = block { return (index, items) }
+                return nil
+            }
+            #expect(lists.map(\.index) == fixture.blocks.indices.filter { fixture.blocks[$0].kind == "list" },
+                    "List block order: \(fixture.id)")
+            for (index, items) in lists {
+                guard fixture.blocks.indices.contains(index), let expected = fixture.blocks[index].items,
+                      prepared.indices.contains(index), case .list(let swiftItems) = prepared[index].kind
+                else {
+                    Issue.record("Unexpected list block in \(fixture.id)")
+                    continue
+                }
+                let markers: [String] = items.map { item in
+                    switch item.marker {
+                    case .bullet: "bullet"
+                    case .ordered(let spelling): spelling
+                    case .task(checked: false): "taskUnchecked"
+                    case .task(checked: true): "taskChecked"
+                    }
+                }
+                #expect(markers.map { Array($0.utf8) } == expected.map { Array($0.marker.utf8) },
+                        "List markers: \(fixture.id)")
+                #expect(items.map(\.depth) == expected.map(\.depth), "List depth: \(fixture.id)")
+                #expect(items.map { Array($0.source.utf8) } == swiftItems.map { Array($0.body.utf8) },
+                        "Prepared list source: \(fixture.id)")
+            }
         }
     }
 

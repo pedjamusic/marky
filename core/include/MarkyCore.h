@@ -12,6 +12,7 @@ typedef struct MarkyDocument MarkyDocument;
 typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
 typedef uint32_t MarkyBlockKind;
+typedef uint32_t MarkyListMarkerKind;
 
 enum {
     MARKY_STATUS_OK = 0,
@@ -26,13 +27,29 @@ enum {
     MARKY_BLOCK_PARAGRAPH = 1,
     MARKY_BLOCK_CODE = 2,
     MARKY_BLOCK_HEADING = 3,
-    MARKY_BLOCK_THEMATIC_BREAK = 4
+    MARKY_BLOCK_THEMATIC_BREAK = 4,
+    MARKY_BLOCK_LIST = 5
+};
+
+enum {
+    MARKY_LIST_MARKER_INVALID = 0,
+    MARKY_LIST_MARKER_BULLET = 1,
+    MARKY_LIST_MARKER_ORDERED = 2,
+    MARKY_LIST_MARKER_TASK_UNCHECKED = 3,
+    MARKY_LIST_MARKER_TASK_CHECKED = 4
 };
 
 typedef struct {
     const char* data;
     size_t byte_count;
 } MarkyUtf8View;
+
+typedef struct {
+    size_t depth;
+    MarkyListMarkerKind marker_kind;
+    MarkyUtf8View ordered_marker;
+    MarkyUtf8View source;
+} MarkyListItemView;
 
 /*
  * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
@@ -46,7 +63,8 @@ typedef struct {
  * content after stripping the required indentation and trailing blank lines.
  * Paragraph and heading text is prepared Markdown awaiting inline parsing.
  * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
- * breaks have empty text.
+ * breaks and list blocks have empty block text. List items expose prepared
+ * Markdown source, with continuation lines separated by LF.
  */
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document);
@@ -108,6 +126,19 @@ MarkyStatus marky_document_paragraph_at(const MarkyDocument* document, size_t in
  */
 MarkyStatus marky_document_heading_level_at(const MarkyDocument* document, size_t index,
                                             uint32_t* out_level);
+
+/* Returns the list's item count, or zero for an invalid index or non-list. */
+size_t marky_document_list_item_count(const MarkyDocument* document, size_t block_index);
+
+/*
+ * Reads an item in source order. Both indices and the item's depth are
+ * zero-based. ordered_marker is nonempty only for ordered items and preserves
+ * the original number and delimiter. Task state is part of marker_kind.
+ * The UTF-8 views are valid until document release. On invalid arguments,
+ * a non-NULL out_item is reset to zero depth, invalid marker and empty views.
+ */
+MarkyStatus marky_document_list_item_at(const MarkyDocument* document, size_t block_index,
+                                       size_t item_index, MarkyListItemView* out_item);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

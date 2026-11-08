@@ -7,7 +7,8 @@ Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) 
 - **T05.S3 and T05 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts the applied E48 candidate (E49). It landed on `main` as `fe2d30f`. E50 records remote verification and merged-branch cleanup. The portable core retains malformed block syntax as readable source, preserves literal code, and matches the two B07 delimiter cases. The public-interface fault tests interrupt parsing with a completed heading and an open fence.
 - The macOS Debug and Release core suites, ASan/UBSan, TSan, leak check, strict C11 consumer, 113 Mac unit tests, and signed Release build passed. T12 owns the production reader switch.
 - B07 is resolved. Windows/MSVC and Linux/GCC execution remain open under B03/OWE-T03. T05's OWE-T01 and OWE-T04 receipts are closed. OWE-T05 carries the remaining inline interactions to T08–T10.
-- **Next when selected is T06.S1.** Implement list markers, nesting, continuations, and task states against the accepted fixtures. [Phase definition](phases/03-document-blocks.md#t06--lists-and-blockquotes).
+- **T06.S1 accepted.** User **PASS** ("pass") accepts the verified E51 candidate (E52). The portable parser and Swift proof adapter expose ordered list items with marker spelling, depth, continuation source, and task state. All nine shared list projections passed.
+- Integrate the accepted T06.S1 candidate. T06.S2 covers blockquote structure and is next when selected after integration. T11.S2 owns native list and quote presentation, and T12 owns production cutover. [Phase definition](phases/03-document-blocks.md#t06--lists-and-blockquotes).
 
 ## Ticket and slice state
 
@@ -21,7 +22,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
-| T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T06 | [03](phases/03-document-blocks.md) | in_progress | T06.S1 done; T06.S2 queued | E51 verifies list items through the C interface and Swift proof adapter. E52 records user PASS and integration authorization. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -137,6 +138,25 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E48 | T05.S3 candidate application | User replied **“branch was supposed to be opened before any code change. go”**, 2026-11-08. Created `codex/t05-s3-malformed-input-and-interruption` from clean `main/5936de13649d86e68ab32595377560316829cce3` before applying the six-file E47 patch to the repository. | The applied patch matched E47 before this ledger update and all 58 build-input hashes matched. Fresh macOS Debug and Release preset builds from the branch, with an explicit SDK and strict warnings, each passed 2/2 CTest. `git diff --check` passed. The Mac unit and signing evidence remains from the byte-identical inputs in E47. | User PASS pending for the applied uncommitted candidate. |
 | E49 | T05.S3 and T05 acceptance | User **PASS** ("pass"), 2026-11-08, for the E48 candidate on `codex/t05-s3-malformed-input-and-interruption`. | The five-file implementation patch and all 58 recorded build-input hashes matched E47. The signed Release executable hash matched E47. The applied Debug and Release CTest suites reran and each passed 2/2. The remote main revision was verified at the candidate base. | T05.S3 and T05 accepted. User PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
 | E50 | T05.S3 and T05 integration | Accepted candidate and acceptance record committed as `fe2d30f369354161b7d69ef09f6925d1ef73a0d2`, 2026-11-08. | `git merge --ff-only codex/t05-s3-malformed-input-and-interruption` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T05 delivered and B07 resolved. T06.S1 is next. Windows/MSVC and Linux/GCC execution remains with B03/OWE-T03. |
+| E51 | T06.S1 lists and task states | Uncommitted on `codex/t06-s1-lists-and-task-items` at `361c05c7108614cad872176e21cc23cff46e9c51`. Eight-file patch SHA-256 `44508a2586ce4e203157bdfd477a6bbacb3388aafe8ad4e5d8fd31cb50326d40` includes the new Unicode header and excludes this ledger. Patch and 62 build-input hashes are in `/tmp/MarkyT06S1.p68FRn/`. | macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake/CTest 4.4.5, Xcode/SDK 27.2. Both macOS presets configured with explicit `CMAKE_OSX_SYSROOT` and `-Wall -Wextra -Wpedantic -Werror`, built, and passed 2/2 CTest each. Both detected deliberate harness failure (exit 8) and recovered. The MD-015 regression failed on the base. A separate Release mutation detected altered depth and missing uppercase task recognition. Debug builds with `-fno-omit-frame-pointer -fsanitize=address,undefined` and `-fno-omit-frame-pointer -fsanitize=thread` passed 2/2 each. `leaks --atExit -- marky_core_fault_tests` found zero leaks, including interruption with a partially constructed list. A strict C11 consumer linked to the Release archive and verified 300,000 items from 6,450,000 bytes after freeing its input. The consumer repeated 150,000 groups of a checked parent and a nested `01)` child with one continuation, separated by a blank line. One run of `/usr/bin/time -l` measured 0.03 s elapsed and 44,072,960 bytes maximum RSS for generation, parse, verification, and release. The Unicode 17.0.0 tables matched Swift 6.4.2's numeric and grapheme suffix predicates over all Unicode scalars. | User PASS pending. The [Mac run below](#t06s1-mac-run) covers nine list projections and the signed Release build. The standards and spec review was performed in-session under AGENTS policy. Quote, table, image, and inline interpretation stay with their receiving slices. Unicode whitespace outside ASCII indentation can expose a list marker after Swift's block trimming even when its item preparation cannot read that marker. The portable parser requires a readable marker on the original line and retains such source. This edge is outside the accepted fixtures. Windows/MSVC and Linux/GCC execution remain under B03/OWE-T03. |
+| E52 | T06.S1 acceptance | User **PASS** ("pass"), 2026-11-08, for the E51 candidate on `codex/t06-s1-lists-and-task-items`. | The eight-file implementation diff and all 62 build-input hashes matched E51. The signed Release executable hash matched E51. Debug and Release CTest reruns each passed 2/2. Remote main matched the verified base `361c05c`. | T06.S1 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
+
+### T06.S1 Mac run
+
+From the repository root, the focused check and complete test scheme used the following commands. The focused check passed all five tests. Its list check compared item order, exact marker and prepared source bytes, and depth for MD-015–018, MD-058–059, MD-061, MD-067, and MD-071. The complete run passed 114 unit tests in six suites and eight UI tests, including native list indentation. The two opt-in T02.S2 performance UI tests were skipped.
+
+```sh
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -configuration Debug -derivedDataPath /tmp/MarkyT06S1.p68FRn/xcode \
+  -parallel-testing-enabled NO -only-testing:MarkyTests/MarkdownCompatibilityTests test
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -configuration Debug -derivedDataPath /tmp/MarkyT06S1.p68FRn/xcode \
+  -parallel-testing-enabled NO test
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -configuration Release -derivedDataPath /tmp/MarkyT06S1.p68FRn/xcode-release build
+```
+
+The Release app is `/tmp/MarkyT06S1.p68FRn/xcode-release/Build/Products/Release/Marky.app`, version 0.2.4 (5). `codesign --verify --deep --strict` passed and `com.apple.security.app-sandbox` was true. The Release executable SHA-256 is `a41643fd8b05f02c49f4bfb453f3e42ac9b4c183e4e24ffa115dacf30e756952`. These app checks exercise the current Swift reader and the core proof adapter through separate paths.
 
 ## Git authorization and integration
 
@@ -263,6 +283,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | Select and implement T05.S3 | User selected T05.S3 and specified both B07 cases, 2026-11-08 | Prepared and verified the isolated candidate in E47. |
 | Create local branch and apply candidate | User replied **“branch was supposed to be opened before any code change. go”**, 2026-11-08 | Executed in E48. |
 | Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-08, accepts E48 under repository policy | Authorized in E49 and executed in E50. |
+
+### T06.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T06.S1 | User selected T06.S1 and explicitly directed creating a local `codex/` branch before editing, 2026-11-08 | Created `codex/t06-s1-lists-and-task-items` from clean main at `361c05c` before the first edit. E51 records the verified candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts the verified E51 candidate under repository policy, 2026-11-08 | Authorized in E52. |
 
 ## Contract amendments
 
