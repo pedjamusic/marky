@@ -38,6 +38,30 @@ struct MarkdownCompatibilityTests {
         }
     }
 
+    @Test("Core fences match the shared corpus before inline interpretation")
+    func coreFences() async throws {
+        let ids: Set = ["MD-002", "MD-008", "MD-009", "MD-010", "MD-011", "MD-034",
+                        "MD-053", "MD-054", "MD-055", "MD-056"]
+        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
+        #expect(Set(fixtures.map(\.id)) == ids)
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let kinds = document.blocks.map { block in
+                switch block {
+                case .paragraph: "paragraph"
+                case .code: "code"
+                }
+            }
+            #expect(kinds == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
+            let literalBytes = document.blocks.compactMap { block -> [UInt8]? in
+                guard case .code(let text) = block else { return nil }
+                return Array(text.utf8)
+            }
+            let expectedBytes = fixture.blocks.compactMap { $0.text.map { Array($0.utf8) } }
+            #expect(literalBytes == expectedBytes, "Literal code: \(fixture.id)")
+        }
+    }
+
     @Test("Corpus identities, provenance and expected shapes are valid")
     func corpusIntegrity() throws {
         let corpus = try loadCorpus()

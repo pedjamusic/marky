@@ -1,7 +1,12 @@
 import MarkyCore
 
 nonisolated struct CoreMarkdownDocument: Sendable {
-    let paragraphs: [String]
+    enum Block: Equatable, Sendable {
+        case paragraph(String)
+        case code(String)
+    }
+
+    let blocks: [Block]
 }
 
 nonisolated enum CoreMarkdownParser {
@@ -38,20 +43,26 @@ nonisolated enum CoreMarkdownParser {
         guard status == MarkyStatus(MARKY_STATUS_OK) else { throw ParseError.internalFailure }
 
         let blockCount = marky_document_block_count(result)
-        if blockCount == 0 {
-            return CoreMarkdownDocument(paragraphs: [])
-        }
+        var blocks: [CoreMarkdownDocument.Block] = []
+        blocks.reserveCapacity(blockCount)
+        for index in 0..<blockCount {
+            try Task.checkCancellation()
+            var kind = MarkyBlockKind(MARKY_BLOCK_INVALID)
+            var view = MarkyUtf8View()
+            guard marky_document_block_at(result, index, &kind, &view) == MarkyStatus(MARKY_STATUS_OK),
+                  let data = view.data,
+                  let text = String(validating: UnsafeRawBufferPointer(start: data, count: view.byte_count), as: UTF8.self)
+            else {
+                throw ParseError.internalFailure
+            }
 
-        var view = MarkyUtf8View()
-        guard blockCount == 1,
-              marky_document_paragraph_at(result, 0, &view) == MarkyStatus(MARKY_STATUS_OK),
-              view.byte_count > 0,
-              let data = view.data,
-              let paragraph = String(validating: UnsafeRawBufferPointer(start: data, count: view.byte_count), as: UTF8.self)
-        else {
-            throw ParseError.internalFailure
+            switch kind {
+            case MarkyBlockKind(MARKY_BLOCK_PARAGRAPH): blocks.append(.paragraph(text))
+            case MarkyBlockKind(MARKY_BLOCK_CODE): blocks.append(.code(text))
+            default: throw ParseError.internalFailure
+            }
         }
-        return CoreMarkdownDocument(paragraphs: [paragraph])
+        return CoreMarkdownDocument(blocks: blocks)
     }
 
     private static func failure(for status: MarkyStatus) -> any Error {

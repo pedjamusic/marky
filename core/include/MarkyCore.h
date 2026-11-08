@@ -11,6 +11,7 @@ extern "C" {
 typedef struct MarkyDocument MarkyDocument;
 typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
+typedef uint32_t MarkyBlockKind;
 
 enum {
     MARKY_STATUS_OK = 0,
@@ -18,6 +19,12 @@ enum {
     MARKY_STATUS_ALLOCATION_FAILURE = 2,
     MARKY_STATUS_INTERNAL_ERROR = 3,
     MARKY_STATUS_CANCELLED = 4
+};
+
+enum {
+    MARKY_BLOCK_INVALID = 0,
+    MARKY_BLOCK_PARAGRAPH = 1,
+    MARKY_BLOCK_CODE = 2
 };
 
 typedef struct {
@@ -32,7 +39,9 @@ typedef struct {
  * receives a new owned result on success (including empty input) and NULL
  * on failure. Release any previously owned result before reusing the slot.
  *
- * The initial implementation treats nonempty input as one literal paragraph.
+ * Normalizes CRLF line endings to LF. Fenced code contains the literal lines
+ * between its delimiters, which can be empty. Other content is returned as
+ * provisional paragraph text while base block and inline parsing are developed.
  */
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document);
@@ -72,7 +81,16 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
 size_t marky_document_block_count(const MarkyDocument* document);
 
 /*
+ * Reads the kind and text of the block at the zero-based index. Both output
+ * pointers are required. A successful view borrows immutable UTF-8 bytes until
+ * document release. On failure, non-NULL outputs are reset to invalid/empty.
+ */
+MarkyStatus marky_document_block_at(const MarkyDocument* document, size_t index,
+                                    MarkyBlockKind* out_kind, MarkyUtf8View* out_text);
+
+/*
  * Reads the plain text of the paragraph at the zero-based block index.
+ * A block of another kind is rejected.
  * A successful view borrows immutable bytes until document release.
  * On invalid arguments, a non-NULL out_text is set to {NULL, 0}.
  */

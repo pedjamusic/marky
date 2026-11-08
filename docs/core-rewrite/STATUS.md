@@ -1,15 +1,14 @@
 # Core rewrite status
 
-Updated: 2026-11-07. This is the authoritative live ledger. [README](README.md) defines status/acceptance conventions; [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
+Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
 
 ## Current checkpoint
 
-- Active ticket/slice: **T04.S3 accepted/done**. T04 is complete. The [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md) cover the Swift value adapter and hosted AppKit paragraph proof.
-- Acceptance: user **PASS** ("pass"), 2026-11-07, for the reviewed E37 candidate and verification. The user directed this small slice to stay on `main` and asked that future task branches be created before code changes.
-- Delivery: applied the four-file patch directly to clean `main/1c304d7` and compared all four files with the verified snapshot before acceptance bookkeeping (E38). Committed as `6c33854` and pushed directly to `origin/main` (E39).
-- Verification: E37 records Mac Debug unit and reader UI results, Release signing/static linkage, standalone CTest, and handle-lifetime and cancellation checks with negative controls. E38 rechecks the applied inputs and Release executable.
-- Blockers/owes: B03/OWE-T03 still carry Windows/MSVC and Linux/GCC execution and final portability evidence. B06 and OWE-T01/OWE-T02 remain with their existing consumers. OWE-T04 carries syntax and production integration to its receiving tickets.
-- Exact next action: T05.S1 after user selection. Start with the accepted T04 seam, relevant fixtures and the T05 phase definition.
+- **T05.S1 accepted.** The core now returns ordered literal fenced-code blocks and provisional prose, normalizes CRLF, and provides a private backtick-run matcher for T07.S1 and T08.S1. The Swift proof adapter copies the typed blocks. T12 owns the production reader switch.
+- User **PASS** ("pass"), 2026-11-08, accepts the E40 candidate on `codex/t05-s1-fenced-code` based on `main/c6bc744`. E41 records the acceptance checks and Git authorization.
+- macOS arm64 Debug and Release CTest, the sanitizer suites, a strict C11 consumer, 112 macOS unit tests and a signed Release build passed. Regression controls detected invalid fence and code-span closers. The shared corpus check covers block order and literal code bytes for the selected cases. Full paragraph and inline semantics have separate exits.
+- B03/OWE-T03 still carry Windows/MSVC and Linux/GCC execution and final portability evidence. B06, OWE-T01, OWE-T02 and OWE-T04 remain with their named consumers. T05.S3 owns malformed-input and interruption coverage for these paths.
+- Integrate the accepted candidate, record the executed operations, then start T05.S2 when selected.
 
 ## Ticket and slice state
 
@@ -22,7 +21,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T02 | [01](phases/01-behavior-and-baselines.md) | done | T02.S1 done; T02.S2 done | S1 accepted/integrated (E14–E16). E17 original probe/folder evidence and retained failures; E18 supplies six successful dense full-project native visual samples. [S2 report](T02-S2-PERFORMANCE.md); B05 measurement resolved, B06 accessibility remains open. User PASS in E19; integration in E20. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
-| T05 | [03](phases/03-document-blocks.md) | queued | T05.S1 queued; T05.S2 queued; T05.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T05 | [03](phases/03-document-blocks.md) | in_progress | T05.S1 done; T05.S2 queued; T05.S3 queued | T05.S1 verified on macOS (E40) and accepted (E41). |
 | T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -127,6 +126,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E37 | T04.S3 Swift value adapter and native paragraph proof | Reviewed uncommitted snapshot based on clean `main/1c304d759476306c97a71d048d74d5c2db4a46c4`; [report](T04-S3-SWIFT-PARAGRAPH.md) records candidate hashes and commands. | PASS on arm64 macOS: 110 unit tests, including four adapter tests, one reader UI smoke, signed Release/static linkage, 2/2 standalone CTest in Debug and Release. Disposable probe verified cleanup, typed failures, overlapping work and in-flight cancellation. Missing releases and cancellation forwarding failed as expected. | User PASS recorded in E38. The native control proof runs in the hosted test target. Windows/Linux and production parity remain with their named gates. |
 | E38 | T04.S3 acceptance | User **PASS** ("pass"), 2026-11-07, accepts the reviewed E37 candidate. User authorized this small slice directly on `main`. | Applied the exact four-file patch to clean `main/1c304d7` and compared all four files with the snapshot before bookkeeping. The two Swift input hashes and signed Release executable hash match E37. Acceptance bookkeeping adds no runtime execution. | T04.S3 and T04 accepted/done. PASS authorizes the focused commit and main push. |
 | E39 | T04.S3 integration | Accepted four-file candidate committed directly on `main` as `6c33854a225656a80782473b1940d0493f381cfc`, 2026-11-07. | `git push origin main` succeeded, and `git ls-remote --exit-code origin refs/heads/main` verified the candidate revision. The user directed this small slice to stay on `main`. This STATUS-only closeout uses the same main push authorization. | T04 accepted and delivered. T05.S1 is next. Windows/Linux and production parity remain with their named gates. |
+| E40 | T05.S1 fences and literal matcher | Uncommitted on `codex/t05-s1-fenced-code` at `c6bc744831f96ed6b05134e9affff7ecf4ec66a6`. The eight-file implementation, tests and core README patch has SHA-256 `5bae26bd7bf49c516af4efead6f52651f88b3cda20ad2db7460d7fd8a6a5cba8`, excluding this ledger. It is the binary Git diff against HEAD plus the no-index diff of `core/src/LiteralSyntax.h` against `/dev/null`. | macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, macOS SDK and Xcode 27.2 (27B52), CMake/CTest 4.4.5. The two [macOS presets](../../core/README.md#macos) configured in fresh directories with an explicit SDK. `cmake --build` and `ctest --test-dir <build> --output-on-failure --no-tests=error` passed 2/2 each. Both harness controls failed with exit 8 and recovered. A disposable Release copy with weakened closer comparisons failed on MD-008, MD-009 and the partial backtick closer test. ASan/UBSan with strict compiler warnings passed 2/2. A strict C11 client linked the Release archive and verified 200,000 ordered blocks from 3,100,000 input bytes after freeing the input. `xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' -configuration Debug -parallel-testing-enabled NO -only-testing:MarkyTests test` passed 112 tests with zero failures or skips. The shared corpus test checks MD-002, 008–011, 034 and 053–056. The same scheme built in Release and `codesign --verify --deep --strict` passed for Marky.app. | User PASS pending. The production reader remains on Swift, so no UI runtime or production parity claim. Windows/MSVC and Linux/GCC remain open. |
+| E41 | T05.S1 acceptance | User **PASS** ("pass"), 2026-11-08, for the E40 candidate on `codex/t05-s1-fenced-code`. | The eight-file patch matched E40 byte for byte and all 13 recorded build input hashes matched. Debug and Release CTest reruns passed 2/2 each. Signed Release verification passed with access to the macOS trust store. The executable SHA-256 matched `02100940318b36d83ce743e700ba4c79e83bee56ba7692edd8a4998763d04edf`. | User PASS authorizes commit, fast-forward to local main, main push and merged-branch cleanup. |
 
 ## Git authorization and integration
 
@@ -230,6 +231,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | Spec, implementation handoff and review | User selected T04.S3 and requested a spec, implementer handoff and supervisor review, 2026-11-07 | Implemented in an isolated source snapshot, reviewed and verified (E37). |
 | Apply on local main | User directed this small slice to stay on `main`, 2026-11-07 | Applied the reviewed patch directly to clean `main/1c304d7` and verified candidate identity (E38). |
 | Commit and push main | User **PASS** ("pass"), 2026-11-07, accepts E37 under repository policy | Executed in E39. |
+
+### T05.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T05.S1 | User replied **“proceed please and thanks”** to the branch and implementation request, 2026-11-08 | Created `codex/t05-s1-fenced-code` from clean `main/c6bc744` before edits. Verified the uncommitted candidate in E40. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-08, accepts E40 under repository policy | Authorized in E41. |
 
 ## Contract amendments
 

@@ -1,6 +1,6 @@
 # Marky core
 
-Standalone C++20 static-library scaffold. The macOS app still uses its existing Swift implementation; this build does not compile or run Swift, Xcode targets, or Apple frameworks.
+Standalone C++20 static library. The macOS reader still uses its existing Swift parser. The standalone build requires only the C++ toolchain and does not compile Swift, Xcode targets, or Apple frameworks.
 
 ## Platform presets
 
@@ -104,8 +104,9 @@ Keep build directories outside `core/`. For a multi-configuration generator, use
 `marky_core` is explicitly `STATIC`. Its production source list is explicit in [CMakeLists.txt](CMakeLists.txt); test sources are a separate executable. C++20 is required and compiler language extensions are disabled. There are no fetched packages, generated data downloads, third-party test frameworks or third-party runtime libraries. `-DBUILD_TESTING=OFF` builds just the archive without presets.
 
 - [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows caller-validated UTF-8 and an optional cancellation token for the call. The result owns its bytes. Copy a view if it must outlive its document.
-- [`src/Document.cpp`](src/Document.cpp) implements the literal paragraph proof. Nonempty input produces one paragraph and empty input produces zero blocks. UTF-8 validation and line handling belong to T05. The [T04.S2 spec](../docs/core-rewrite/T04-S2-FAILURES-AND-CANCELLATION.md) defines status handling and token lifetime.
-- [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links the production archive and tests ownership, argument handling, cancellation, and parallel calls. The deliberate harness failure switch is confined to this executable.
+- [`src/Document.cpp`](src/Document.cpp) normalizes CRLF, splits fenced code from provisional prose, and owns the result bytes. A fenced block keeps its literal lines, including whitespace and reference-like text. Full paragraph, heading and indented-code parsing belongs to T05.S2. The [T04.S2 spec](../docs/core-rewrite/T04-S2-FAILURES-AND-CANCELLATION.md) defines status handling and token lifetime.
+- [`src/LiteralSyntax.h`](src/LiteralSyntax.h) provides the private delimiter helpers. The code-span matcher reports the byte offset after a closing backtick run of exactly the opening length. Table and inline callers handle escaping outside the span and decide how to interpret a match.
+- [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links the production archive and tests ownership, argument handling, fenced code, code-span boundaries, cancellation, and parallel calls. The deliberate harness failure switch is confined to this executable.
 - [`tests/DocumentFaultTests.cpp`](tests/DocumentFaultTests.cpp) builds the same implementation with private checkpoints to test exceptions, in-flight cancellation, and cleanup. The production archives omit the checkpoints.
 
 Windows/MSVC and Linux/GCC executions and final dependency inspection remain in their named roadmap slices. See the [phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
@@ -114,4 +115,4 @@ Windows/MSVC and Linux/GCC executions and final dependency inspection remain in 
 
 [Package.swift](Package.swift) supplies the local, static `MarkyCore` product used by the Marky app target. Build the Marky scheme normally in Xcode. The package has no external dependencies and uses C++20. When adding or removing a production source, update both explicit source lists in `Package.swift` and `CMakeLists.txt`. The CTest executable stays separate.
 
-SwiftPM exposes the C header from `include/`. The production reader uses Swift. T04.S3 introduces the Swift value adapter and a native paragraph proof.
+SwiftPM exposes the C header from `include/`. The Swift proof adapter copies ordered prose and code blocks from this interface. The native paragraph proof and fence fixture checks run in `MarkyTests`.
