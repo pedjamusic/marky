@@ -10,16 +10,16 @@ struct CoreMarkdownParserTests {
         #expect(document.blocks.isEmpty)
     }
 
-    @Test("The native label receives the paragraph's UTF-8 bytes with normalized line endings")
+    @Test("The native label receives the prepared paragraph's UTF-8 bytes")
     func nativeParagraph() async throws {
-        let source = "# Cafe\u{301} 東京 🎵\r\n**literal**\0after\nlast\r"
+        let source = "Cafe\u{301} 東京 🎵  \r\n**literal**\0after\nlast\r"
         let document = try await CoreMarkdownParser.parse(source)
         #expect(document.blocks.count == 1)
         guard case .paragraph(let paragraph) = try #require(document.blocks.first) else {
             Issue.record("Expected a paragraph")
             return
         }
-        let expected = "# Cafe\u{301} 東京 🎵\n**literal**\0after\nlast\r"
+        let expected = "Cafe\u{301} 東京 🎵\n**literal**\0after last\r"
         #expect(Array(paragraph.utf8) == Array(expected.utf8))
 
         let label = NSTextField(labelWithAttributedString: NSAttributedString(string: paragraph))
@@ -55,7 +55,7 @@ struct CoreMarkdownParserTests {
         async let secondDocument = CoreMarkdownParser.parse(second)
         let (left, right) = try await (firstDocument, secondDocument)
 
-        #expect(left.blocks == [.paragraph(first)])
-        #expect(right.blocks == [.paragraph(second)])
+        #expect(left.blocks == [.paragraph(Array(repeating: "One 🎵\0", count: 4096).joined(separator: " "))])
+        #expect(right.blocks == [.paragraph(Array(repeating: "Deux e\u{301}", count: 4096).joined(separator: " "))])
     }
 }

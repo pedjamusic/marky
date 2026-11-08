@@ -80,6 +80,7 @@ void check_empty_document(const auto& check, const char* input) {
 struct ExpectedBlock {
     MarkyBlockKind kind;
     std::string_view text;
+    uint32_t heading_level = 0;
 };
 
 void check_blocks(const auto& check, std::string_view input,
@@ -94,9 +95,14 @@ void check_blocks(const auto& check, std::string_view input,
     for (const auto& block : expected) {
         MarkyBlockKind kind = MARKY_BLOCK_INVALID;
         MarkyUtf8View text{};
-        matches &= marky_document_block_at(document.get(), index++, &kind, &text) == MARKY_STATUS_OK &&
+        matches &= marky_document_block_at(document.get(), index, &kind, &text) == MARKY_STATUS_OK &&
                    kind == block.kind && text.data != nullptr &&
                    std::string_view(text.data, text.byte_count) == block.text;
+        uint32_t level = 99;
+        const auto level_status = marky_document_heading_level_at(document.get(), index++, &level);
+        matches &= level == block.heading_level &&
+                   level_status == (kind == MARKY_BLOCK_HEADING ? MARKY_STATUS_OK :
+                                                                 MARKY_STATUS_INVALID_ARGUMENT);
     }
     check(matches, fixture);
 }
@@ -116,7 +122,7 @@ void check_fences(const auto& check) {
     check_blocks(check, "~~~\n    ~~~\n**literal**\n~~~\nAfter",
                  {{code, "    ~~~\n**literal**"}, {prose, "After"}},
                  "MD-011: four-space closer stays literal");
-    check_blocks(check, "```bad`info\nbody", {{prose, "```bad`info\nbody"}},
+    check_blocks(check, "```bad`info\nbody", {{prose, "```bad`info body"}},
                  "MD-053: invalid backtick opener stays prose");
     check_blocks(check, "   ~~~ info`ok\nbody\n   ~~~~\nafter", {{code, "body"}, {prose, "after"}},
                  "MD-054: three-space indentation, longer closer, and backticks in tilde info");
@@ -129,7 +135,7 @@ void check_fences(const auto& check) {
                         "```\t\xE2\x80\xAF\r\nAfter\r"sv,
                  {{prose, "Intro"}, {code, "  e\xCC\x81 \xF0\x9F\x8E\xB5\0\n[ref]: /literal"sv},
                   {prose, "After\r"}}, "CRLF, Unicode closer whitespace, and exact literal bytes");
-    check_blocks(check, "\t```\n    ~~~", {{prose, "\t```\n    ~~~"}}, "indented openers stay prose");
+    check_blocks(check, "\t```\n    ~~~", {{code, "```\n~~~"}}, "indented openers remain literal code");
     check_blocks(check, "~~~\n~~~\n\n```\n\nlast\n", {{code, ""}, {code, "\nlast\n"}},
                  "adjacent fences retain empty code and unclosed literal line endings");
 
@@ -153,6 +159,65 @@ void check_fences(const auto& check) {
     check(marky_document_paragraph_at(document, 0, &text) == MARKY_STATUS_INVALID_ARGUMENT &&
               text.data == nullptr && text.byte_count == 0,
           "the paragraph accessor rejects a code block and clears the view");
+    marky_document_release(document);
+}
+
+void check_base_blocks(const auto& check) {
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto code = MARKY_BLOCK_CODE;
+    constexpr auto heading = MARKY_BLOCK_HEADING;
+    constexpr auto rule = MARKY_BLOCK_THEMATIC_BREAK;
+
+    check_blocks(check, "First line\r\nsecond line\r\n\r\nNext",
+                 {{prose, "First line second line"}, {prose, "Next"}},
+                 "MD-003: soft lines join and blank lines split paragraphs");
+    check_blocks(check, "first  \nsecond\r\nthird",
+                 {{prose, "first\nsecond third"}}, "MD-045: retain a hard break before trimming");
+    check_blocks(check, "first\\\nsecond\\\\\nthird",
+                 {{prose, "first\\\nsecond\\\\\nthird"}}, "MD-046/047: preserve backslashes for inline parsing");
+    check_blocks(check, "first  \nsecond\\\n=\n\nnext\n-",
+                 {{heading, "first second\\", 1}, {heading, "next", 2}},
+                 "MD-051: single-character Setext underlines and space joining for heading source");
+    check_blocks(check, "title\n---\n---\n- - -\n***\n___\n--\n*_*",
+                 {{heading, "title", 2}, {rule, ""}, {rule, ""}, {rule, ""}, {rule, ""},
+                  {prose, "-- *_*"}}, "Setext precedes thematic breaks and malformed rules remain prose");
+    check_blocks(check, "#no\n####### seven\n#\n#\tinvalid\n   # valid ###\n## attached###\n"
+                        "### tab-separated\t###\n###### six",
+                 {{prose, "#no ####### seven # #\tinvalid"}, {heading, "valid", 1},
+                  {heading, "attached###", 2}, {heading, "tab-separated\t###", 3},
+                  {heading, "six", 6}}, "MD-049/050: ATX opening and closing hash boundaries");
+    check_blocks(check, "   # heading\n\n    # code\n\tmore\n\nplain\n    continuation",
+                 {{heading, "heading", 1}, {code, "# code\nmore"}, {prose, "plain continuation"}},
+                 "MD-052/057: indentation starts code only outside a paragraph");
+    check_blocks(check, "     one  \n \t\n      \n\t\t[ref]: /literal\n     \n\n~~~\n"
+                        "---\n# heading\n~~~\n    after",
+                 {{code, " one  \n\n  \n\t[ref]: /literal"}, {code, "---\n# heading"}, {code, "after"}},
+                 "literal blocks keep internal whitespace and protect syntax across block boundaries");
+    check_blocks(check, "\xC2\xA0" "e\xCC\x81\xE3\x80\x80\n\xE2\x80\xA8\n"
+                        "*\xE2\x80\x83*\t*\n-\xE2\x80\x8B-\xE2\x80\x8B-",
+                 {{prose, "e\xCC\x81"}, {rule, ""}, {prose, "-\xE2\x80\x8B-\xE2\x80\x8B-"}},
+                 "trim Unicode whitespace and distinguish whitespace inside thematic rules");
+
+    check_blocks(check, "    one\n    \xE2\x80\xA8\n\xE2\x80\xA9\n~~~\ncode\n~~~\n"
+                        "    two\n    \xE2\x80\xA8\n\xE2\x80\xA9\nplain",
+                 {{code, "one"}, {code, "code"}, {code, "two\n\xE2\x80\xA8"}, {prose, "plain"}},
+                 "trim vertical blank lines at prose segment boundaries and retain internal code bytes");
+
+    MarkyDocument* document = nullptr;
+    check(marky_document_create("# Title", 7, &document) == MARKY_STATUS_OK,
+          "a heading produces an owned document");
+    uint32_t level = 99;
+    check(marky_document_heading_level_at(document, 1, &level) == MARKY_STATUS_INVALID_ARGUMENT &&
+              level == 0, "a bad heading index clears the level");
+    level = 99;
+    check(marky_document_heading_level_at(nullptr, 0, &level) == MARKY_STATUS_INVALID_ARGUMENT &&
+              level == 0, "a NULL document clears the level");
+    check(marky_document_heading_level_at(document, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "a NULL heading output is rejected");
+    MarkyUtf8View text{"stale", 5};
+    check(marky_document_paragraph_at(document, 0, &text) == MARKY_STATUS_INVALID_ARGUMENT &&
+              text.data == nullptr && text.byte_count == 0,
+          "the paragraph accessor rejects headings and clears the view");
     marky_document_release(document);
 }
 
@@ -285,6 +350,7 @@ int main() {
     check_empty_document(check, nullptr);
     check_empty_document(check, "");
     check_fences(check);
+    check_base_blocks(check);
     check_code_spans(check);
     check_cancellation(check);
     check_concurrent_calls(check);
@@ -308,6 +374,6 @@ int main() {
     if (failures != 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: document ownership, fences, code spans, cancellation and concurrency checks\n";
+    std::cout << "PASS: document ownership, base blocks, code spans, cancellation and concurrency checks\n";
     return EXIT_SUCCESS;
 }

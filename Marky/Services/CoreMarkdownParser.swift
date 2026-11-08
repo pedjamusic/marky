@@ -2,8 +2,10 @@ import MarkyCore
 
 nonisolated struct CoreMarkdownDocument: Sendable {
     enum Block: Equatable, Sendable {
+        case heading(level: Int, source: String)
         case paragraph(String)
         case code(String)
+        case thematicBreak
     }
 
     let blocks: [Block]
@@ -59,6 +61,16 @@ nonisolated enum CoreMarkdownParser {
             switch kind {
             case MarkyBlockKind(MARKY_BLOCK_PARAGRAPH): blocks.append(.paragraph(text))
             case MarkyBlockKind(MARKY_BLOCK_CODE): blocks.append(.code(text))
+            case MarkyBlockKind(MARKY_BLOCK_HEADING):
+                var level: UInt32 = 0
+                guard marky_document_heading_level_at(result, index, &level) == MarkyStatus(MARKY_STATUS_OK),
+                      (1...6).contains(level)
+                else {
+                    throw ParseError.internalFailure
+                }
+                blocks.append(.heading(level: Int(level), source: text))
+            case MarkyBlockKind(MARKY_BLOCK_THEMATIC_BREAK):
+                blocks.append(.thematicBreak)
             default: throw ParseError.internalFailure
             }
         }

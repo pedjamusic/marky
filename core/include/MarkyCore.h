@@ -24,7 +24,9 @@ enum {
 enum {
     MARKY_BLOCK_INVALID = 0,
     MARKY_BLOCK_PARAGRAPH = 1,
-    MARKY_BLOCK_CODE = 2
+    MARKY_BLOCK_CODE = 2,
+    MARKY_BLOCK_HEADING = 3,
+    MARKY_BLOCK_THEMATIC_BREAK = 4
 };
 
 typedef struct {
@@ -40,8 +42,11 @@ typedef struct {
  * on failure. Release any previously owned result before reusing the slot.
  *
  * Normalizes CRLF line endings to LF. Fenced code contains the literal lines
- * between its delimiters, which can be empty. Other content is returned as
- * provisional paragraph text while base block and inline parsing are developed.
+ * between its delimiters, which can be empty. Indented code retains literal
+ * content after stripping the required indentation and trailing blank lines.
+ * Paragraph and heading text is prepared Markdown awaiting inline parsing.
+ * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
+ * breaks have empty text.
  */
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document);
@@ -96,6 +101,13 @@ MarkyStatus marky_document_block_at(const MarkyDocument* document, size_t index,
  */
 MarkyStatus marky_document_paragraph_at(const MarkyDocument* document, size_t index,
                                         MarkyUtf8View* out_text);
+
+/*
+ * Reads the level (1–6) of the heading at the zero-based block index.
+ * On invalid arguments or a non-heading block, a non-NULL out_level is set to 0.
+ */
+MarkyStatus marky_document_heading_level_at(const MarkyDocument* document, size_t index,
+                                            uint32_t* out_level);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

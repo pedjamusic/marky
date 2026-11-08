@@ -38,28 +38,79 @@ struct MarkdownCompatibilityTests {
         }
     }
 
-    @Test("Core fences match the shared corpus before inline interpretation")
-    func coreFences() async throws {
-        let ids: Set = ["MD-002", "MD-008", "MD-009", "MD-010", "MD-011", "MD-034",
-                        "MD-053", "MD-054", "MD-055", "MD-056"]
+    @Test("Core base blocks match the shared corpus and Swift preparation")
+    func coreBaseBlocks() async throws {
+        let ids: Set = [
+            "MD-001", "MD-002", "MD-003", "MD-004", "MD-005", "MD-006", "MD-007",
+            "MD-008", "MD-009", "MD-010", "MD-011", "MD-012", "MD-040", "MD-041",
+            "MD-044", "MD-045", "MD-046", "MD-047", "MD-048", "MD-049", "MD-050",
+            "MD-051", "MD-052", "MD-053", "MD-054", "MD-055", "MD-056", "MD-057",
+            "MD-084", "MD-085", "MD-086", "MD-087",
+        ]
         let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
         #expect(Set(fixtures.map(\.id)) == ids)
         for fixture in fixtures {
             let document = try await CoreMarkdownParser.parse(fixture.input)
-            let kinds = document.blocks.map { block in
+            let actual = document.blocks.map { block in
                 switch block {
-                case .paragraph: "paragraph"
-                case .code: "code"
+                case .heading(let level, let source):
+                    BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
+                case .paragraph(let source):
+                    BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
+                case .code(let text):
+                    BaseBlock(kind: "code", bytes: Array(text.utf8))
+                case .thematicBreak:
+                    BaseBlock(kind: "thematicBreak")
                 }
             }
-            #expect(kinds == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
-            let literalBytes = document.blocks.compactMap { block -> [UInt8]? in
+            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
+            let expected = prepared.compactMap { block -> BaseBlock? in
+                switch block.kind {
+                case .heading(let level, let source):
+                    return BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
+                case .paragraph(let source):
+                    return BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
+                case .code(let text):
+                    return BaseBlock(kind: "code", bytes: Array(text.utf8))
+                case .thematicBreak:
+                    return BaseBlock(kind: "thematicBreak")
+                default:
+                    Issue.record("Unexpected prepared block in \(fixture.id)")
+                    return nil
+                }
+            }
+            #expect(actual == expected, "Prepared source: \(fixture.id)")
+            #expect(actual.map(\.kind) == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
+            #expect(actual.map(\.level) == fixture.blocks.map(\.level), "Heading levels: \(fixture.id)")
+            #expect(actual.filter { $0.kind == "code" }.compactMap(\.bytes) == literalBytes(fixture),
+                    "Literal code: \(fixture.id)")
+        }
+    }
+
+    @Test("Core fences protect literals in shared reference fixtures")
+    func coreFenceReferences() async throws {
+        // Definition discovery will change the surrounding paragraph blocks in T10.S2.
+        let ids: Set = ["MD-034", "MD-075"]
+        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
+        #expect(Set(fixtures.map(\.id)) == ids)
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let code = document.blocks.compactMap { block -> [UInt8]? in
                 guard case .code(let text) = block else { return nil }
                 return Array(text.utf8)
             }
-            let expectedBytes = fixture.blocks.compactMap { $0.text.map { Array($0.utf8) } }
-            #expect(literalBytes == expectedBytes, "Literal code: \(fixture.id)")
+            #expect(code == literalBytes(fixture), "Literal code: \(fixture.id)")
         }
+    }
+
+    private struct BaseBlock: Equatable {
+        let kind: String
+        var level: Int?
+        var bytes: [UInt8]?
+    }
+
+    private func literalBytes(_ fixture: Fixture) -> [[UInt8]] {
+        fixture.blocks.filter { $0.kind == "code" }.compactMap { $0.text.map { Array($0.utf8) } }
     }
 
     @Test("Corpus identities, provenance and expected shapes are valid")
