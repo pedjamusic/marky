@@ -4,10 +4,10 @@ Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) 
 
 ## Current checkpoint
 
-- **T05.S2 accepted.** User **PASS** ("pass"), 2026-11-08, accepts the E44 candidate on `codex/t05-s2-base-blocks` (E45). The core returns paragraphs, ATX and Setext headings with levels, thematic breaks, and indented code in addition to the accepted fenced blocks. The Swift proof adapter copies each block.
+- **T05.S2 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts the E44 candidate (E45). It landed on `main` as `d08801f`. E46 records remote verification and merged-branch cleanup. The core returns paragraphs, ATX and Setext headings with levels, thematic breaks, and indented code in addition to the accepted fenced blocks. The Swift proof adapter copies each block.
 - The Mac core Debug and Release suites, strict warning and sanitizer build, C11 consumer, 113 Mac unit tests, and signed Release build passed. The shared fixture comparisons cover block order, prepared source bytes, heading levels, and literal code. T12 still owns the production reader switch.
 - B03/OWE-T03 retain Windows/MSVC and Linux/GCC execution. B07 records the combining-mark delimiter cases for T05.S3. B06, OWE-T01, OWE-T02 and OWE-T04 remain with their named consumers.
-- **Next action:** integrate the accepted T05.S2 candidate. T05.S3 then covers malformed input and interruption, including B07.
+- **Next when selected is T05.S3.** Add public-interface regressions for malformed input and interruption, including B07. [Phase definition](phases/03-document-blocks.md#t05--base-blocks-and-literal-protection).
 
 ## Ticket and slice state
 
@@ -20,7 +20,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T02 | [01](phases/01-behavior-and-baselines.md) | done | T02.S1 done; T02.S2 done | S1 accepted/integrated (E14–E16). E17 original probe/folder evidence and retained failures; E18 supplies six successful dense full-project native visual samples. [S2 report](T02-S2-PERFORMANCE.md); B05 measurement resolved, B06 accessibility remains open. User PASS in E19; integration in E20. |
 | T03 | [02](phases/02-core-and-swift-seam.md) | done | T03.S1 done; T03.S2 done; T03.S3 done | S1 accepted/integrated (E21–E23). S2 accepted and integrated via PR #4 (E24–E27). S3 verified, accepted and integrated (E28–E30); [report](T03-S3-XCODE-INTEGRATION.md). Windows/Linux execution remains with B03/OWE-T03. |
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
-| T05 | [03](phases/03-document-blocks.md) | in_progress | T05.S1 done; T05.S2 done; T05.S3 queued | T05.S1 integrated in E42. T05.S2 verified on macOS in E43, applied in E44 and accepted in E45. |
+| T05 | [03](phases/03-document-blocks.md) | in_progress | T05.S1 done; T05.S2 done; T05.S3 queued | T05.S1 integrated in E42. T05.S2 verified on macOS in E43, applied in E44, accepted in E45 and integrated in E46. |
 | T06 | [03](phases/03-document-blocks.md) | queued | T06.S1 queued; T06.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -132,6 +132,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E43 | T05.S2 base blocks | Isolated `/tmp/MarkyT05S2.vKpDcB/source` at `164e0dcd95bcaa74f9a839dc13fe8bbca2def654`. Seven-file implementation patch SHA-256 `1cdb5a3191d7a6c01f81ff26a38ecd09ae8c2e51be1b7b0dfd8fce98aad8d967` (binary Git diff, excluding STATUS). The 14 build-input hashes are in `checks/build-inputs.sha256` beside the snapshot. | macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, Xcode and macOS SDK 27.2, CMake/CTest 4.4.5. Configured the two macOS presets in fresh directories with explicit SDK, built with `cmake --build <build> --parallel 3`, and ran `ctest --test-dir <build> --output-on-failure --no-tests=error`. Debug and Release each passed 2/2, detected the forced harness failure (exit 8), and recovered. ASan/UBSan plus strict compiler warnings passed 2/2. A Release mutation triggered the hard-break, Setext precedence, and vertical blank-line regressions. A strict C11 consumer verified 300,000 ordered blocks from 4,740,000 input bytes after freeing the input. `xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' -configuration Debug -parallel-testing-enabled NO -only-testing:MarkyTests test` passed 113 tests in six suites, including 32 full base-block projections and two fence literal projections with reference definitions. The same scheme built in Release and `codesign --verify --deep --strict` passed. The sandbox entitlement was present and the Release executable SHA-256 is `a789cb106043c60b0f89826c411c068669d374ea5cc72ebb38e82f178b66800c`. | User PASS pending. Core-only scope with no production UI runtime or Windows/Linux execution claimed. B07 remains for T05.S3. |
 | E44 | T05.S2 candidate application | User replied **“yes”** to creating `codex/t05-s2-base-blocks` and applying the E43 patch, 2026-11-08. Created the local branch from clean `main/164e0dcd95bcaa74f9a839dc13fe8bbca2def654` and applied the eight-file patch. | The applied seven-file implementation diff and all 14 recorded build-input hashes matched E43. Fresh Debug and Release macOS preset builds with an explicit SDK each passed CTest 2/2 from the task branch. `git diff --check` passed. The Mac unit and signing evidence remains from the byte-identical build inputs in E43. | User PASS pending for the applied uncommitted candidate. |
 | E45 | T05.S2 acceptance | User **PASS** ("pass"), 2026-11-08, for the E44 candidate on `codex/t05-s2-base-blocks`. | The implementation diff matched E43 and all 14 build-input hashes matched. The Release executable matched its E43 SHA-256. Debug and Release CTest reruns each passed 2/2. | User PASS authorizes commit, fast-forward to local main, main push and merged-branch cleanup. |
+| E46 | T05.S2 integration | Accepted candidate and acceptance record committed as `d08801f7a11a532150e10a180cf65c1c58bc8f04`, 2026-11-08. | `git merge --ff-only codex/t05-s2-base-blocks` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deleting the merged local task branch. This STATUS-only handoff uses the same main-push authorization. | T05.S2 delivered. T05.S3 is next, with B07 open. Windows/MSVC and Linux/GCC execution remains with B03/OWE-T03. |
 
 ## Git authorization and integration
 
@@ -249,7 +250,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Select and implement T05.S2 | User selected T05.S2, 2026-11-08 | Prepared and verified the isolated candidate in E43. |
 | Create local branch and apply candidate | User replied **“yes”** to creating `codex/t05-s2-base-blocks` and applying the verified patch, 2026-11-08 | Executed in E44. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-08, accepts E44 under repository policy | Authorized in E45. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass"), 2026-11-08, accepts E44 under repository policy | Authorized in E45 and executed in E46. |
 
 ## Contract amendments
 
