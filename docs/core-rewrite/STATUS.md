@@ -5,7 +5,7 @@ Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) 
 ## Current checkpoint
 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
-- **Next when selected is T07.S1.** Implement table recognition, alignment, normalization, and termination using the T05.S1 literal helper and the accepted T06 quote/list boundary fixtures. T10.S3 owns formatted quote semantics, including styles or code spanning source lines. T11.S2 owns native list and quote presentation, and T12 owns production cutover. [Phase definition](phases/03-document-blocks.md#t07--tables-and-image-blocks)
+- **T07.S1 is accepted.** User **PASS** ("pass"), 2026-11-08, accepts the E57 portable table candidate (E58). T07.S2 standalone image metadata is next after integration and selection. [Phase definition](phases/03-document-blocks.md#t07--tables-and-image-blocks)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T06's OWE-T01 and OWE-T04 receipts are closed. OWE-T06 is open for T11.S2.
 
 ## Ticket and slice state
@@ -21,7 +21,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
-| T07 | [03](phases/03-document-blocks.md) | queued | T07.S1 queued; T07.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T07 | [03](phases/03-document-blocks.md) | in_progress | T07.S1 done; T07.S2 queued | E57 verifies table structure, prepared cell bytes, and lifetime. E58 records user PASS. Standalone image metadata is assigned to S2. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -62,7 +62,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T04 | T04 | T05, T06, T07, T08, T09, T10, T12 | open | E37 supplies the Swift value adapter and test-only native paragraph proof. T05 receipt closed with typed base blocks, Swift adapter comparison, and partial-build cleanup through the C API (E40, E43, E47–E49). T06 receipt closed with list and quote ownership, adapter, and interruption checks (E51–E52, E54–E55). T07–T10 record their remaining syntax and lifetime evidence; T12 records accepted production selection. |
 | OWE-T05 | T05 | T08, T09, T10 | open | T08/T09 record their literal/inline interactions; T10.S3 records the complete corpus. |
 | OWE-T06 | T06 | T11 | open | E52 and E55 accept semantic list and quote coverage. T11.S2 closes with native list markers, indentation, quote presentation, and relevant UI evidence. |
-| OWE-T07 | T07 | T10, T11 | planned | T10.S3 formatted-cell semantic coverage; T11.S2 native table/image presentation/access evidence. |
+| OWE-T07 | T07 | T10, T11 | open | E57–E58 supply the accepted table structure. T10.S3 owes formatted-cell semantics and T11.S2 owes native table presentation. T07.S2 supplies the image metadata prerequisite for the native image presentation and access checks. |
 | OWE-T08 | T08 | T09, T10 | planned | Each recipient records combined literal/escape/normalization cases using final checked-in data; no recipient waits for the other's acceptance. |
 | OWE-T09 | T09 | T11, T12 | planned | T11 attributed-run traits/ranges; T12 native parity on the combined-style corpus. |
 | OWE-T10 | T10 | T11, T12 | planned | T11 native destination/link/alt mapping; T12 complete parity results. |
@@ -142,6 +142,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E54 | T06.S2 blockquote structure | Uncommitted on `codex/t06-s2-blockquote-structure` at `3fbeaff52b2bfd1b1af0028b5a4be8ab1c2e457e`. Eight-file patch SHA-256 `ced2de49be10d3ac2a153751f7dbfbb03f7cbb885f009f1cd944b018cc8a412b` excludes this ledger. Patch and logs are in `/tmp/MarkyT06S2.SOm5R9/`. | [Verification below](#t06s2-mac-run). macOS arm64 Debug/Release and ASan/UBSan CTest passed 2/2 each. Both normal builds detected intentional harness failure and recovered. Fault tests injected allocation failure and cross-thread cancellation after an owned quote line was buffered. Apple `leaks` reported zero leaks. Six Swift compatibility tests and the full Mac test scheme passed. In-session standards and spec review found no remaining actionable findings. | E55 records user PASS. MD-024 verifies separation from table source while table recognition is pending in T07.S1. Inline interpretation and native quote presentation remain with their receiving slices. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E55 | T06.S2 acceptance | User **PASS** ("pass"), 2026-11-08, for E54 on `codex/t06-s2-blockquote-structure`. | The eight-file patch matched E54 byte for byte. Debug and Release CTest reruns each passed 2/2. Remote main matched the candidate base `3fbeaff`. | T06.S2 and T06 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
 | E56 | T06.S2 and T06 integration | Accepted candidate and acceptance record committed as `bd91edea992d946a4481257244cc993f2bd219df`, 2026-11-08. | `git merge --ff-only codex/t06-s2-blockquote-structure` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T06 delivered. T07.S1 is next. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E57 | T07.S1 portable tables | Verified uncommitted on `codex/t07-s1-table-parsing` at `c03e622da5e2365d2d2009a5f21ed30e012944b2`. Eight-file patch SHA-256 `001e931fa9f3f477aad7dff823d716681aca00d249a596c120008143d694fb67` excludes this ledger. Patch and logs are in `/tmp/MarkyT07S1.bkn5Sf/`. | [Verification below](#t07s1-mac-run). Debug, Release, and ASan/UBSan CTest passed 2/2 each. The Swift proof adapter matched all 19 applicable fixtures. The full Mac scheme passed 116 unit and eight UI tests, with two opt-in performance tests skipped. In-session standards and spec review found no remaining actionable findings. | E58 records user PASS. MD-090 verifies the table terminates before a recognized image. Image metadata belongs to T07.S2, inline cell semantics to T10.S3, and native table presentation to T11.S2. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E58 | T07.S1 acceptance | User **PASS** ("pass"), 2026-11-08, for E57 on `codex/t07-s1-table-parsing`. | The eight-file working-tree patch matched E57 byte for byte. Debug and Release CTest reruns each passed 2/2. Remote main matched the candidate base `c03e622`. | T07.S1 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -187,6 +189,35 @@ Both intentional failures exited 8. The sanitizer run repeated Debug in a separa
 The Swift quote test compared block order, depths, and prepared source bytes for MD-019, MD-024, MD-058, MD-060, MD-061, and MD-071. The portable tests also verify CRLF, embedded NUL, empty quoted lines at different depths, code source spanning lines, and preservation of quote-like graphemes. The complete Mac run passed 115 unit tests and eight UI tests, with two opt-in performance tests skipped.
 
 A synthetic C11 consumer linked the Release archive and verified 300,001 quote lines after freeing the input. The 3,700,001-byte input repeated 100,000 CRLF groups of an outer line, a nested line with Unicode and NUL, an empty quoted line, and a blank separator. Its final line used one million quote markers. A local Python subprocess run measured 0.0525 s elapsed and 27,721,728 bytes maximum RSS for generation, parsing, verification, and release. This was a stress check. The T02/T17 performance comparison uses its fixed fixtures.
+
+### T07.S1 Mac run
+
+macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake/CTest 4.4.5, Xcode 27.2 (27B52), macOS SDK 27.2. Run from the repository root with a fresh temporary directory for `T07_BUILD`:
+
+```sh
+sdk_path=$(xcrun --sdk macosx --show-sdk-path)
+for config in Debug Release; do
+  build_dir="$T07_BUILD/core-$config"
+  cmake -S core -B "$build_dir" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="$config" \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_SYSROOT="$sdk_path" \
+    -DCMAKE_CXX_FLAGS='-Wall -Wextra -Wpedantic -Werror'
+  cmake --build "$build_dir" --parallel 4
+  MARKY_CORE_TEST_FORCE_FAILURE=1 ctest --test-dir "$build_dir" -R '^marky_core_tests$' --output-on-failure
+  ctest --test-dir "$build_dir" --output-on-failure --no-tests=error
+done
+leaks --atExit -- "$T07_BUILD/core-Debug/marky_core_fault_tests"
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -configuration Debug -derivedDataPath "$T07_BUILD/xcode" -parallel-testing-enabled NO \
+  -only-testing:MarkyTests/MarkdownCompatibilityTests test
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -configuration Debug -derivedDataPath "$T07_BUILD/xcode" -parallel-testing-enabled NO test
+```
+
+Both deliberate CTest failures exited 8 and the ordinary tests recovered. The sanitizer run repeated Debug in a separate directory with `-fno-omit-frame-pointer -fsanitize=address,undefined` appended to `CMAKE_CXX_FLAGS`. Apple `leaks` reported zero leaks. The MD-024 block-order check failed on the base parser and passed after table recognition. Fault tests interrupted after the first owned table body row and verified typed failure, cross-thread cancellation, and successful recovery.
+
+The seven-test Swift compatibility suite compared prepared cell bytes, alignment, and block order for MD-020–026, MD-062–068, and MD-088–092. The portable harness also checked CRLF, Unicode, embedded NUL, retained escapes, normalized width, invalid accessors, and source ownership. A local differential probe agreed with the Swift row splitter on 2,000 seeded rows containing ASCII syntax, combining accents, whitespace, and emoji.
+
+A C11 Release archive consumer and the Swift proof adapter verified a 331,074-byte table with 32,768 columns and 100,000 one-cell rows, including indexed reads of virtual empty cells. A separate C11 stress input used one 4,504,518-byte document with 3,000 distinct unmatched backtick runs in one row. It took 3.8181 s with repeated scans and 0.0155 s with the indexed matcher in local subprocess observations. These are stress observations. The T02/T17 comparison uses its fixed fixtures.
 
 ## Git authorization and integration
 
@@ -327,6 +358,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Create local branch and implement T06.S2 | User selected T06.S2 and replied **"Yes, create the local branch"**, 2026-11-08 | Created `codex/t06-s2-blockquote-structure` from clean `main/3fbeaff` before edits. The restricted shell could not write the ref. The authorized execution-access retry succeeded. E54 identifies the verified candidate. |
 | Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts the verified E54 candidate under repository policy, 2026-11-08 | Authorized in E55 and executed in E56. |
+
+### T07.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T07.S1 | User selected T07.S1 and replied **"Yes, create the local branch"**, 2026-11-08 | Created `codex/t07-s1-table-parsing` from clean `main/c03e622` before applying changes to the repository. E57 identifies the verified candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E57 under repository policy. | Authorized in E58. |
 
 ## Contract amendments
 

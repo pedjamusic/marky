@@ -13,6 +13,7 @@ typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
 typedef uint32_t MarkyBlockKind;
 typedef uint32_t MarkyListMarkerKind;
+typedef uint32_t MarkyTableAlignment;
 
 enum {
     MARKY_STATUS_OK = 0,
@@ -29,7 +30,8 @@ enum {
     MARKY_BLOCK_HEADING = 3,
     MARKY_BLOCK_THEMATIC_BREAK = 4,
     MARKY_BLOCK_LIST = 5,
-    MARKY_BLOCK_QUOTE = 6
+    MARKY_BLOCK_QUOTE = 6,
+    MARKY_BLOCK_TABLE = 7
 };
 
 enum {
@@ -38,6 +40,13 @@ enum {
     MARKY_LIST_MARKER_ORDERED = 2,
     MARKY_LIST_MARKER_TASK_UNCHECKED = 3,
     MARKY_LIST_MARKER_TASK_CHECKED = 4
+};
+
+enum {
+    MARKY_TABLE_ALIGNMENT_INVALID = 0,
+    MARKY_TABLE_ALIGNMENT_LEFT = 1,
+    MARKY_TABLE_ALIGNMENT_CENTER = 2,
+    MARKY_TABLE_ALIGNMENT_RIGHT = 3
 };
 
 typedef struct {
@@ -57,6 +66,11 @@ typedef struct {
     MarkyUtf8View source;
 } MarkyQuoteLineView;
 
+typedef struct {
+    MarkyTableAlignment alignment;
+    MarkyUtf8View header;
+} MarkyTableColumnView;
+
 /*
  * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
  * The input may be NULL for zero bytes. Embedded NUL bytes are preserved.
@@ -69,7 +83,7 @@ typedef struct {
  * content after stripping the required indentation and trailing blank lines.
  * Paragraph and heading text is prepared Markdown awaiting inline parsing.
  * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
- * breaks, lists and quotes have empty block text. List items expose prepared
+ * breaks, lists, quotes and tables have empty block text. List items expose prepared
  * Markdown source, with continuation lines separated by LF. Quote lines expose
  * prepared Markdown source and marker depth in source order.
  */
@@ -160,6 +174,37 @@ size_t marky_document_quote_line_count(const MarkyDocument* document, size_t blo
  */
 MarkyStatus marky_document_quote_line_at(const MarkyDocument* document, size_t block_index,
                                         size_t line_index, MarkyQuoteLineView* out_line);
+
+/*
+ * Returns the table's column count or body row count. Both return zero for an
+ * invalid index or non-table. The header is not part of the body row count.
+ */
+size_t marky_document_table_column_count(const MarkyDocument* document, size_t block_index);
+size_t marky_document_table_row_count(const MarkyDocument* document, size_t block_index);
+
+/*
+ * Returns the number of cells through the last nonempty body cell. Returns
+ * zero for an empty row or invalid index. The remaining columns are empty.
+ */
+size_t marky_document_table_row_content_count(const MarkyDocument* document, size_t block_index,
+                                              size_t row_index);
+
+/*
+ * Reads the alignment and prepared Markdown header at a zero-based column.
+ * The UTF-8 view is valid until document release. On invalid arguments, a
+ * non-NULL out_column is reset to invalid alignment and an empty view.
+ */
+MarkyStatus marky_document_table_column_at(const MarkyDocument* document, size_t block_index,
+                                          size_t column_index, MarkyTableColumnView* out_column);
+
+/*
+ * Reads prepared Markdown at a zero-based body row and column. Short rows
+ * expose empty cells through the last column. Surplus cells are discarded.
+ * The UTF-8 view is valid until document release. On invalid arguments, a
+ * non-NULL out_cell is reset to {NULL, 0}.
+ */
+MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t block_index,
+                                        size_t row_index, size_t column_index, MarkyUtf8View* out_cell);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

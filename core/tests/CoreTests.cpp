@@ -277,8 +277,8 @@ void check_quote_blocks(const auto& check) {
                 {{1, "**first"}, {1, "second**"}, {1, ""}, {2, "nested"}},
                 "MD-060 retains lines and source for cross-line emphasis");
     constexpr std::string_view table_boundary = "| A | B |\n| --- | --- |\nSolo\n> Quote with | pipes";
-    check_blocks(check, table_boundary, {{prose, "| A | B | | --- | --- | Solo"}, {quote, ""}},
-                 "MD-024 quote terminates still-unparsed table source");
+    check_blocks(check, table_boundary, {{MARKY_BLOCK_TABLE, ""}, {quote, ""}},
+                 "MD-024 quote terminates a table");
     check_quote(check, table_boundary, 1, {{1, "Quote with | pipes"}}, "MD-024 retains quoted pipes");
     check_blocks(check, "- first\n  > literal quote continuation\nplain\n> quote",
                  {{list, ""}, {prose, "plain"}, {quote, ""}}, "MD-058 list continuation and quote boundary");
@@ -327,6 +327,153 @@ void check_quote_accessor_arguments(const auto& check) {
               marky_document_quote_line_count(document.get(), 2) == 0 &&
               marky_document_quote_line_count(nullptr, 1) == 0,
           "non-quote, out-of-range and NULL documents must report zero lines");
+}
+
+struct ExpectedColumn {
+    MarkyTableAlignment alignment;
+    std::string_view header;
+};
+
+void check_table(const auto& check, std::string_view source, std::initializer_list<ExpectedColumn> columns,
+                 std::initializer_list<std::initializer_list<std::string_view>> rows, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    MarkyStatus status;
+    {
+        std::string input(source);
+        status = marky_document_create(input.data(), input.size(), &raw_document);
+        std::memset(input.data(), '?', input.size());
+    }
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyBlockKind kind = MARKY_BLOCK_INVALID;
+    MarkyUtf8View text{};
+    bool matches = status == MARKY_STATUS_OK &&
+                   marky_document_block_at(document.get(), 0, &kind, &text) == MARKY_STATUS_OK &&
+                   kind == MARKY_BLOCK_TABLE && text.data != nullptr && text.byte_count == 0 &&
+                   marky_document_table_column_count(document.get(), 0) == columns.size() &&
+                   marky_document_table_row_count(document.get(), 0) == rows.size();
+    size_t column_index = 0;
+    for (const auto& column : columns) {
+        MarkyTableColumnView view{};
+        matches &= marky_document_table_column_at(document.get(), 0, column_index++, &view) == MARKY_STATUS_OK &&
+                   view.alignment == column.alignment && view.header.data != nullptr &&
+                   std::string_view(view.header.data, view.header.byte_count) == column.header;
+    }
+    size_t row_index = 0;
+    for (const auto& row : rows) {
+        column_index = 0;
+        for (const auto cell : row) {
+            MarkyUtf8View view{};
+            matches &= marky_document_table_cell_at(document.get(), 0, row_index, column_index++, &view) ==
+                           MARKY_STATUS_OK &&
+                       view.data != nullptr && std::string_view(view.data, view.byte_count) == cell;
+        }
+        ++row_index;
+    }
+    check(matches, fixture);
+}
+
+void check_table_blocks(const auto& check) {
+    constexpr auto left = MARKY_TABLE_ALIGNMENT_LEFT;
+    constexpr auto center = MARKY_TABLE_ALIGNMENT_CENTER;
+    constexpr auto right = MARKY_TABLE_ALIGNMENT_RIGHT;
+    constexpr auto table = MARKY_BLOCK_TABLE;
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto heading = MARKY_BLOCK_HEADING;
+    using namespace std::string_view_literals;
+    check_table(check, " Name | **Age** | City \r\n :--- | :-: | -:\r\n"
+                       "caf\xC3\xA9\0! | 30 | London | excess\r\nOnly A"sv,
+                {{left, "Name"}, {center, "**Age**"}, {right, "City"}},
+                {{"caf\xC3\xA9\0!"sv, "30", "London"}, {"Only A", "", ""}},
+                "MD-020/021/023 alignment and normalized rows preserve owned UTF-8, NUL, and CRLF input");
+    check_table(check, "| A | B |\n| --- | --- |\n| Escaped \\| pipe | `a|b` |\n"
+                       "end\\|\nx\\\\|y\nx\\\\\\|z | q\n`open | tail\n``a`b|c`` | d",
+                {{left, "A"}, {left, "B"}},
+                {{"Escaped \\| pipe", "`a|b`"}, {"end\\|", ""}, {"x\\\\", "y"}, {"x\\\\\\|z", "q"},
+                 {"`open", "tail"}, {"``a`b|c``", "d"}},
+                "MD-022/062–064 preserve escapes, parity, and code source with matching and unmatched runs");
+    check_table(check, "| A |\n| - |", {{left, "A"}}, {}, "a one-column table can have no body");
+    check_table(check, "A | B | C\n- | - | -\nfirst```` | \\```a|b`` | last",
+                {{left, "A"}, {left, "B"}, {left, "C"}},
+                {{"first````", "\\```a|b``", "last"}},
+                "after an unmatched run, an escaped backtick can leave a shorter matched opener");
+    check_table(check, "A | B\n- | -\nx|\xCC\x81 y | z\n| | |",
+                {{left, "A"}, {left, "B"}}, {{"x|\xCC\x81 y", "z"}, {"", ""}},
+                "a pipe with a combining suffix stays literal and empty rows retain their columns");
+    check_table(check, "A | B\n- | -\n![alt](bad destination) | body\n"
+                       "![alt](<file name.png> 'caption')",
+                {{left, "A"}, {left, "B"}}, {{"![alt](bad destination)", "body"}},
+                "only recognized standalone images end table rows");
+
+    check_blocks(check, "A | B\n--x | ---\nrow | next", {{prose, "A | B --x | --- row | next"}},
+                 "MD-065 malformed delimiters preserve paragraph text");
+    check_blocks(check, "| A | B | C |\n| --- | --- |\n| 1 | 2 |",
+                 {{prose, "| A | B | C | | --- | --- | | 1 | 2 |"}}, "MD-025 mismatched header width stays prose");
+    check_blocks(check, "`A|B`\n| - |\n\nA\\|B\n| - |",
+                 {{prose, "`A|B` | - |"}, {prose, "A\\|B | - |"}},
+                 "pipes only inside code or escapes do not start tables");
+    check_blocks(check, "A | B\n---\n\nA | B\n- | -\n===\n\nA | B\n- | -\n***",
+                 {{heading, "A | B", 2}, {table, ""}, {prose, "==="},
+                  {table, ""}, {MARKY_BLOCK_THEMATIC_BREAK, ""}},
+                 "MD-088/089 distinguish Setext headings, equals underlines, and rules from table rows");
+    check_blocks(check, "A | B\n- | -\n# heading\n\nA | B\n- | -\n- list | item\n\nA | B\n- | -\n"
+                        "    literal | code\n\nA | B\n- | -\n~~~\nliteral | code\n~~~\n\n"
+                        "A | B\n- | -\n![alt](image.png)\n\nA | B\n- | -\n\nplain",
+                 {{table, ""}, {heading, "heading", 1}, {table, ""}, {MARKY_BLOCK_LIST, ""},
+                  {table, ""}, {MARKY_BLOCK_CODE, "literal | code"}, {table, ""},
+                  {MARKY_BLOCK_CODE, "literal | code"}, {table, ""}, {prose, "![alt](image.png)"},
+                  {table, ""}, {prose, "plain"}},
+                 "MD-066–068/090–092 terminate tables before headings, lists, code, images, and blanks");
+    check_blocks(check, "> A | B\n- | -\n\n- A | B\n- | -\n\n# A | B\n- | -\n\n![A|B](x)\n- | -",
+                 {{MARKY_BLOCK_QUOTE, ""}, {MARKY_BLOCK_LIST, ""}, {MARKY_BLOCK_LIST, ""},
+                  {heading, "A | B", 1}, {MARKY_BLOCK_LIST, ""}, {prose, "![A|B](x)"}, {MARKY_BLOCK_LIST, ""}},
+                 "container and standalone image syntax take precedence over a potential table header");
+}
+
+void check_table_accessor_arguments(const auto& check) {
+    constexpr std::string_view source = "Intro\n\nA | B\n--- | ---\nOnly A";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(source.data(), source.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyTableColumnView column{};
+    MarkyUtf8View cell{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_table_column_at(document.get(), 1, 0, &column) == MARKY_STATUS_OK &&
+              marky_document_table_cell_at(document.get(), 1, 0, 0, &cell) == MARKY_STATUS_OK,
+          "argument checks require a valid table header and body cell");
+    const auto rejects_column = [&](const MarkyDocument* candidate, size_t block, size_t index) {
+        auto output = column;
+        return marky_document_table_column_at(candidate, block, index, &output) == MARKY_STATUS_INVALID_ARGUMENT &&
+               output.alignment == MARKY_TABLE_ALIGNMENT_INVALID &&
+               output.header.data == nullptr && output.header.byte_count == 0;
+    };
+    const auto rejects_cell = [&](const MarkyDocument* candidate, size_t block, size_t row, size_t index) {
+        auto output = cell;
+        return marky_document_table_cell_at(candidate, block, row, index, &output) == MARKY_STATUS_INVALID_ARGUMENT &&
+               output.data == nullptr && output.byte_count == 0;
+    };
+    check(rejects_column(document.get(), 1, 2) && rejects_column(document.get(), 0, 0) &&
+              rejects_column(document.get(), 2, 0) && rejects_column(nullptr, 1, 0) &&
+              marky_document_table_column_at(document.get(), 1, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "invalid column lookups reject missing outputs and clear stale views");
+    check(rejects_cell(document.get(), 1, 1, 0) && rejects_cell(document.get(), 1, 0, 2) &&
+              rejects_cell(document.get(), 0, 0, 0) && rejects_cell(document.get(), 2, 0, 0) &&
+              rejects_cell(nullptr, 1, 0, 0) &&
+              marky_document_table_cell_at(document.get(), 1, 0, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "invalid cell lookups reject missing outputs and clear stale views");
+    for (const size_t index : {0, 2}) {
+        check(marky_document_table_column_count(document.get(), index) == 0 &&
+                  marky_document_table_row_count(document.get(), index) == 0,
+              "non-table and out-of-range blocks report zero columns and rows");
+    }
+    check(marky_document_table_column_count(nullptr, 0) == 0 && marky_document_table_row_count(nullptr, 0) == 0,
+          "NULL documents report zero columns and rows");
+    check(marky_document_table_row_content_count(document.get(), 1, 0) == 1 &&
+              marky_document_table_row_content_count(document.get(), 1, 1) == 0 &&
+              marky_document_table_row_content_count(document.get(), 0, 0) == 0 &&
+              marky_document_table_row_content_count(nullptr, 0, 0) == 0,
+          "the body content count excludes padding and is zero for invalid rows or blocks");
 }
 
 void check_fences(const auto& check) {
@@ -607,6 +754,8 @@ int main() {
     check_list_boundaries(check);
     check_quote_blocks(check);
     check_quote_accessor_arguments(check);
+    check_table_blocks(check);
+    check_table_accessor_arguments(check);
     check_combining_delimiters(check);
     check_malformed_blocks(check);
     check_code_spans(check);
@@ -632,6 +781,6 @@ int main() {
     if (failures != 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: document ownership, base blocks, lists, quotes, code spans, cancellation and concurrency checks\n";
+    std::cout << "PASS: document ownership, base blocks, lists, quotes, tables, code spans, cancellation and concurrency checks\n";
     return EXIT_SUCCESS;
 }

@@ -8,6 +8,7 @@ nonisolated struct CoreMarkdownDocument: Sendable {
         case thematicBreak
         case list([ListItem])
         case quote([QuoteLine])
+        case table(Table)
     }
 
     struct ListItem: Equatable, Sendable {
@@ -25,6 +26,23 @@ nonisolated struct CoreMarkdownDocument: Sendable {
     struct QuoteLine: Equatable, Sendable {
         let depth: Int
         let source: String
+    }
+
+    struct Table: Equatable, Sendable {
+        struct Row: RandomAccessCollection, Equatable, Sendable {
+            fileprivate let cells: [String]
+            let endIndex: Int
+            var startIndex: Int { 0 }
+
+            subscript(index: Int) -> String {
+                precondition(index >= 0 && index < endIndex)
+                return index < cells.count ? cells[index] : ""
+            }
+        }
+
+        let headers: [String]
+        let alignments: [MarkdownTableAlignment]
+        let rows: [Row]
     }
 
     let blocks: [Block]
@@ -91,6 +109,8 @@ nonisolated enum CoreMarkdownParser {
                 blocks.append(.list(try copyList(from: result, blockIndex: index)))
             case MarkyBlockKind(MARKY_BLOCK_QUOTE):
                 blocks.append(.quote(try copyQuote(from: result, blockIndex: index)))
+            case MarkyBlockKind(MARKY_BLOCK_TABLE):
+                blocks.append(.table(try copyTable(from: result, blockIndex: index)))
             default: throw ParseError.internalFailure
             }
         }
@@ -135,6 +155,50 @@ nonisolated enum CoreMarkdownParser {
             lines.append(.init(depth: line.depth, source: try copyText(line.source)))
         }
         return lines
+    }
+
+    private static func copyTable(from document: OpaquePointer, blockIndex: Int) throws -> CoreMarkdownDocument.Table {
+        let columnCount = marky_document_table_column_count(document, blockIndex)
+        guard columnCount > 0 else { throw ParseError.internalFailure }
+        var headers: [String] = []
+        var alignments: [MarkdownTableAlignment] = []
+        headers.reserveCapacity(columnCount)
+        alignments.reserveCapacity(columnCount)
+        for columnIndex in 0..<columnCount {
+            try Task.checkCancellation()
+            var column = MarkyTableColumnView()
+            guard marky_document_table_column_at(document, blockIndex, columnIndex, &column) == MarkyStatus(MARKY_STATUS_OK) else {
+                throw ParseError.internalFailure
+            }
+            switch column.alignment {
+            case MarkyTableAlignment(MARKY_TABLE_ALIGNMENT_LEFT): alignments.append(.left)
+            case MarkyTableAlignment(MARKY_TABLE_ALIGNMENT_CENTER): alignments.append(.center)
+            case MarkyTableAlignment(MARKY_TABLE_ALIGNMENT_RIGHT): alignments.append(.right)
+            default: throw ParseError.internalFailure
+            }
+            headers.append(try copyText(column.header))
+        }
+
+        let rowCount = marky_document_table_row_count(document, blockIndex)
+        var rows: [CoreMarkdownDocument.Table.Row] = []
+        rows.reserveCapacity(rowCount)
+        for rowIndex in 0..<rowCount {
+            try Task.checkCancellation()
+            let contentCount = marky_document_table_row_content_count(document, blockIndex, rowIndex)
+            guard contentCount <= columnCount else { throw ParseError.internalFailure }
+            var cells: [String] = []
+            cells.reserveCapacity(contentCount)
+            for columnIndex in 0..<contentCount {
+                try Task.checkCancellation()
+                var cell = MarkyUtf8View()
+                guard marky_document_table_cell_at(document, blockIndex, rowIndex, columnIndex, &cell) == MarkyStatus(MARKY_STATUS_OK) else {
+                    throw ParseError.internalFailure
+                }
+                cells.append(try copyText(cell))
+            }
+            rows.append(.init(cells: cells, endIndex: columnCount))
+        }
+        return .init(headers: headers, alignments: alignments, rows: rows)
     }
 
     private static func copyText(_ view: MarkyUtf8View) throws -> String {

@@ -83,9 +83,7 @@ struct MarkdownCompatibilityTests {
         for fixture in fixtures {
             let document = try await CoreMarkdownParser.parse(fixture.input)
             let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            // T07.S1 will replace the core's paragraph fallback with a table block.
-            let expectedKinds = fixture.blocks.map { $0.kind == "table" ? "paragraph" : $0.kind }
-            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == expectedKinds,
+            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == fixture.blocks.map(\.kind),
                     "Block order: \(fixture.id)")
             for (index, block) in document.blocks.enumerated() {
                 guard case .quote(let lines) = block else { continue }
@@ -117,6 +115,8 @@ struct MarkdownCompatibilityTests {
             BaseBlock(kind: "list")
         case .quote:
             BaseBlock(kind: "quote")
+        case .table:
+            BaseBlock(kind: "table")
         }
     }
 
@@ -170,6 +170,42 @@ struct MarkdownCompatibilityTests {
                 #expect(items.map(\.depth) == expected.map(\.depth), "List depth: \(fixture.id)")
                 #expect(items.map { Array($0.source.utf8) } == swiftItems.map { Array($0.body.utf8) },
                         "Prepared list source: \(fixture.id)")
+            }
+        }
+    }
+
+    @Test("Core tables match shared fixture order, alignment and prepared cell bytes")
+    func coreTables() async throws {
+        let ids: Set = [
+            "MD-020", "MD-021", "MD-022", "MD-023", "MD-024", "MD-025", "MD-026",
+            "MD-062", "MD-063", "MD-064", "MD-065", "MD-066", "MD-067", "MD-068",
+            "MD-088", "MD-089", "MD-090", "MD-091", "MD-092",
+        ]
+        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
+        #expect(Set(fixtures.map(\.id)) == ids)
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
+            // The image ends the table in MD-090. T07.S2 will expose its metadata.
+            let kinds = fixture.blocks.map { $0.kind == "image" ? "paragraph" : $0.kind }
+            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == kinds,
+                    "Block order: \(fixture.id)")
+            for (index, block) in document.blocks.enumerated() {
+                guard case .table(let table) = block else { continue }
+                guard fixture.blocks.indices.contains(index),
+                      prepared.indices.contains(index),
+                      case .table(let headers, let alignments, let rows) = prepared[index].kind
+                else {
+                    Issue.record("Unexpected table block in \(fixture.id)")
+                    continue
+                }
+                #expect(table.alignments.map(\.rawValue) == fixture.blocks[index].alignments,
+                        "Alignment: \(fixture.id)")
+                #expect(table.alignments == alignments, "Prepared alignment: \(fixture.id)")
+                #expect(table.headers.map { Array($0.utf8) } == headers.map { Array($0.utf8) },
+                        "Prepared headers: \(fixture.id)")
+                #expect(table.rows.map { $0.map { Array($0.utf8) } } == rows.map { $0.map { Array($0.utf8) } },
+                        "Prepared body: \(fixture.id)")
             }
         }
     }

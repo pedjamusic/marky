@@ -34,10 +34,19 @@ struct MarkyDocument {
 
     using Quote = std::vector<QuoteLine>;
 
+    struct Table {
+        using Row = std::vector<std::string>;
+
+        Row headers;
+        std::vector<MarkyTableAlignment> alignments;
+        // Missing cells are exposed as empty without allocating a padded rectangle.
+        std::vector<Row> rows;
+    };
+
     struct Block {
         MarkyBlockKind kind;
         uint32_t heading_level;
-        std::variant<std::string, List, Quote> content;
+        std::variant<std::string, List, Quote, Table> content;
     };
 
     const std::vector<Block> blocks;
@@ -165,6 +174,14 @@ uint32_t setext_level(std::string_view line) {
     return line.find_first_not_of('-') == std::string_view::npos ? 2 : 0;
 }
 
+size_t atx_level(std::string_view line) {
+    const auto hashes = marky::delimiter_run_length(line, '#');
+    const auto suffix = line.substr(hashes);
+    // The opening separator must be a standalone ASCII space.
+    return hashes >= 1 && hashes <= 6 && suffix.starts_with(' ') &&
+                   combining_accent_width(suffix.substr(1)) == 0 ? hashes : 0;
+}
+
 bool thematic_break(std::string_view line) {
     const char marker = line.front();
     if (marker != '-' && marker != '*' && marker != '_') {
@@ -275,6 +292,186 @@ MarkyDocument::QuoteLine parse_quote_line(std::string_view line) {
     return {depth, std::string(source)};
 }
 
+std::string_view take_line(std::optional<std::string_view>& remaining) {
+    const auto source = *remaining;
+    const auto newline = source.find('\n');
+    auto line = source.substr(0, newline);
+    if (newline == std::string_view::npos) {
+        remaining.reset();
+    } else {
+        remaining = source.substr(newline + 1);
+        if (line.ends_with('\r')) {
+            line.remove_suffix(1);
+        }
+    }
+    return line;
+}
+
+size_t table_pipe(std::string_view line, size_t cursor, marky::CodeSpanMatcher& spans) {
+    while ((cursor = line.find_first_of("\\`|", cursor)) != std::string_view::npos) {
+        const auto suffix = line.substr(cursor + 1);
+        if (line[cursor] == '`') {
+            const auto length = marky::backtick_run_length(line.substr(cursor));
+            if (length != 0) {
+                const auto end = spans.end(cursor, length);
+                cursor = end == std::string_view::npos ? cursor + length : end;
+                continue;
+            }
+        } else if (marky::grapheme_suffix_width(suffix) == 0) {
+            if (line[cursor] == '|') {
+                return cursor;
+            }
+            // Skip one escaped character. ASCII syntax cannot occur inside UTF-8 scalars.
+            if (!suffix.empty()) {
+                ++cursor;
+            }
+        }
+        ++cursor;
+    }
+    return std::string_view::npos;
+}
+
+std::string_view table_row_body(std::string_view line) {
+    line = trim_whitespace(line);
+    if (line.starts_with('|') && marky::grapheme_suffix_width(line.substr(1)) == 0) {
+        line.remove_prefix(1);
+    }
+    if (line.ends_with('|')) {
+        auto before_pipe = line.size() - 1;
+        while (before_pipe > 0 && line[before_pipe - 1] == '\\') {
+            --before_pipe;
+        }
+        if ((line.size() - 1 - before_pipe) % 2 == 0) {
+            line.remove_suffix(1);
+        }
+    }
+    return line;
+}
+
+class TableCells {
+public:
+    explicit TableCells(std::string_view source) : line(table_row_body(source)), spans(line) {}
+
+    std::optional<std::string_view> next() {
+        if (cell_start == std::string_view::npos) {
+            return std::nullopt;
+        }
+        const auto pipe = table_pipe(line, cell_start, spans);
+        const auto length = pipe == std::string_view::npos ? pipe : pipe - cell_start;
+        const auto cell = trim_whitespace(line.substr(cell_start, length));
+        cell_start = pipe == std::string_view::npos ? pipe : pipe + 1;
+        return cell;
+    }
+
+private:
+    std::string_view line;
+    marky::CodeSpanMatcher spans;
+    size_t cell_start = 0;
+};
+
+std::optional<MarkyDocument::Table> table_start(std::string_view header, std::string_view delimiter) {
+    if (delimiter.find('|') == std::string_view::npos) {
+        return std::nullopt;
+    }
+    MarkyDocument::Table table;
+    TableCells delimiter_cells(delimiter);
+    while (auto cell = delimiter_cells.next()) {
+        const bool left_colon = cell->starts_with(':');
+        if (left_colon) {
+            cell->remove_prefix(1);
+        }
+        const bool right_colon = cell->ends_with(':');
+        if (right_colon) {
+            cell->remove_suffix(1);
+        }
+        if (cell->empty() || cell->find_first_not_of('-') != std::string_view::npos) {
+            return std::nullopt;
+        }
+        const auto alignment = left_colon ? MARKY_TABLE_ALIGNMENT_CENTER : MARKY_TABLE_ALIGNMENT_RIGHT;
+        table.alignments.push_back(right_colon ? alignment : MARKY_TABLE_ALIGNMENT_LEFT);
+    }
+    marky::CodeSpanMatcher header_spans(header);
+    if (table_pipe(header, 0, header_spans) == std::string_view::npos) {
+        return std::nullopt;
+    }
+    TableCells header_cells(header);
+    for (size_t column = 0; column < table.alignments.size(); ++column) {
+        const auto cell = header_cells.next();
+        if (!cell) {
+            return std::nullopt;
+        }
+        table.headers.emplace_back(*cell);
+    }
+    if (header_cells.next()) {
+        return std::nullopt;
+    }
+    return table;
+}
+
+// Recognize the standalone image syntax for table precedence. T07.S2 uses
+// this boundary to publish image metadata.
+bool standalone_image(std::string_view line) {
+    if (!line.starts_with("![") || !line.ends_with(')') ||
+        marky::grapheme_suffix_width(line.substr(2)) != 0) {
+        return false;
+    }
+    const auto alt_end = line.find(']', 2);
+    if (alt_end == std::string_view::npos || !line.substr(alt_end).starts_with("](")) {
+        return false;
+    }
+    const auto image_space = [](std::string_view text) {
+        // ICU \s uses Unicode whitespace and excludes U+200B.
+        return text.starts_with("\xE2\x80\x8B") ? size_t{0} : whitespace_width(text, true);
+    };
+    auto body = line.substr(alt_end + 2);
+    body.remove_suffix(1);
+    while (const auto width = image_space(body)) {
+        body.remove_prefix(width);
+    }
+    const auto valid_tail = [&](std::string_view tail) {
+        if (tail.empty()) {
+            return true;
+        }
+        if (image_space(tail) == 0) {
+            return false;
+        }
+        while (const auto width = image_space(tail)) {
+            tail.remove_prefix(width);
+        }
+        if (tail.empty()) {
+            return true;
+        }
+        if (!tail.starts_with('"') && !tail.starts_with('\'')) {
+            return false;
+        }
+        const auto close = tail.find_last_of("\"'");
+        if (close == 0) {
+            return false;
+        }
+        const auto title = tail.substr(1, close - 1);
+        tail.remove_prefix(close + 1);
+        while (const auto width = image_space(tail)) {
+            tail.remove_prefix(width);
+        }
+        return tail.empty() && title.find_first_of("\r\n") == std::string_view::npos &&
+               title.find("\xC2\x85") == std::string_view::npos &&
+               title.find("\xE2\x80\xA8") == std::string_view::npos &&
+               title.find("\xE2\x80\xA9") == std::string_view::npos;
+    };
+    if (body.starts_with('<')) {
+        const auto close = body.find_first_of(">\r\n", 1);
+        if (close != std::string_view::npos && close > 1 && body[close] == '>' &&
+            valid_tail(body.substr(close + 1))) {
+            return true;
+        }
+    }
+    size_t end = 0;
+    while (end < body.size() && body[end] != '>' && image_space(body.substr(end)) == 0) {
+        ++end;
+    }
+    return end > 0 && valid_tail(body.substr(end));
+}
+
 std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
     std::string_view source, const MarkyCancellationToken* token) {
     std::vector<MarkyDocument::Block> blocks;
@@ -282,6 +479,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
     std::string text;
     MarkyDocument::List items;
     MarkyDocument::Quote quote_lines;
+    std::optional<MarkyDocument::Table> table;
     bool has_literal_line = false;
     bool hard_break = false;
     struct IndentedCode {
@@ -304,6 +502,9 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             text.resize(at_prose_segment_end ? indented->prose_segment_end : indented->content_end);
             flush(MARKY_BLOCK_CODE);
             indented.reset();
+        } else if (table) {
+            blocks.push_back({MARKY_BLOCK_TABLE, 0, std::move(*table)});
+            table.reset();
         } else if (!items.empty()) {
             blocks.push_back({MARKY_BLOCK_LIST, 0, std::move(items)});
             items.clear();
@@ -333,7 +534,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         }
     };
 
-    const auto consume_line = [&](std::string_view line) {
+    const auto consume_line = [&](std::string_view line, std::optional<std::string_view>& remaining) {
         if (const auto fence = fence_transition(line, open)) {
             if (open) {
                 flush(MARKY_BLOCK_CODE);
@@ -351,6 +552,26 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
 
         const auto indent = code_indent(line);
         const auto trimmed = trim_whitespace(line, true);
+        if (table) {
+            if (!trimmed.empty() && indent == 0 && !starts_quote(trimmed) &&
+                atx_level(trimmed) == 0 && setext_level(trimmed) != 1 && !thematic_break(trimmed) &&
+                !list_marker(trimmed) && !standalone_image(trimmed)) {
+                auto& row = table->rows.emplace_back();
+                TableCells cells(line);
+                while (row.size() < table->headers.size()) {
+                    const auto cell = cells.next();
+                    if (!cell || cancellation_requested(token)) {
+                        break;
+                    }
+                    row.emplace_back(*cell);
+                }
+                while (!row.empty() && row.back().empty()) {
+                    row.pop_back();
+                }
+                return;
+            }
+            flush_pending();
+        }
         if (indented) {
             if (!indented->terminated && indent != 0) {
                 append_indented(line.substr(indent), trimmed.empty());
@@ -393,13 +614,9 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             return;
         }
 
-        const auto hashes = marky::delimiter_run_length(trimmed, '#');
-        const auto heading_suffix = trimmed.substr(hashes);
-        // The opening separator must be a standalone ASCII space.
-        if (hashes >= 1 && hashes <= 6 && heading_suffix.starts_with(' ') &&
-            combining_accent_width(heading_suffix.substr(1)) == 0) {
+        if (const auto hashes = atx_level(trimmed)) {
             flush_pending();
-            auto body = trim_whitespace(heading_suffix);
+            auto body = trim_whitespace(trimmed.substr(hashes));
             const auto last_non_hash = body.find_last_not_of('#');
             if (last_non_hash != std::string_view::npos && body[last_non_hash] == ' ') {
                 body = trim_whitespace(body.substr(0, last_non_hash + 1));
@@ -407,6 +624,17 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             text.assign(body);
             flush(MARKY_BLOCK_HEADING, static_cast<uint32_t>(hashes));
             return;
+        }
+
+        if (remaining && line.find('|') != std::string_view::npos &&
+            !starts_quote(trimmed) && !list_marker(trimmed) && !standalone_image(trimmed)) {
+            auto after_delimiter = remaining;
+            if (auto start = table_start(line, take_line(after_delimiter))) {
+                flush_pending();
+                table = std::move(start);
+                remaining = after_delimiter;
+                return;
+            }
         }
 
         const auto leading = list_indent(line);
@@ -448,24 +676,16 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         hard_break = line.ends_with("  ") || line.ends_with('\\');
     };
 
-    for (;;) {
+    std::optional<std::string_view> remaining = source;
+    while (remaining) {
         if (cancellation_requested(token)) {
             return std::nullopt;
         }
-        const auto newline = source.find('\n');
-        auto line = source.substr(0, newline);
-        if (newline != std::string_view::npos && line.ends_with('\r')) {
-            line.remove_suffix(1);
-        }
-        consume_line(line);
+        const auto line = take_line(remaining);
+        consume_line(line, remaining);
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
         marky::test::checkpoint(marky::test::Checkpoint::afterBlockLine);
 #endif
-
-        if (newline == std::string_view::npos) {
-            break;
-        }
-        source.remove_prefix(newline + 1);
     }
     if (open) {
         flush(MARKY_BLOCK_CODE);
@@ -487,6 +707,13 @@ const MarkyDocument::Quote* quote_at(const MarkyDocument* document, size_t block
         return nullptr;
     }
     return std::get_if<MarkyDocument::Quote>(&document->blocks[block_index].content);
+}
+
+const MarkyDocument::Table* table_at(const MarkyDocument* document, size_t block_index) {
+    if (block_index >= marky_document_block_count(document)) {
+        return nullptr;
+    }
+    return std::get_if<MarkyDocument::Table>(&document->blocks[block_index].content);
 }
 
 }
@@ -654,6 +881,53 @@ MarkyStatus marky_document_quote_line_at(const MarkyDocument* document, size_t b
 
     const auto& line = (*lines)[line_index];
     *out_line = {line.depth, {line.source.data(), line.source.size()}};
+    return MARKY_STATUS_OK;
+}
+
+size_t marky_document_table_column_count(const MarkyDocument* document, size_t block_index) {
+    const auto* table = table_at(document, block_index);
+    return table != nullptr ? table->headers.size() : 0;
+}
+
+size_t marky_document_table_row_count(const MarkyDocument* document, size_t block_index) {
+    const auto* table = table_at(document, block_index);
+    return table != nullptr ? table->rows.size() : 0;
+}
+
+size_t marky_document_table_row_content_count(const MarkyDocument* document, size_t block_index,
+                                              size_t row_index) {
+    const auto* table = table_at(document, block_index);
+    return table != nullptr && row_index < table->rows.size() ? table->rows[row_index].size() : 0;
+}
+
+MarkyStatus marky_document_table_column_at(const MarkyDocument* document, size_t block_index,
+                                          size_t column_index, MarkyTableColumnView* out_column) {
+    if (out_column == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_column = {};
+    const auto* table = table_at(document, block_index);
+    if (table == nullptr || column_index >= table->headers.size()) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    const auto& header = table->headers[column_index];
+    *out_column = {table->alignments[column_index], {header.data(), header.size()}};
+    return MARKY_STATUS_OK;
+}
+
+MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t block_index,
+                                        size_t row_index, size_t column_index, MarkyUtf8View* out_cell) {
+    if (out_cell == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_cell = {};
+    const auto* table = table_at(document, block_index);
+    if (table == nullptr || row_index >= table->rows.size() || column_index >= table->headers.size()) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    const auto& row = table->rows[row_index];
+    const auto source = column_index < row.size() ? std::string_view(row[column_index]) : std::string_view("");
+    *out_cell = {source.data(), source.size()};
     return MARKY_STATUS_OK;
 }
 
