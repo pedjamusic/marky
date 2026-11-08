@@ -5,7 +5,7 @@ Updated: 2026-11-08. This is the authoritative live ledger. [README](README.md) 
 ## Current checkpoint
 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
-- **T07.S1 is accepted.** User **PASS** ("pass"), 2026-11-08, accepts the E57 portable table candidate (E58). T07.S2 standalone image metadata is next after integration and selection. [Phase definition](phases/03-document-blocks.md#t07--tables-and-image-blocks)
+- **T07.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E57 (E58). Portable table parsing landed on `main` as `df7cb77` (E59). T07.S2 standalone image metadata is next when selected. [Phase definition](phases/03-document-blocks.md#t07--tables-and-image-blocks)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T06's OWE-T01 and OWE-T04 receipts are closed. OWE-T06 is open for T11.S2.
 
 ## Ticket and slice state
@@ -21,7 +21,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T04 | [02](phases/02-core-and-swift-seam.md) | done | T04.S1 done; T04.S2 done; T04.S3 done | T04.S1 and S2 accepted and integrated (E31–E36). T04.S3 verified, accepted and integrated (E37–E39); [spec and evidence](T04-S3-SWIFT-PARAGRAPH.md). |
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
-| T07 | [03](phases/03-document-blocks.md) | in_progress | T07.S1 done; T07.S2 queued | E57 verifies table structure, prepared cell bytes, and lifetime. E58 records user PASS. Standalone image metadata is assigned to S2. |
+| T07 | [03](phases/03-document-blocks.md) | in_progress | T07.S1 done; T07.S2 queued | E57 verifies table structure, prepared cell bytes, and lifetime. E58 records user PASS and E59 records integration. Standalone image metadata is assigned to S2. |
 | T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -144,6 +144,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E56 | T06.S2 and T06 integration | Accepted candidate and acceptance record committed as `bd91edea992d946a4481257244cc993f2bd219df`, 2026-11-08. | `git merge --ff-only codex/t06-s2-blockquote-structure` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T06 delivered. T07.S1 is next. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E57 | T07.S1 portable tables | Verified uncommitted on `codex/t07-s1-table-parsing` at `c03e622da5e2365d2d2009a5f21ed30e012944b2`. Eight-file patch SHA-256 `001e931fa9f3f477aad7dff823d716681aca00d249a596c120008143d694fb67` excludes this ledger. Patch and logs are in `/tmp/MarkyT07S1.bkn5Sf/`. | [Verification below](#t07s1-mac-run). Debug, Release, and ASan/UBSan CTest passed 2/2 each. The Swift proof adapter matched all 19 applicable fixtures. The full Mac scheme passed 116 unit and eight UI tests, with two opt-in performance tests skipped. In-session standards and spec review found no remaining actionable findings. | E58 records user PASS. MD-090 verifies the table terminates before a recognized image. Image metadata belongs to T07.S2, inline cell semantics to T10.S3, and native table presentation to T11.S2. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E58 | T07.S1 acceptance | User **PASS** ("pass"), 2026-11-08, for E57 on `codex/t07-s1-table-parsing`. | The eight-file working-tree patch matched E57 byte for byte. Debug and Release CTest reruns each passed 2/2. Remote main matched the candidate base `c03e622`. | T07.S1 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
+| E59 | T07.S1 integration | Accepted candidate and acceptance record committed as `df7cb77d77af80d1dcbe68cc2273a8bd1fc4331d`, 2026-11-08. | `git merge --ff-only codex/t07-s1-table-parsing` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This STATUS-only handoff uses the same main-push authorization. | T07.S1 delivered. T07.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -364,7 +365,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T07.S1 | User selected T07.S1 and replied **"Yes, create the local branch"**, 2026-11-08 | Created `codex/t07-s1-table-parsing` from clean `main/c03e622` before applying changes to the repository. E57 identifies the verified candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E57 under repository policy. | Authorized in E58. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E57 under repository policy. | Authorized in E58 and executed in E59. |
 
 ## Contract amendments
 
