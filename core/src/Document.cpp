@@ -89,6 +89,14 @@ bool horizontal_whitespace_only(std::string_view text) {
     return text.empty();
 }
 
+size_t combining_accent_width(std::string_view text) {
+    // Basic Combining Diacritical Marks (U+0300–U+036F) in validated UTF-8.
+    const bool has_accent = text.size() >= 2 &&
+                            (text.starts_with('\xCC') ||
+                             (text.starts_with('\xCD') && static_cast<unsigned char>(text[1]) <= 0xAF));
+    return has_accent ? 2 : 0;
+}
+
 std::string_view trim_whitespace(std::string_view text, bool include_newlines = false) {
     while (const auto width = whitespace_width(text, include_newlines)) {
         text.remove_prefix(width);
@@ -151,11 +159,19 @@ bool thematic_break(std::string_view line) {
             line.remove_prefix(1);
         } else {
             // Swift Character.isWhitespace excludes U+200B in the middle of a rule.
-            const auto width = whitespace_width(line, true);
+            const auto horizontal = horizontal_whitespace_width(line);
+            const auto width = horizontal != 0 ? horizontal : newline_width(line);
             if (width == 0 || line.starts_with("\xE2\x80\x8B")) {
                 return false;
             }
+            const bool accents_attach = horizontal != 0 && !line.starts_with('\t');
             line.remove_prefix(width);
+            if (accents_attach) {
+                // Swift removes a space and its attached accents as one whitespace character.
+                while (const auto accent = combining_accent_width(line)) {
+                    line.remove_prefix(accent);
+                }
+            }
         }
     }
     return count >= 3;
@@ -272,9 +288,12 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         }
 
         const auto hashes = marky::delimiter_run_length(trimmed, '#');
-        if (hashes >= 1 && hashes <= 6 && trimmed.substr(hashes).starts_with(' ')) {
+        const auto heading_suffix = trimmed.substr(hashes);
+        // The opening separator must be a standalone ASCII space.
+        if (hashes >= 1 && hashes <= 6 && heading_suffix.starts_with(' ') &&
+            combining_accent_width(heading_suffix.substr(1)) == 0) {
             flush_pending();
-            auto body = trim_whitespace(trimmed.substr(hashes));
+            auto body = trim_whitespace(heading_suffix);
             const auto last_non_hash = body.find_last_not_of('#');
             if (last_non_hash != std::string_view::npos && body[last_non_hash] == ' ') {
                 body = trim_whitespace(body.substr(0, last_non_hash + 1));
@@ -301,6 +320,9 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             line.remove_suffix(1);
         }
         consume_line(line);
+#ifdef MARKY_CORE_TEST_CHECKPOINTS
+        marky::test::checkpoint(marky::test::Checkpoint::afterBlockLine);
+#endif
 
         if (newline == std::string_view::npos) {
             break;

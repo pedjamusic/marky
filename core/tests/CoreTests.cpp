@@ -221,6 +221,35 @@ void check_base_blocks(const auto& check) {
     marky_document_release(document);
 }
 
+void check_combining_delimiters(const auto& check) {
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto heading = MARKY_BLOCK_HEADING;
+    constexpr auto rule = MARKY_BLOCK_THEMATIC_BREAK;
+
+    check_blocks(check, "# \xCC\x81" "body",
+                 {{prose, "# \xCC\x81" "body"}},
+                 "a space with a combining accent does not open an ATX heading");
+    check_blocks(check, "- \xCC\x81- -", {{rule, ""}},
+                 "a space with a combining accent is whitespace inside a thematic break");
+    check_blocks(check, "*\xC2\xA0\xCC\x80\xCD\xAF* *\n\n*\t\xCC\x81* *",
+                 {{rule, ""}, {prose, "*\t\xCC\x81* *"}},
+                 "multiple accents attach to a nonbreaking space but do not attach to a tab");
+    check_blocks(check, "## Cafe\xCC\x81\n\n-\xCC\x81 - -",
+                 {{heading, "Cafe\xCC\x81", 2}, {prose, "-\xCC\x81 - -"}},
+                 "accents stay in heading text and do not extend a thematic marker");
+}
+
+void check_malformed_blocks(const auto& check) {
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto code = MARKY_BLOCK_CODE;
+    check_blocks(check, "Title\r\n===oops\r\n\\# escaped\r\n\r\n"
+                        "```bad`info\r\n    still prose\r\n\r\n"
+                        "~~~\r\n    # literal\r\n~~~suffix\r\n",
+                 {{prose, "Title ===oops \\# escaped"}, {prose, "```bad`info still prose"},
+                  {code, "    # literal\n~~~suffix\n"}},
+                 "malformed block syntax remains readable and an invalid closer stays literal at EOF");
+}
+
 void check_code_spans(const auto& check) {
     constexpr std::string_view row = "``a`b|c`` | d";
     const auto end = marky::code_span_end(row, 0, marky::delimiter_run_length(row, '`'));
@@ -351,6 +380,8 @@ int main() {
     check_empty_document(check, "");
     check_fences(check);
     check_base_blocks(check);
+    check_combining_delimiters(check);
+    check_malformed_blocks(check);
     check_code_spans(check);
     check_cancellation(check);
     check_concurrent_calls(check);

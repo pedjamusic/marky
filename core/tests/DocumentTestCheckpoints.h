@@ -5,6 +5,7 @@ namespace marky::test {
 
 enum class Checkpoint {
     beforeTokenAllocation,
+    afterBlockLine,
     beforeDocumentAllocation,
     beforeDocumentPublication
 };

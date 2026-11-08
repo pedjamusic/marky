@@ -18,13 +18,18 @@ using marky::test::Checkpoint;
 thread_local std::function<void(Checkpoint)> on_checkpoint;
 thread_local size_t destroyed_documents = 0;
 
+std::string block_input() {
+    return "# Heading\n\n~~~\n" + std::string(128 * 1024, 'x') +
+           "\n~~~\n\n    indented\n\nAfter";
+}
+
 void check_document_failure(const auto& check, Checkpoint injection_point,
                             MarkyStatus expected_status, size_t expected_destructions,
-                            MarkyDocument* existing) {
-    const std::string input(128 * 1024, 'x');
+                            MarkyDocument* existing, size_t checkpoint_occurrence = 1) {
+    const auto input = block_input();
     const size_t destroyed_before = destroyed_documents;
-    on_checkpoint = [=](Checkpoint point) {
-        if (point == injection_point) {
+    on_checkpoint = [=](Checkpoint point) mutable {
+        if (point == injection_point && --checkpoint_occurrence == 0) {
             if (expected_status == MARKY_STATUS_ALLOCATION_FAILURE) {
                 throw std::bad_alloc{};
             }
@@ -44,8 +49,8 @@ void check_document_failure(const auto& check, Checkpoint injection_point,
 
     output = nullptr;
     check(marky_document_create(input.data(), input.size(), &output) == MARKY_STATUS_OK &&
-              output != nullptr && output != existing,
-          "creation must recover after an injected failure");
+              output != existing && marky_document_block_count(output) == 4,
+          "creation must recover all blocks after an injected failure");
     if (output != existing) {
         marky_document_release(output);
     }
@@ -68,7 +73,8 @@ void check_token_allocation_failure(const auto& check, MarkyCancellationToken* e
 }
 
 void check_mid_call_cancellation(const auto& check, Checkpoint pause_at,
-                                 size_t expected_destructions, MarkyDocument* existing) {
+                                 size_t expected_destructions, MarkyDocument* existing,
+                                 size_t checkpoint_occurrence = 1) {
     MarkyCancellationToken* raw_token = nullptr;
     const auto status = marky_cancellation_token_create(&raw_token);
     const std::unique_ptr<MarkyCancellationToken, decltype(&marky_cancellation_token_release)>
@@ -81,27 +87,38 @@ void check_mid_call_cancellation(const auto& check, Checkpoint pause_at,
 
     std::latch reached_checkpoint(1);
     std::latch resume_worker(1);
-    const std::string input(128 * 1024, 'x');
+    const auto input = block_input();
     MarkyDocument* output = existing;
     MarkyStatus result = MARKY_STATUS_OK;
     size_t destruction_count = 0;
+    bool paused = false;
     std::thread worker([&] {
         on_checkpoint = [&](Checkpoint point) {
             if (point == pause_at) {
-                reached_checkpoint.count_down();
-                resume_worker.wait();
+                if (paused) {
+                    // Make continued parsing distinguishable from cancellation at publication.
+                    throw 42;
+                }
+                if (--checkpoint_occurrence == 0) {
+                    paused = true;
+                    reached_checkpoint.count_down();
+                    resume_worker.wait();
+                }
             }
         };
         const size_t destroyed_before = destroyed_documents;
         result = marky_document_create_cancellable(input.data(), input.size(), token.get(), &output);
         destruction_count = destroyed_documents - destroyed_before;
+        if (!paused) {
+            reached_checkpoint.count_down();
+        }
     });
     reached_checkpoint.wait();
     marky_cancellation_token_request(token.get());
     resume_worker.count_down();
     worker.join();
 
-    check(result == MARKY_STATUS_CANCELLED && output == nullptr,
+    check(paused && result == MARKY_STATUS_CANCELLED && output == nullptr,
           "cancellation requested during creation must clear the output");
     check(destruction_count == expected_destructions,
           "cancellation must destroy any built but unpublished document");
@@ -150,6 +167,11 @@ int main() {
     }
 
     check_token_allocation_failure(check, token.get());
+    // After line four, the heading is complete and the fence has pending literal text.
+    constexpr size_t in_open_fence = 4;
+    check_document_failure(check, Checkpoint::afterBlockLine,
+                           MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), in_open_fence);
+    check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), in_open_fence);
     check_document_failure(check, Checkpoint::beforeDocumentAllocation,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get());
     check_document_failure(check, Checkpoint::beforeDocumentPublication,
