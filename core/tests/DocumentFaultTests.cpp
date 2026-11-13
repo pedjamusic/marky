@@ -22,7 +22,8 @@ std::string block_input() {
     return "# Heading\n\n~~~\n" + std::string(128 * 1024, 'x') +
            "\n~~~\n\n    indented\n\nAfter\n\n- [x] List item with owned source\n  continuation\n02) Next item"
            "\n> Quote line with owned source\n>> Nested quote"
-           "\nA | B\n--- | ---\nOwned table cell with allocated source | row\nShort row";
+           "\nA | B\n--- | ---\nOwned table cell with allocated source | row\nShort row"
+           "\n![Image with owned alt text](<owned image destination.png> 'Image with an owned title')\nAfter";
 }
 
 void check_document_failure(const auto& check, Checkpoint injection_point,
@@ -50,12 +51,14 @@ void check_document_failure(const auto& check, Checkpoint injection_point,
     }
 
     output = nullptr;
+    MarkyImageView image{};
     check(marky_document_create(input.data(), input.size(), &output) == MARKY_STATUS_OK &&
-              output != existing && marky_document_block_count(output) == 7 &&
+              output != existing && marky_document_block_count(output) == 9 &&
               marky_document_list_item_count(output, 4) == 2 &&
               marky_document_quote_line_count(output, 5) == 2 &&
               marky_document_table_column_count(output, 6) == 2 &&
-              marky_document_table_row_count(output, 6) == 2,
+              marky_document_table_row_count(output, 6) == 2 &&
+              marky_document_image_at(output, 7, &image) == MARKY_STATUS_OK && image.title.data != nullptr,
           "creation must recover all blocks after an injected failure");
     if (output != existing) {
         marky_document_release(output);
@@ -193,6 +196,11 @@ int main() {
     check_document_failure(check, Checkpoint::afterBlockLine,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), in_table);
     check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), in_table);
+    // The image owns all three fields before parsing the final paragraph.
+    constexpr size_t after_image = 19;
+    check_document_failure(check, Checkpoint::afterBlockLine,
+                           MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), after_image);
+    check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), after_image);
     check_document_failure(check, Checkpoint::beforeDocumentAllocation,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get());
     check_document_failure(check, Checkpoint::beforeDocumentPublication,

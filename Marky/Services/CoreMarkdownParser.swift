@@ -9,6 +9,7 @@ nonisolated struct CoreMarkdownDocument: Sendable {
         case list([ListItem])
         case quote([QuoteLine])
         case table(Table)
+        case image(alt: String, destination: String, title: String?)
     }
 
     struct ListItem: Equatable, Sendable {
@@ -111,6 +112,13 @@ nonisolated enum CoreMarkdownParser {
                 blocks.append(.quote(try copyQuote(from: result, blockIndex: index)))
             case MarkyBlockKind(MARKY_BLOCK_TABLE):
                 blocks.append(.table(try copyTable(from: result, blockIndex: index)))
+            case MarkyBlockKind(MARKY_BLOCK_IMAGE):
+                var image = MarkyImageView()
+                guard marky_document_image_at(result, index, &image) == MarkyStatus(MARKY_STATUS_OK) else {
+                    throw ParseError.internalFailure
+                }
+                blocks.append(.image(alt: try copyText(image.alt), destination: try copyText(image.destination),
+                                     title: image.title.data == nil ? nil : try copyText(image.title)))
             default: throw ParseError.internalFailure
             }
         }

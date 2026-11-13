@@ -31,7 +31,8 @@ enum {
     MARKY_BLOCK_THEMATIC_BREAK = 4,
     MARKY_BLOCK_LIST = 5,
     MARKY_BLOCK_QUOTE = 6,
-    MARKY_BLOCK_TABLE = 7
+    MARKY_BLOCK_TABLE = 7,
+    MARKY_BLOCK_IMAGE = 8
 };
 
 enum {
@@ -71,6 +72,12 @@ typedef struct {
     MarkyUtf8View header;
 } MarkyTableColumnView;
 
+typedef struct {
+    MarkyUtf8View alt;
+    MarkyUtf8View destination;
+    MarkyUtf8View title;
+} MarkyImageView;
+
 /*
  * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
  * The input may be NULL for zero bytes. Embedded NUL bytes are preserved.
@@ -83,7 +90,7 @@ typedef struct {
  * content after stripping the required indentation and trailing blank lines.
  * Paragraph and heading text is prepared Markdown awaiting inline parsing.
  * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
- * breaks, lists, quotes and tables have empty block text. List items expose prepared
+ * breaks, lists, quotes, tables and images have empty block text. List items expose prepared
  * Markdown source, with continuation lines separated by LF. Quote lines expose
  * prepared Markdown source and marker depth in source order.
  */
@@ -205,6 +212,15 @@ MarkyStatus marky_document_table_column_at(const MarkyDocument* document, size_t
  */
 MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t block_index,
                                         size_t row_index, size_t column_index, MarkyUtf8View* out_cell);
+
+/*
+ * Reads raw alt text, destination and optional title at a zero-based block index.
+ * The views borrow immutable UTF-8 bytes until document release. A missing title
+ * is {NULL, 0}. A present empty title has a non-NULL data pointer and zero bytes.
+ * On invalid arguments or a non-image block, a non-NULL out_image is zeroed.
+ */
+MarkyStatus marky_document_image_at(const MarkyDocument* document, size_t block_index,
+                                    MarkyImageView* out_image);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

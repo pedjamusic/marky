@@ -43,10 +43,16 @@ struct MarkyDocument {
         std::vector<Row> rows;
     };
 
+    struct Image {
+        std::string alt;
+        std::string destination;
+        std::optional<std::string> title;
+    };
+
     struct Block {
         MarkyBlockKind kind;
         uint32_t heading_level;
-        std::variant<std::string, List, Quote, Table> content;
+        std::variant<std::string, List, Quote, Table, Image> content;
     };
 
     const std::vector<Block> blocks;
@@ -408,17 +414,22 @@ std::optional<MarkyDocument::Table> table_start(std::string_view header, std::st
     return table;
 }
 
-// Recognize the standalone image syntax for table precedence. T07.S2 uses
-// this boundary to publish image metadata.
-bool standalone_image(std::string_view line) {
+struct ImageSource {
+    std::string_view alt;
+    std::string_view destination;
+    std::optional<std::string_view> title;
+};
+
+std::optional<ImageSource> standalone_image(std::string_view line) {
     if (!line.starts_with("![") || !line.ends_with(')') ||
         marky::grapheme_suffix_width(line.substr(2)) != 0) {
-        return false;
+        return std::nullopt;
     }
     const auto alt_end = line.find(']', 2);
     if (alt_end == std::string_view::npos || !line.substr(alt_end).starts_with("](")) {
-        return false;
+        return std::nullopt;
     }
+    const auto alt = line.substr(2, alt_end - 2);
     const auto image_space = [](std::string_view text) {
         // ICU \s uses Unicode whitespace and excludes U+200B.
         return text.starts_with("\xE2\x80\x8B") ? size_t{0} : whitespace_width(text, true);
@@ -428,48 +439,53 @@ bool standalone_image(std::string_view line) {
     while (const auto width = image_space(body)) {
         body.remove_prefix(width);
     }
-    const auto valid_tail = [&](std::string_view tail) {
+    const auto finish = [&](std::string_view destination, std::string_view tail) -> std::optional<ImageSource> {
         if (tail.empty()) {
-            return true;
+            return ImageSource{alt, destination, std::nullopt};
         }
         if (image_space(tail) == 0) {
-            return false;
+            return std::nullopt;
         }
         while (const auto width = image_space(tail)) {
             tail.remove_prefix(width);
         }
         if (tail.empty()) {
-            return true;
+            return ImageSource{alt, destination, std::nullopt};
         }
         if (!tail.starts_with('"') && !tail.starts_with('\'')) {
-            return false;
+            return std::nullopt;
         }
+        // The Swift matcher accepts either quote at each end of a title.
         const auto close = tail.find_last_of("\"'");
         if (close == 0) {
-            return false;
+            return std::nullopt;
         }
         const auto title = tail.substr(1, close - 1);
         tail.remove_prefix(close + 1);
         while (const auto width = image_space(tail)) {
             tail.remove_prefix(width);
         }
-        return tail.empty() && title.find_first_of("\r\n") == std::string_view::npos &&
-               title.find("\xC2\x85") == std::string_view::npos &&
-               title.find("\xE2\x80\xA8") == std::string_view::npos &&
-               title.find("\xE2\x80\xA9") == std::string_view::npos;
+        // Match ICU's dot, which excludes line terminators even within one source line.
+        if (!tail.empty() || title.find_first_of("\n\v\f\r") != std::string_view::npos ||
+            title.find("\xC2\x85") != std::string_view::npos || title.find("\xE2\x80\xA8") != std::string_view::npos ||
+            title.find("\xE2\x80\xA9") != std::string_view::npos) {
+            return std::nullopt;
+        }
+        return ImageSource{alt, destination, title};
     };
     if (body.starts_with('<')) {
         const auto close = body.find_first_of(">\r\n", 1);
-        if (close != std::string_view::npos && close > 1 && body[close] == '>' &&
-            valid_tail(body.substr(close + 1))) {
-            return true;
+        if (close != std::string_view::npos && close > 1 && body[close] == '>') {
+            if (const auto image = finish(body.substr(1, close - 1), body.substr(close + 1))) {
+                return image;
+            }
         }
     }
     size_t end = 0;
     while (end < body.size() && body[end] != '>' && image_space(body.substr(end)) == 0) {
         ++end;
     }
-    return end > 0 && valid_tail(body.substr(end));
+    return end > 0 ? finish(body.substr(0, end), body.substr(end)) : std::nullopt;
 }
 
 std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
@@ -614,6 +630,14 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
             return;
         }
 
+        if (const auto image = standalone_image(trimmed)) {
+            flush_pending();
+            blocks.push_back({MARKY_BLOCK_IMAGE, 0, MarkyDocument::Image{
+                std::string(image->alt), std::string(image->destination), std::optional<std::string>(image->title)
+            }});
+            return;
+        }
+
         if (const auto hashes = atx_level(trimmed)) {
             flush_pending();
             auto body = trim_whitespace(trimmed.substr(hashes));
@@ -627,7 +651,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         }
 
         if (remaining && line.find('|') != std::string_view::npos &&
-            !starts_quote(trimmed) && !list_marker(trimmed) && !standalone_image(trimmed)) {
+            !starts_quote(trimmed) && !list_marker(trimmed)) {
             auto after_delimiter = remaining;
             if (auto start = table_start(line, take_line(after_delimiter))) {
                 flush_pending();
@@ -928,6 +952,27 @@ MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t b
     const auto& row = table->rows[row_index];
     const auto source = column_index < row.size() ? std::string_view(row[column_index]) : std::string_view("");
     *out_cell = {source.data(), source.size()};
+    return MARKY_STATUS_OK;
+}
+
+MarkyStatus marky_document_image_at(const MarkyDocument* document, size_t block_index,
+                                    MarkyImageView* out_image) {
+    if (out_image == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_image = {};
+    if (block_index >= marky_document_block_count(document)) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    const auto* image = std::get_if<MarkyDocument::Image>(&document->blocks[block_index].content);
+    if (image == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    out_image->alt = {image->alt.data(), image->alt.size()};
+    out_image->destination = {image->destination.data(), image->destination.size()};
+    if (image->title) {
+        out_image->title = {image->title->data(), image->title->size()};
+    }
     return MARKY_STATUS_OK;
 }
 

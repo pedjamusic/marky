@@ -117,6 +117,8 @@ struct MarkdownCompatibilityTests {
             BaseBlock(kind: "quote")
         case .table:
             BaseBlock(kind: "table")
+        case .image:
+            BaseBlock(kind: "image")
         }
     }
 
@@ -186,9 +188,7 @@ struct MarkdownCompatibilityTests {
         for fixture in fixtures {
             let document = try await CoreMarkdownParser.parse(fixture.input)
             let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            // The image ends the table in MD-090. T07.S2 will expose its metadata.
-            let kinds = fixture.blocks.map { $0.kind == "image" ? "paragraph" : $0.kind }
-            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == kinds,
+            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == fixture.blocks.map(\.kind),
                     "Block order: \(fixture.id)")
             for (index, block) in document.blocks.enumerated() {
                 guard case .table(let table) = block else { continue }
@@ -208,6 +208,40 @@ struct MarkdownCompatibilityTests {
                         "Prepared body: \(fixture.id)")
             }
         }
+    }
+
+    @Test("Core images retain shared fixture metadata and leave fallback source in prose")
+    func coreImages() async throws {
+        let ids: Set = ["MD-037", "MD-038", "MD-039", "MD-079", "MD-080", "MD-081", "MD-082", "MD-083", "MD-090"]
+        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
+        #expect(Set(fixtures.map(\.id)) == ids)
+        for fixture in fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let kinds = document.blocks.map(projectCoreBlock).map(\.kind)
+            if fixture.id == "MD-082" {
+                // T10.S2 will consume the definition, and T10.S3 will interpret the alt text.
+                #expect(document.blocks == [.paragraph("![pic][asset]"), .paragraph("[asset]: image.png")])
+                continue
+            }
+            #expect(kinds == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
+            for (block, expected) in zip(document.blocks, fixture.blocks) {
+                if case .image(let alt, let destination, let title) = block {
+                    #expect(Array(alt.utf8) == expected.alt.map { Array($0.utf8) }, "Alt: \(fixture.id)")
+                    #expect(Array(destination.utf8) == expected.destination.map { Array($0.utf8) },
+                            "Destination: \(fixture.id)")
+                    #expect(title.map { Array($0.utf8) } == expected.title.map { Array($0.utf8) },
+                            "Title: \(fixture.id)")
+                } else if case .paragraph(let source) = block {
+                    #expect(Array(source.utf8) == Array(fixture.input.utf8), "Fallback source: \(fixture.id)")
+                }
+            }
+        }
+
+        let document = try await CoreMarkdownParser.parse("![](first.png '')\n![](second.png)")
+        #expect(document.blocks == [
+            .image(alt: "", destination: "first.png", title: ""),
+            .image(alt: "", destination: "second.png", title: nil),
+        ])
     }
 
     private struct BaseBlock: Equatable {

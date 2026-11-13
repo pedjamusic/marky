@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -378,6 +379,7 @@ void check_table_blocks(const auto& check) {
     constexpr auto center = MARKY_TABLE_ALIGNMENT_CENTER;
     constexpr auto right = MARKY_TABLE_ALIGNMENT_RIGHT;
     constexpr auto table = MARKY_BLOCK_TABLE;
+    constexpr auto image = MARKY_BLOCK_IMAGE;
     constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
     constexpr auto heading = MARKY_BLOCK_HEADING;
     using namespace std::string_view_literals;
@@ -421,13 +423,101 @@ void check_table_blocks(const auto& check) {
                         "A | B\n- | -\n![alt](image.png)\n\nA | B\n- | -\n\nplain",
                  {{table, ""}, {heading, "heading", 1}, {table, ""}, {MARKY_BLOCK_LIST, ""},
                   {table, ""}, {MARKY_BLOCK_CODE, "literal | code"}, {table, ""},
-                  {MARKY_BLOCK_CODE, "literal | code"}, {table, ""}, {prose, "![alt](image.png)"},
+                  {MARKY_BLOCK_CODE, "literal | code"}, {table, ""}, {image, ""},
                   {table, ""}, {prose, "plain"}},
                  "MD-066–068/090–092 terminate tables before headings, lists, code, images, and blanks");
     check_blocks(check, "> A | B\n- | -\n\n- A | B\n- | -\n\n# A | B\n- | -\n\n![A|B](x)\n- | -",
                  {{MARKY_BLOCK_QUOTE, ""}, {MARKY_BLOCK_LIST, ""}, {MARKY_BLOCK_LIST, ""},
-                  {heading, "A | B", 1}, {MARKY_BLOCK_LIST, ""}, {prose, "![A|B](x)"}, {MARKY_BLOCK_LIST, ""}},
+                  {heading, "A | B", 1}, {MARKY_BLOCK_LIST, ""}, {image, ""}, {MARKY_BLOCK_LIST, ""}},
                  "container and standalone image syntax take precedence over a potential table header");
+}
+
+void check_image(const auto& check, std::string_view source, size_t block_index, std::string_view alt,
+                 std::string_view destination, std::optional<std::string_view> title, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    MarkyStatus status;
+    {
+        std::string input(source);
+        status = marky_document_create(input.data(), input.size(), &raw_document);
+        std::memset(input.data(), '?', input.size());
+    }
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    const auto matches = [](MarkyUtf8View view, std::string_view expected) {
+        return view.data != nullptr && std::string_view(view.data, view.byte_count) == expected;
+    };
+    MarkyBlockKind kind = MARKY_BLOCK_INVALID;
+    MarkyUtf8View text{};
+    MarkyImageView image{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_block_at(document.get(), block_index, &kind, &text) == MARKY_STATUS_OK &&
+              kind == MARKY_BLOCK_IMAGE && matches(text, "") &&
+              marky_document_image_at(document.get(), block_index, &image) == MARKY_STATUS_OK &&
+              matches(image.alt, alt) && matches(image.destination, destination) &&
+              (title ? matches(image.title, *title) : image.title.data == nullptr && image.title.byte_count == 0),
+          fixture);
+}
+
+void check_image_blocks(const auto& check) {
+    using namespace std::string_view_literals;
+    constexpr auto image = MARKY_BLOCK_IMAGE;
+    constexpr auto prose = MARKY_BLOCK_PARAGRAPH;
+    constexpr auto code = MARKY_BLOCK_CODE;
+
+    check_image(check, "![Marky Mascot](assets/mascot.png \"Mascot\")", 0, "Marky Mascot",
+                "assets/mascot.png", "Mascot", "MD-037 preserves a relative destination and title");
+    check_image(check, "![A photo](<my photo.png>)", 0, "A photo", "my photo.png", std::nullopt,
+                "MD-038 preserves spaces inside an angle-bracket destination and reports a missing title");
+    check_image(check, "![**raw alt**](image.png 'title')", 0, "**raw alt**", "image.png", "title",
+                "MD-083 preserves raw alt markup");
+    check_image(check, "A | B\n--- | ---\n![alt](image.png)", 1, "alt", "image.png", std::nullopt,
+                "MD-090 exposes metadata after a table");
+    check_image(check, "Intro\r\n ![e\xCC\x81\0](\t<https://example.test/a%20b \xE2\x98\x83> '' )\r\nAfter"sv,
+                1, "e\xCC\x81\0"sv, "https://example.test/a%20b \xE2\x98\x83", "",
+                "owned image data preserves decomposed Unicode, NUL, URL spelling, and an empty title");
+    check_image(check, "![](../file.png)", 0, "", "../file.png", std::nullopt, "alt text can be empty");
+    check_image(check, "![alt](image.png 'title\")", 0, "alt", "image.png", "title",
+                "standalone title quotes follow the Swift matcher");
+
+    check_blocks(check, "See ![icon](icon.png) inline\n\n![alt](my photo.png)\n\n"
+                        "![outer [inner]](image.png)\n\n![a\\]b](image.png)\n\n"
+                        "![pic][asset]\n\n[asset]: image.png",
+                 {{prose, "See ![icon](icon.png) inline"}, {prose, "![alt](my photo.png)"},
+                  {prose, "![outer [inner]](image.png)"}, {prose, "![a\\]b](image.png)"},
+                  {prose, "![pic][asset]"}, {prose, "[asset]: image.png"}},
+                 "MD-039/079–082 leave inline, malformed, nested, escaped and reference images in prepared prose");
+    check_blocks(check, "![alt](image.png 'title\vtext')\n\n![alt](image.png 'title\ftext')",
+                 {{prose, "![alt](image.png 'title\vtext')"}, {prose, "![alt](image.png 'title\ftext')"}},
+                 "vertical tab and form feed inside a title keep the source in prose");
+    check_blocks(check, "Before\n![alt](image.png)\nAfter\n\n```\n![fenced](x)\n```\n\n"
+                        "    ![indented](x)\n\n\\![escaped](x)\n\n> ![quote](x)\n- ![list](x)",
+                 {{prose, "Before"}, {image, ""}, {prose, "After"}, {code, "![fenced](x)"},
+                  {code, "![indented](x)"}, {prose, "\\![escaped](x)"}, {MARKY_BLOCK_QUOTE, ""},
+                  {MARKY_BLOCK_LIST, ""}},
+                 "standalone images split prose and leave fenced, indented, escaped and container syntax protected");
+}
+
+void check_image_accessor_arguments(const auto& check) {
+    constexpr std::string_view source = "Intro\n![alt](x 'title')";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(source.data(), source.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyImageView valid{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_image_at(document.get(), 1, &valid) == MARKY_STATUS_OK && valid.title.data != nullptr,
+          "argument checks require a valid image with a title");
+    const auto rejects_and_clears = [&](const MarkyDocument* candidate, size_t index) {
+        auto output = valid;
+        return marky_document_image_at(candidate, index, &output) == MARKY_STATUS_INVALID_ARGUMENT &&
+               output.alt.data == nullptr && output.alt.byte_count == 0 &&
+               output.destination.data == nullptr && output.destination.byte_count == 0 &&
+               output.title.data == nullptr && output.title.byte_count == 0;
+    };
+    check(rejects_and_clears(document.get(), 0) && rejects_and_clears(document.get(), 2) &&
+              rejects_and_clears(nullptr, 0) &&
+              marky_document_image_at(document.get(), 1, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "image access rejects missing outputs, non-image blocks, out-of-range indices, and missing documents");
 }
 
 void check_table_accessor_arguments(const auto& check) {
@@ -756,6 +846,8 @@ int main() {
     check_quote_accessor_arguments(check);
     check_table_blocks(check);
     check_table_accessor_arguments(check);
+    check_image_blocks(check);
+    check_image_accessor_arguments(check);
     check_combining_delimiters(check);
     check_malformed_blocks(check);
     check_code_spans(check);
@@ -781,6 +873,6 @@ int main() {
     if (failures != 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: document ownership, base blocks, lists, quotes, tables, code spans, cancellation and concurrency checks\n";
+    std::cout << "PASS: document ownership, base blocks, lists, quotes, tables, images, code spans, cancellation and concurrency checks\n";
     return EXIT_SUCCESS;
 }
