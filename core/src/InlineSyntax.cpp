@@ -1,22 +1,16 @@
 #include "InlineSyntax.h"
+#include "generated/NamedEntities.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
+#include <iterator>
 #include <utility>
 
 namespace marky {
 namespace {
 
 using namespace std::string_view_literals;
-
-// Provisional fixture data. T08.S3 replaces this subset with the pinned,
-// reproducible named-entity table and reruns the same lexer checks.
-constexpr std::pair<std::string_view, std::string_view> named_entities[] = {
-    {"AMP", "&"}, {"GT", ">"}, {"LT", "<"}, {"NewLine", "\n"},
-    {"NotEqualTilde", "\xE2\x89\x82\xCC\xB8"}, {"QUOT", "\""}, {"Tab", "\t"},
-    {"amp", "&"}, {"apos", "'"}, {"copy", "\xC2\xA9"}, {"gt", ">"},
-    {"lt", "<"}, {"nbsp", "\xC2\xA0"}, {"quot", "\""}
-};
 
 bool ascii_punctuation(char byte) {
     return (byte >= '!' && byte <= '/') || (byte >= ':' && byte <= '@') ||
@@ -79,10 +73,12 @@ std::optional<InlineToken> entity_at(std::string_view source, std::size_t begin)
     const auto end = body.find_first_not_of(name_characters);
     if (end != std::string_view::npos && body[end] == ';') {
         const auto name = body.substr(0, end);
-        for (const auto& [key, value] : named_entities) {
-            if (key == name) {
-                return InlineToken{InlineTokenKind::literal, begin, begin + end + 2, std::string(value)};
-            }
+        const auto entity = std::lower_bound(std::begin(named_entities), std::end(named_entities), name,
+                                             [](const NamedEntity& entry, std::string_view value) {
+                                                 return entry.name < value;
+                                             });
+        if (entity != std::end(named_entities) && entity->name == name) {
+            return InlineToken{InlineTokenKind::literal, begin, begin + end + 2, std::string(entity->text)};
         }
     }
     return std::nullopt;

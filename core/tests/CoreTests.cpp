@@ -1,5 +1,6 @@
 #include "MarkyCore.h"
 #include "../src/InlineSyntax.h"
+#include "../src/ReferenceLabel.h"
 
 #include <array>
 #include <barrier>
@@ -873,7 +874,7 @@ void check_inline_normalization(const auto& check) {
                            {{literal, "&copy;", "\xC2\xA9"}, {text, " 2026 Marky ", " 2026 Marky "},
                             {literal, "&amp;", "&"}, {text, " Co. ", " Co. "}, {literal, "&lt;", "<"},
                             {text, "tag", "tag"}, {literal, "&gt;", ">"}, {text, " ", " "}, {literal, "&#65;", "A"}},
-                           "MD-029: provisional named entities and decimal entities decode as literal text");
+                           "MD-029: named and decimal entities decode as literal text");
     check_paragraph_tokens(check, "first  \nsecond\r\nthird",
                            {{text, "first", "first"}, {line_break, "\n", "\n"}, {text, "second third", "second third"}},
                            "MD-045: two spaces produce LF and soft CRLF becomes a space");
@@ -894,7 +895,7 @@ void check_inline_normalization(const auto& check) {
                             {text, " ", " "}, {literal, "&#0;", "\xEF\xBF\xBD"}, {text, " ", " "},
                             {literal, "&#x110000;", "\xEF\xBF\xBD"}, {text, " ", " "},
                             {literal, "&NotEqualTilde;", "\xE2\x89\x82\xCC\xB8"}},
-                           "MD-073: malformed entities stay visible and provisional multi-scalar spelling stays exact");
+                           "MD-073: malformed entities stay visible and multi-scalar spelling stays exact");
     check_paragraph_tokens(check, R"(\\*yes* \*no\* `&copy; \*x\*`)",
                            {{literal, R"(\\)", "\\"}, {text, "*yes* ", "*yes* "}, {literal, R"(\*)", "*"},
                             {text, "no", "no"}, {literal, R"(\*)", "*"}, {text, " ", " "},
@@ -926,6 +927,49 @@ void check_inline_normalization(const auto& check) {
                         {{text, "Cafe\xCC\x81 e", "Cafe\xCC\x81 e"}, {literal, "&#769;", "\xCC\x81"},
                          {text, " \\A \\3 \\ \xC2\xA0 \\", " \\A \\3 \\ \xC2\xA0 \\"}},
                         "Unicode scalar spelling and backslashes before nonpunctuation stay intact");
+}
+
+void check_final_inline_data(const auto& check) {
+    using enum marky::InlineTokenKind;
+    check_inline_tokens(check, R"(&Afr;&fjlig;&CounterClockwiseContourIntegral;&COPY; \&ast; `&ast;` &ast;)",
+                        {{literal, "&Afr;", "\xF0\x9D\x94\x84"}, {literal, "&fjlig;", "fj"},
+                         {literal, "&CounterClockwiseContourIntegral;", "\xE2\x88\xB3"}, {literal, "&COPY;", "\xC2\xA9"},
+                         {text, " ", " "}, {literal, R"(\&)", "&"}, {text, "ast; ", "ast; "},
+                         {code, "`&ast;`", "&ast;"}, {text, " ", " "}, {literal, "&ast;", "*"}},
+                        "final names decode supplementary and multi-scalar values without introducing syntax");
+    constexpr std::string_view unknown = "&Afr &AFR; &notinX; &CounterClockwiseContourIntegralX;";
+    check_inline_tokens(check, unknown, {{text, unknown, unknown}},
+                        "unknown case variants, longer names, and missing semicolons remain literal");
+    check_inline_tokens(check, "&emsp;&emsp13;&emsp14;",
+                        {{literal, "&emsp;", "\xE2\x80\x83"}, {literal, "&emsp13;", "\xE2\x80\x84"},
+                         {literal, "&emsp14;", "\xE2\x80\x85"}},
+                        "a name and its longer digit-suffixed names each decode");
+
+    using marky::normalize_reference_label;
+    check(normalize_reference_label("caf\xC3\xA9") == normalize_reference_label("CAFE\xCC\x81"),
+          "MD-072: composed and decomposed labels share a key");
+    check(normalize_reference_label("stra\xC3\x9F" "e") != normalize_reference_label("STRASSE"),
+          "MD-072: lowercase keys do not equate sharp S with SS");
+    check(normalize_reference_label(" \t A\xC2\xA0\xE2\x80\x8B" "B\xE2\x80\xA8" "C \r\n") == "a b c",
+          "reference labels trim and collapse the Swift whitespace set");
+    check(normalize_reference_label("\r\n \xE2\x80\x8B").empty() &&
+              normalize_reference_label("").empty() &&
+              normalize_reference_label("a\xEF\xBB\xBF" "b") == "a\xEF\xBB\xBF" "b",
+          "whitespace-only labels are empty and U+FEFF remains part of the key");
+    check(normalize_reference_label("\xCE\x9F\xCE\xA3") == "\xCE\xBF\xCF\x83" &&
+              normalize_reference_label("\xC4\xB0") == "i\xCC\x87" &&
+              normalize_reference_label("\xF0\x90\x90\x80") == "\xF0\x90\x90\xA8",
+          "reference labels lowercase Greek sigma, dotted I, and supplementary letters");
+    check(normalize_reference_label("\xEF\xAC\x83") != normalize_reference_label("ffi"),
+          "reference keys preserve distinctions between compatibility characters");
+    check(normalize_reference_label("\xC3\x85\xCC\xA3") == normalize_reference_label("a\xCC\xA3\xCC\x8A") &&
+              normalize_reference_label("a\xCC\x81\xCC\x80") != normalize_reference_label("a\xCC\x80\xCC\x81"),
+          "canonical ordering crosses decomposition boundaries and preserves ties");
+    check(normalize_reference_label("\xEA\xB0\x81") ==
+              normalize_reference_label("\xE1\x84\x80\xE1\x85\xA1\xE1\x86\xA8"),
+          "Hangul syllables and equivalent Jamo share a key");
+    check(normalize_reference_label(std::string_view("A\0B", 3)) == std::string_view("a\0b", 3),
+          "label normalization retains an embedded null scalar");
 }
 
 void check_literal_code_in_table(const auto& check) {
@@ -1081,6 +1125,7 @@ int main() {
     check_code_spans(check);
     check_literal_code_spans(check);
     check_inline_normalization(check);
+    check_final_inline_data(check);
     check_literal_code_in_table(check);
     check_cancellation(check);
     check_concurrent_calls(check);

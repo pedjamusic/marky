@@ -110,11 +110,28 @@ Keep build directories outside `core/`. For a multi-configuration generator, use
 - Table blocks expose aligned columns, header source, and body rows. Cell source is trimmed Markdown and retains escapes and code delimiters for inline parsing. Rows present the header width, discarding surplus cells and exposing missing cells as empty without allocating the padding. A standalone image ends a table.
 - `marky_document_image_at` exposes raw alt text, destination, and an optional title. Angle-bracket destinations retain spaces inside the brackets. A null title pointer means the title is absent. A non-null pointer with zero bytes means the title is present and empty. The document owns all three views. Native callers handle file access, network requests, and decoding.
 - [`src/LiteralSyntax.h`](src/LiteralSyntax.h) matches complete backtick runs of equal length for table splitting and inline code. Code text replaces line endings with spaces and removes one paired ASCII padding space when the span contains a non-space.
-- [`src/InlineSyntax.h`](src/InlineSyntax.h) scans one prepared text region at a time. Each token carries its half-open UTF-8 source range and output text. Only ordinary text can contain active Markdown delimiters. Escapes, decoded entities, code, and retained line breaks have their own token kinds. Paragraph preparation already turns soft breaks into spaces. The named entity subset is provisional until T08.S3. The lexer is internal to the core.
+- [`src/InlineSyntax.h`](src/InlineSyntax.h) scans one prepared text region at a time. Each token carries its half-open UTF-8 source range and output text. Only ordinary text can contain active Markdown delimiters. Escapes, decoded entities, code, and retained line breaks have their own token kinds. Paragraph preparation already turns soft breaks into spaces.
+- [`src/ReferenceLabel.h`](src/ReferenceLabel.h) produces a lookup key for reference labels. It collapses the Swift reader's whitespace set, lowercases each scalar, and uses Unicode canonical decomposition so equivalent spellings compare byte for byte. The original label supplies the visible text. T10.S2 will use this key for reference resolution.
 - [`tests/CoreTests.cpp`](tests/CoreTests.cpp) links the production archive and tests ownership, argument handling, block semantics, inline token text and ranges, cancellation, and parallel calls. The deliberate harness failure switch is confined to this executable.
 - [`tests/DocumentFaultTests.cpp`](tests/DocumentFaultTests.cpp) builds the same implementation with private checkpoints to test exceptions, in-flight cancellation, and cleanup. The tests interrupt through the C API during an open fence, a list continuation, an open quote or table, after an image block, and before document allocation and publication. The production archives omit the checkpoints.
 
 Windows/MSVC and Linux/GCC executions and final dependency inspection remain in their named roadmap slices. See the [phase definition](../docs/core-rewrite/phases/02-core-and-swift-seam.md), [contract](../docs/core-rewrite/CONTRACT.md#build-and-portability) and [live ledger](../docs/core-rewrite/STATUS.md).
+
+## Update the inline data
+
+The [generated headers](src/generated/) contain 2,125 case-sensitive, semicolon-terminated names from the WHATWG HTML Living Standard's `entities.json` snapshot retrieved on 2026-11-13. The file hash pins the snapshot. The Unicode 17.0.0 data comes from `UnicodeData.txt`, `SpecialCasing.txt`, and `PropList.txt`. The [notices](../Marky/ThirdPartyNotices.txt) accompany the source and ship in the Mac app bundle. Include them with any standalone binary redistribution.
+
+Builds and tests compile the checked-in tables directly. To reproduce them, run these commands from the repository root with Python 3.9 or newer. Only the download steps need a network connection.
+
+```sh
+inline_data=$(mktemp -d)
+curl -fL https://html.spec.whatwg.org/entities.json -o "$inline_data/entities.json"
+curl -fL https://www.unicode.org/Public/17.0.0/ucd/UCD.zip -o "$inline_data/UCD.zip"
+unzip "$inline_data/UCD.zip" UnicodeData.txt SpecialCasing.txt PropList.txt -d "$inline_data"
+python3 tools/generate_inline_data.py "$inline_data/entities.json" "$inline_data" --check
+```
+
+To update the tables, select the new upstream inputs and update their SHA-256 values and release information in the [generator](../tools/generate_inline_data.py). Review the upstream notices and this source record. Run the command without `--check` to write the headers, then repeat with `--check` and run the core tests. Check entity output and reference-label keys against the Swift reader before accepting the new data.
 
 ## Xcode integration
 
