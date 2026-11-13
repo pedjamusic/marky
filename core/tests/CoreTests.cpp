@@ -929,6 +929,167 @@ void check_inline_normalization(const auto& check) {
                         "Unicode scalar spelling and backslashes before nonpunctuation stay intact");
 }
 
+struct ExpectedStyledToken {
+    std::size_t begin;
+    std::string_view source;
+    marky::InlineTokenKind kind;
+    marky::InlineTrait traits = marky::InlineTrait::none;
+    std::optional<std::string_view> text = std::nullopt;
+};
+
+void check_styled_tokens(const auto& check, std::string_view source,
+                         std::initializer_list<ExpectedStyledToken> expected, std::string_view fixture) {
+    const auto tokens = marky::resolve_inline(source);
+    if (tokens.size() != expected.size()) {
+        check(false, fixture);
+        return;
+    }
+    auto token = tokens.begin();
+    for (const auto& [begin, raw, kind, traits, decoded] : expected) {
+        check(token->begin == begin && token->end == begin + raw.size() &&
+                  source.substr(begin, raw.size()) == raw && token->kind == kind &&
+                  token->traits == traits && token->text == decoded.value_or(raw),
+              fixture);
+        ++token;
+    }
+}
+
+struct ExpectedStyledParagraph {
+    std::string_view prepared;
+    std::initializer_list<ExpectedStyledToken> tokens;
+};
+
+void check_styled_paragraphs(const auto& check, std::string_view source,
+                             std::initializer_list<ExpectedStyledParagraph> expected, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(source.data(), source.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    if (status != MARKY_STATUS_OK || marky_document_block_count(document.get()) != expected.size()) {
+        check(false, fixture);
+        return;
+    }
+    std::size_t index = 0;
+    for (const auto& paragraph : expected) {
+        MarkyUtf8View view{};
+        if (marky_document_paragraph_at(document.get(), index++, &view) != MARKY_STATUS_OK) {
+            check(false, fixture);
+            continue;
+        }
+        const std::string_view prepared(view.data, view.byte_count);
+        check(prepared == paragraph.prepared, fixture);
+        check_styled_tokens(check, prepared, paragraph.tokens, fixture);
+    }
+}
+
+void check_emphasis_delimiters(const auto& check) {
+    using enum marky::InlineTokenKind;
+    using enum marky::InlineTrait;
+    check_styled_tokens(check, "", {}, "empty inline regions have no styles");
+    check_styled_tokens(check, "(*a*) __b__ ~~c~~ ~d~",
+                        {{0, "(", text}, {2, "a", text, emphasis}, {4, ") ", text},
+                         {8, "b", text, strong}, {11, " ", text}, {14, "c", text, strikethrough},
+                         {17, " ", text}, {19, "d", text, strikethrough}},
+                        "punctuation boundaries and both strike widths");
+    check_styled_tokens(check, "a*b*c d_e_f g~h~i",
+                        {{0, "a", text}, {2, "b", text, emphasis}, {4, "c d_e_f g", text},
+                         {14, "h", text, strikethrough}, {16, "i", text}},
+                        "asterisks and tildes can pair inside words while underscores stay literal");
+    for (const std::string_view source : {"a* b*c", "a*\tb*c", "a*\xC2\xA0" "b*c", "a*\xE2\x80\x83" "b*c"}) {
+        check_styled_tokens(check, source, {{0, source, text}},
+                            "space, tab, nonbreaking space and em space block an opener");
+    }
+    constexpr std::string_view curly_quote = "a*\xE2\x80\x99" "b*c";
+    check_styled_tokens(check, curly_quote, {{0, curly_quote, text}},
+                        "Unicode punctuation prevents an intraword opening asterisk");
+    check_styled_tokens(check, "\xE3\x80\x8A_\xE9\x9B\xAA_\xE3\x80\x8B",
+                        {{0, "\xE3\x80\x8A", text}, {4, "\xE9\x9B\xAA", text, emphasis}, {8, "\xE3\x80\x8B", text}},
+                        "Unicode punctuation allows underscore emphasis at word boundaries");
+    check_styled_tokens(check, "a*\xF0\x9F\x8E\xB5" "b*c",
+                        {{0, "a", text}, {2, "\xF0\x9F\x8E\xB5" "b", text, emphasis}, {8, "c", text}},
+                        "supplementary symbols are word-like");
+    constexpr std::string_view intraword_underscore = "\xE9\x9B\xAA_\xE5\xAD\x97_\xE9\x9B\xAA";
+    check_styled_tokens(check, intraword_underscore, {{0, intraword_underscore, text}},
+                        "intraword underscore handling uses Unicode neighbors");
+    check_styled_tokens(check, "a\v*b*c a*\fb*c",
+                        {{0, "a\v", text}, {3, "b", text, emphasis}, {5, "c a*\fb*c", text}},
+                        "vertical tab is word-like and form feed is whitespace");
+
+    check_styled_tokens(check, "*a**b*", {{1, "a**b", text, emphasis}},
+                        "rule of three preserves an incompatible interior run");
+    check_styled_tokens(check, "**a***b*", {{2, "a", text, strong}, {6, "b", text, emphasis}},
+                        "a run can close strong on the left and open emphasis on the right");
+    check_styled_tokens(check, "*a**", {{1, "a", text, emphasis}, {3, "*", text}},
+                        "an excess closing asterisk remains after the styled span");
+    check_styled_tokens(check, "**a*", {{0, "*", text}, {2, "a", text, emphasis}},
+                        "an excess opening asterisk remains before the styled span");
+    check_styled_tokens(check, "_a__b_", {{1, "a__b", text, emphasis}},
+                        "intraword underscore runs stay literal inside underscore emphasis");
+    check_styled_tokens(check, "a~_b_", {{0, "a~_b_", text}},
+                        "a tilde is word-like beside an underscore opener");
+    check_styled_tokens(check, "_a_~b~", {{0, "_a_", text}, {4, "b", text, strikethrough}},
+                        "a tilde is word-like beside an underscore closer");
+    check_styled_tokens(check, "a~~b~c~~d~e", {{0, "a", text}, {3, "b~c", text, strikethrough}, {8, "d~e", text}},
+                        "a double-tilde pair leaves an interior single tilde literal and cannot cross");
+    for (const std::string_view source : {"~a~~", "~~b~", "~~~c~~~", "~~~~d~~~~"}) {
+        check_styled_tokens(check, source, {{0, source, text}},
+                            "unequal widths and runs wider than two remain literal");
+    }
+    check_styled_tokens(check, "a~*b~c*d", {{0, "a~", text}, {3, "b~c", text, emphasis}, {7, "d", text}},
+                        "an incompatible interior opener cannot pair across a completed style");
+
+    constexpr std::string_view protected_literals = R"(\*literal\* \[label\] `&amp; **raw**`)";
+    check_styled_paragraphs(check, protected_literals,
+                            {{protected_literals,
+                              {{0, R"(\*)", literal, none, "*"}, {2, "literal", text},
+                               {9, R"(\*)", literal, none, "*"}, {11, " ", text},
+                               {12, R"(\[)", literal, none, "["}, {14, "label", text},
+                               {19, R"(\])", literal, none, "]"}, {21, " ", text},
+                               {22, "`&amp; **raw**`", code, none, "&amp; **raw**"}}}},
+                            "MD-028: escaped punctuation and literal code keep their exact bytes");
+    constexpr std::string_view unicode = "\xF0\x9D\x84\x9E e\xCC\x81 **\xF0\x9D\x84\xA2** `e\xCC\x81`";
+    check_styled_paragraphs(check, unicode,
+                            {{unicode, {{0, "\xF0\x9D\x84\x9E e\xCC\x81 ", text},
+                                        {11, "\xF0\x9D\x84\xA2", text, strong}, {17, " ", text},
+                                        {18, "`e\xCC\x81`", code, none, "e\xCC\x81"}}}},
+                            "MD-048: ranges count supplementary and decomposed UTF-8 bytes");
+    constexpr std::string_view unmatched = "**open *half ~~gone _tail";
+    check_styled_paragraphs(check, unmatched, {{unmatched, {{0, unmatched, text}}}},
+                            "MD-070: unmatched runs stay literal");
+    constexpr std::string_view parity = R"(\\*yes* \*no\* `&copy; \*x\*`)";
+    check_styled_paragraphs(check, parity,
+                            {{parity, {{0, R"(\\)", literal, none, "\\"}, {3, "yes", text, emphasis},
+                                       {7, " ", text}, {8, R"(\*)", literal, none, "*"}, {10, "no", text},
+                                       {12, R"(\*)", literal, none, "*"}, {14, " ", text},
+                                       {15, R"(`&copy; \*x\*`)", code, none, R"(&copy; \*x\*)"}}}},
+                            "MD-074: escape parity leaves a valid delimiter run after an escaped backslash");
+    check_styled_tokens(check, R"(\***hi**)", {{0, R"(\*)", literal, none, "*"}, {4, "hi", text, strong}},
+                        "an escape removes only one marker from a run");
+    check_styled_tokens(check, "&#42;x&ast; *&#32;*",
+                        {{0, "&#42;", literal, none, "*"}, {5, "x", text}, {6, "&ast;", literal, none, "*"},
+                         {11, " ", text}, {13, "&#32;", literal, emphasis, " "}},
+                        "decoded delimiters are literal and decoded whitespace cannot change source flanking");
+    check_styled_paragraphs(check, "x *a\r\nb* y\n\n*first\n\nsecond*",
+                            {{"x *a b* y", {{0, "x ", text}, {3, "a b", text, emphasis}, {7, " y", text}}},
+                             {"*first", {{0, "*first", text}}}, {"second*", {{0, "second*", text}}}},
+                            "styles span soft lines within a prepared paragraph but cannot cross paragraphs");
+    check_styled_paragraphs(check, "x *a\\\r\nb* y",
+                            {{"x *a\\\nb* y", {{0, "x ", text}, {3, "a", text, emphasis},
+                                              {4, "\\\n", line_break, emphasis, "\n"},
+                                              {6, "b", text, emphasis}, {8, " y", text}}}},
+                            "explicit breaks retain their token kind inside emphasis");
+
+    std::string incompatible;
+    for (std::size_t index = 0; index < 20000; ++index) {
+        incompatible += "~x ";
+    }
+    for (std::size_t index = 0; index < 20000; ++index) {
+        incompatible += "y~~ ";
+    }
+    check_styled_tokens(check, incompatible, {{0, incompatible, text}},
+                        "many incompatible openers and closers stay literal");
+}
+
 void check_final_inline_data(const auto& check) {
     using enum marky::InlineTokenKind;
     check_inline_tokens(check, R"(&Afr;&fjlig;&CounterClockwiseContourIntegral;&COPY; \&ast; `&ast;` &ast;)",
@@ -1125,6 +1286,7 @@ int main() {
     check_code_spans(check);
     check_literal_code_spans(check);
     check_inline_normalization(check);
+    check_emphasis_delimiters(check);
     check_final_inline_data(check);
     check_literal_code_in_table(check);
     check_cancellation(check);

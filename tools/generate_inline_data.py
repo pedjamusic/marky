@@ -70,13 +70,30 @@ def property_records(source):
             yield [field.strip() for field in record.split(";")]
 
 
+def scalar_ranges(scalars):
+    ranges = []
+    for scalar in sorted(scalars):
+        if ranges and ranges[-1][1] + 1 == scalar:
+            ranges[-1] = (ranges[-1][0], scalar)
+        else:
+            ranges.append((scalar, scalar))
+    return "\n".join(f"    {{{first:#x}, {last:#x}}}," for first, last in ranges)
+
+
 def unicode_tables(unicode_data, special_casing, properties):
     lowercase = {}
     canonical = {}
     combining = {}
+    inline_whitespace = set()
+    punctuation = set()
     for line in unicode_data.splitlines():
         fields = line.split(";")
         scalar = int(fields[0], 16)
+        if scalar >= 0x80:
+            if fields[2] == "Zs":
+                inline_whitespace.add(scalar)
+            elif fields[2].startswith("P"):
+                punctuation.add(scalar)
         if fields[3] != "0":
             combining[scalar] = int(fields[3])
         decomposition = fields[5]
@@ -111,14 +128,9 @@ def unicode_tables(unicode_data, special_casing, properties):
         if prop == "White_Space":
             start, _, end = codepoints.partition("..")
             whitespace.update(range(int(start, 16), int(end or start, 16) + 1))
-    ranges = []
-    for scalar in sorted(whitespace):
-        if ranges and ranges[-1][1] + 1 == scalar:
-            ranges[-1] = (ranges[-1][0], scalar)
-        else:
-            ranges.append((scalar, scalar))
-
-    whitespace_text = "\n".join(f"    {{{first:#x}, {last:#x}}}," for first, last in ranges)
+    whitespace_text = scalar_ranges(whitespace)
+    inline_whitespace_text = scalar_ranges(inline_whitespace)
+    punctuation_text = scalar_ranges(punctuation)
     lowercase_text = "\n".join(mappings(lowercase))
     canonical_text = "\n".join(mappings({scalar: decompose(scalar) for scalar in canonical}))
     combining_text = "\n".join(f"    {{{scalar:#x}, {value}}}," for scalar, value in sorted(combining.items()))
@@ -144,6 +156,14 @@ struct CombiningClass {{
 
 inline constexpr ScalarRange whitespace_ranges[] = {{
 {whitespace_text}
+}};
+
+inline constexpr ScalarRange inline_whitespace_ranges[] = {{
+{inline_whitespace_text}
+}};
+
+inline constexpr ScalarRange punctuation_ranges[] = {{
+{punctuation_text}
 }};
 
 inline constexpr Mapping lowercase_mappings[] = {{

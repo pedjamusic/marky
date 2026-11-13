@@ -1,4 +1,5 @@
 #include "ReferenceLabel.h"
+#include "Utf8.h"
 
 #include "generated/UnicodeData.h"
 
@@ -11,21 +12,6 @@
 
 namespace marky {
 namespace {
-
-std::uint32_t read_scalar(std::string_view& source) {
-    const auto lead = static_cast<unsigned char>(source.front());
-    if (lead <= 0x7F) {
-        source.remove_prefix(1);
-        return lead;
-    }
-    const std::size_t width = lead < 0xE0 ? 2 : (lead < 0xF0 ? 3 : 4);
-    std::uint32_t scalar = lead & (0x7F >> width);
-    for (std::size_t offset = 1; offset < width; ++offset) {
-        scalar = (scalar << 6) | (static_cast<unsigned char>(source[offset]) & 0x3F);
-    }
-    source.remove_prefix(width);
-    return scalar;
-}
 
 void append_utf8(std::string& output, std::uint32_t scalar) {
     if (scalar <= 0x7F) {
@@ -145,7 +131,7 @@ std::string normalize_reference_label(std::string_view source) {
     bool has_content = false;
     bool pending_space = false;
     while (!source.empty()) {
-        const auto scalar = read_scalar(source);
+        const auto scalar = read_utf8_scalar(source);
         if (is_label_whitespace(scalar)) {
             pending_space = has_content;
             continue;

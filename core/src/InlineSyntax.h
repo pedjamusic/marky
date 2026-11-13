@@ -3,9 +3,18 @@
 
 #include "LiteralSyntax.h"
 
+#include <cstdint>
+#include <vector>
+
 namespace marky {
 
 enum class InlineTokenKind { text, literal, code, line_break };
+
+enum class InlineTrait : std::uint8_t { none = 0, emphasis = 1, strong = 2, strikethrough = 4 };
+
+constexpr InlineTrait operator|(InlineTrait left, InlineTrait right) {
+    return static_cast<InlineTrait>(static_cast<unsigned>(left) | static_cast<unsigned>(right));
+}
 
 struct InlineToken {
     InlineTokenKind kind;
@@ -13,6 +22,7 @@ struct InlineToken {
     std::size_t begin;
     std::size_t end;
     std::string text;
+    InlineTrait traits = InlineTrait::none;
 };
 
 // Paragraph preparation has already folded soft lines to spaces. Only text
@@ -32,6 +42,10 @@ private:
     std::size_t cursor = 0;
     std::optional<InlineToken> pending;
 };
+
+// Resolve styles in one prepared region of validated UTF-8. Consumed delimiters
+// are gaps between the returned source ranges.
+std::vector<InlineToken> resolve_inline(std::string_view source);
 
 }
 

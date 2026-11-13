@@ -7,7 +7,8 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
 - **T07 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the T07.S2 candidate E60 (E61). Standalone image metadata landed on `main` as `2e71ef4` (E62). Portable table parsing landed as `df7cb77` (E59).
 - **T08.S2 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable lexer candidate E66 (E67). The slice landed on `main` as `3dae9f8` (E68). [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
-- **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71). **T09.S1 is next when selected.** [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
+- **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71).
+- **T09.S1 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable delimiter candidate E72 (E73). T09.S2 owns nested and combined trait parity, including the overlapping-run cases below. [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -25,7 +26,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
-| T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T09 | [04](phases/04-inline-semantics.md) | in_progress | T09.S1 done. T09.S2 queued. | E72 verifies delimiter rules, exact prepared byte ranges, and literal isolation. E73 records user PASS. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -159,6 +160,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E69 | T08.S3 final offline entity and Unicode data | Uncommitted on `codex/t08-s3-offline-inline-data` from `677b30586f0bcc78d29246d95a942e79d2b13814`. The 11-file candidate patch excluding this ledger is `/tmp/marky-t08s3-build.jFcB2r/T08.S3.patch`, SHA-256 `ef0ff1b9570d14608f2d731c8cc2f9d3f1bc1071a52a7290c00293b2790665bc`. | [Mac verification](#t08s3-mac-run). Offline Debug, Release, and sanitizer CTest each passed 2/2. All 2,125 named entities matched WHATWG and Swift. All 12 prior shared corpus comparisons and 1,122,065 Swift label-key comparisons passed. Xcode passed 117 unit tests and bundled the notices. | User PASS pending. T10.S2 owns reference resolution. T09 and T10 receive final-data interaction fixtures after T08 acceptance. B03/OWE-T03 still tracks Windows/MSVC and Linux/GCC execution. |
 | E70 | T08.S3 and T08 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E69. | The 11-file patch hash and reverse application check matched the working tree. The tested core snapshot matched byte for byte. Debug, Release, and sanitizer CTest reruns passed 2/2 each. Regeneration, all 12 corpus comparisons, 2,125 entity outputs, and 1,122,065 label comparisons passed again. Remote main matched the base `677b305`. | PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. T08 receipts for OWE-T01, OWE-T04, and OWE-T05 are closed. OWE-T08 is open for T09 and T10. |
 | E71 | T08.S3 and T08 integration | The accepted candidate and PASS record landed as `adfac85022829e46b37be4d473b4b7d12c4639bf`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08 delivered. T09.S1 is next when selected. OWE-T08 is open for T09 and T10. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E72 | T09.S1 emphasis delimiter rules | Uncommitted on `codex/t09-s1-emphasis-delimiters` from `99721bf6178b57af7eed418fb5b6ab0411eb7c80`. The eight-file patch excluding this ledger is `/tmp/MarkyT09S1.5uTT8q/T09.S1.patch` with SHA-256 `ae1b83c73568f6be920764b46b1519f4830e206a7aba745daecbd300ed7bb827`. | [Mac verification](#t09s1-mac-run). Both CTest targets passed in Debug, Release, and the sanitizer build. Xcode passed 117 unit tests. The portable pass matched all 14 selected shared fixtures. | User PASS pending. T09.S2 owns combined-style parity and T09 receipt closure for OWE-T01, OWE-T04, OWE-T05, and OWE-T08. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E73 | T09.S1 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E72. | The patch hash and reverse application check matched. Debug, Release, and sanitizer CTest each passed 2/2 again. Unicode data regeneration and all 14 shared fixture comparisons passed again. The Foundation comparison reproduced the same results. Local and remote `main` matched `99721bf`. | PASS authorizes the focused commit, fast-forward to local `main`, push of `main`, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -349,6 +352,35 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,a
 - The Release corpus probe matched text and literal code bytes for MD-003, MD-028–029, MD-041–047, MD-073, and MD-086. CTest reran the provisional lexer assertions against the final table, including the lexical portion of MD-074. MD-072 checks label-key equivalence and the sharp-S distinction. Reference resolution belongs to T10.S2.
 - A Release probe compared 1,122,065 labels with the Swift whitespace and lowercase pipeline plus canonical decomposition. It covered every valid scalar inside a label, 10,000 seeded mixed labels, and a 40,000-mark run. Foundation's decomposition helper left two Todhri characters composed. The oracle used their Unicode 17 decompositions after Swift string equality confirmed each equivalent form. The comparison found zero differences.
 
+### T09.S1 Mac run
+
+macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake and CTest 4.4.5, Xcode 27.2 (27B52), and macOS SDK 27.2. Set `T09S1_BUILD` to a fresh directory and run from the repository root.
+
+```sh
+sdk_path=$(xcrun --sdk macosx --show-sdk-path)
+for config in Debug Release Sanitizers; do
+	mode="$config"
+	flags='-Wall -Wextra -Wpedantic -Werror'
+	if [ "$config" = Sanitizers ]; then
+		mode=Debug
+		flags="$flags -fno-omit-frame-pointer -fsanitize=address,undefined"
+	fi
+	build_dir="$T09S1_BUILD/core-$config"
+	cmake -S core -B "$build_dir" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="$mode" \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_SYSROOT="$sdk_path" -DCMAKE_CXX_FLAGS="$flags"
+	cmake --build "$build_dir" --parallel 4
+	ctest --test-dir "$build_dir" --output-on-failure --no-tests=error
+done
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+	-configuration Debug -derivedDataPath "$T09S1_BUILD/xcode" -parallel-testing-enabled NO \
+	test -only-testing:MarkyTests
+```
+
+- The internal resolver takes one prepared inline region. The tests assert visible text, style flags, literal kinds, and exact UTF-8 source ranges. They cover punctuation, Unicode neighbors, intraword underscores, adjacent runs, unmatched syntax, escapes, entities, code isolation, and breaks. A 40,000-run case exercises incompatible openers and closers. Disabling the rule of three in a temporary copy failed its regression check with CTest exit 8.
+- The Unicode regeneration check reproduced the committed-format headers byte for byte using the pinned T08 data. The Release probe matched text and traits for MD-013, MD-026, MD-028–029, MD-041–044, MD-048, MD-070, MD-073–074, and MD-085–086. It obtained prepared paragraphs and table cells from the C document API. The macOS unit run includes the shared native corpus. UI tests were outside this run.
+- A separate comparison with Foundation matched 6,274 of 6,327 direct inline inputs. All 53 differences involved three interacting asterisk runs, with at least one run three or more markers wide. Four changed the visible marker text. For example, `**a*b****` emits strong `a` and combined `b` with one trailing star in the core. Foundation leaves the initial `**a` literal and emphasizes `b` with three trailing stars. Use these cases in T09.S2 when establishing combined-style parity. Also carry the separate combining-mark projection case `a*\u{0301}b*c` into T11.S1, where the native adapter maps portable byte ranges to native text ranges.
+- The production Mac reader uses its Swift parser. This slice exposes the resolver to portable callers with prepared source. Document-level invocation and cooperative cancellation for inline processing must be verified when the resolver becomes part of document creation.
+
 ## Git authorization and integration
 
 This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
@@ -523,6 +555,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Create local branch and implement T08.S3 | User selected T08.S3 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t08-s3-offline-inline-data` from clean `main/677b305` before editing. E69 identifies the candidate. |
 | Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E69 under repository policy. | E70 records authorization and E71 records execution. |
+
+### T09.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T09.S1 | User selected T09.S1 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t09-s1-emphasis-delimiters` from clean `main/99721bf` before editing. E72 identifies the candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E72 under repository policy. | E73 records authorization. |
 
 ## Contract amendments
 
