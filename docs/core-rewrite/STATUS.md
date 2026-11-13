@@ -7,7 +7,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
 - **T07 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the T07.S2 candidate E60 (E61). Standalone image metadata landed on `main` as `2e71ef4` (E62). Portable table parsing landed as `df7cb77` (E59).
 - **T08.S2 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable lexer candidate E66 (E67). The slice landed on `main` as `3dae9f8` (E68). [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
-- **T08.S3 and T08 are accepted.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). Integrate the accepted branch. T09.S1 follows T08.
+- **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71). **T09.S1 is next when selected.** [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -24,7 +24,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
-| T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS. |
+| T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -158,6 +158,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E68 | T08.S2 integration | The accepted candidate and acceptance record landed as `3dae9f88ae892a3dbcb84a2a6612948cbe798d4d`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08.S2 delivered. T08.S3 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E69 | T08.S3 final offline entity and Unicode data | Uncommitted on `codex/t08-s3-offline-inline-data` from `677b30586f0bcc78d29246d95a942e79d2b13814`. The 11-file candidate patch excluding this ledger is `/tmp/marky-t08s3-build.jFcB2r/T08.S3.patch`, SHA-256 `ef0ff1b9570d14608f2d731c8cc2f9d3f1bc1071a52a7290c00293b2790665bc`. | [Mac verification](#t08s3-mac-run). Offline Debug, Release, and sanitizer CTest each passed 2/2. All 2,125 named entities matched WHATWG and Swift. All 12 prior shared corpus comparisons and 1,122,065 Swift label-key comparisons passed. Xcode passed 117 unit tests and bundled the notices. | User PASS pending. T10.S2 owns reference resolution. T09 and T10 receive final-data interaction fixtures after T08 acceptance. B03/OWE-T03 still tracks Windows/MSVC and Linux/GCC execution. |
 | E70 | T08.S3 and T08 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E69. | The 11-file patch hash and reverse application check matched the working tree. The tested core snapshot matched byte for byte. Debug, Release, and sanitizer CTest reruns passed 2/2 each. Regeneration, all 12 corpus comparisons, 2,125 entity outputs, and 1,122,065 label comparisons passed again. Remote main matched the base `677b305`. | PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. T08 receipts for OWE-T01, OWE-T04, and OWE-T05 are closed. OWE-T08 is open for T09 and T10. |
+| E71 | T08.S3 and T08 integration | The accepted candidate and PASS record landed as `adfac85022829e46b37be4d473b4b7d12c4639bf`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08 delivered. T09.S1 is next when selected. OWE-T08 is open for T09 and T10. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -521,7 +522,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T08.S3 | User selected T08.S3 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t08-s3-offline-inline-data` from clean `main/677b305` before editing. E69 identifies the candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E69 under repository policy. | E70 records authorization. Integration is pending. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E69 under repository policy. | E70 records authorization and E71 records execution. |
 
 ## Contract amendments
 
