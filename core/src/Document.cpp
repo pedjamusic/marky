@@ -319,8 +319,8 @@ size_t table_pipe(std::string_view line, size_t cursor, marky::CodeSpanMatcher& 
         if (line[cursor] == '`') {
             const auto length = marky::backtick_run_length(line.substr(cursor));
             if (length != 0) {
-                const auto end = spans.end(cursor, length);
-                cursor = end == std::string_view::npos ? cursor + length : end;
+                const auto span = spans.match(cursor, length);
+                cursor = span ? span->end : cursor + length;
                 continue;
             }
         } else if (marky::grapheme_suffix_width(suffix) == 0) {

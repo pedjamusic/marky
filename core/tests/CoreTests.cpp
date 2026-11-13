@@ -727,6 +727,120 @@ void check_code_spans(const auto& check) {
           "a longer closing run cannot supply a partial closer");
 }
 
+struct ExpectedCodeSpan {
+    marky::CodeSpan bytes;
+    std::string_view literal;
+};
+
+void check_inline_code(const auto& check, std::string_view prepared,
+                       std::initializer_list<ExpectedCodeSpan> expected, std::string_view fixture) {
+    marky::CodeSpanScanner scanner(prepared);
+    for (const auto& [bytes, literal] : expected) {
+        const auto span = scanner.next();
+        const bool ranges_match = span && span->begin == bytes.begin && span->end == bytes.end &&
+                                  span->content_begin == bytes.content_begin && span->content_end == bytes.content_end;
+        check(ranges_match && marky::normalize_code_span(
+                                  prepared.substr(span->content_begin, span->content_end - span->content_begin)) == literal,
+              fixture);
+    }
+    check(!scanner.next(), fixture);
+}
+
+struct ExpectedInlineParagraph {
+    std::string_view source;
+    std::initializer_list<ExpectedCodeSpan> spans;
+};
+
+void check_inline_paragraphs(const auto& check, std::string_view input,
+                             std::initializer_list<ExpectedInlineParagraph> expected, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(input.data(), input.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    check(status == MARKY_STATUS_OK && marky_document_block_count(document.get()) == expected.size(), fixture);
+
+    size_t index = 0;
+    for (const auto& paragraph : expected) {
+        MarkyUtf8View view{};
+        if (marky_document_paragraph_at(document.get(), index++, &view) != MARKY_STATUS_OK) {
+            check(false, fixture);
+            continue;
+        }
+        const std::string_view prepared(view.data, view.byte_count);
+        check(prepared == paragraph.source, fixture);
+        check_inline_code(check, prepared, paragraph.spans, fixture);
+    }
+}
+
+void check_literal_code_spans(const auto& check) {
+    // MD-041–044 use the accepted production paragraph route from the shared corpus.
+    check_inline_paragraphs(check, "Before ``first\nsecond`` after",
+                           {{"Before ``first second`` after", {{{7, 9, 21, 23}, "first second"}}}},
+                           "MD-041: soft lines stay in the same span");
+    check_inline_paragraphs(check, "Before ``unclosed `tick` after",
+                           {{"Before ``unclosed `tick` after", {{{18, 19, 23, 24}, "tick"}}}},
+                           "MD-042: the unmatched outer run stays visible before the inner span");
+    check_inline_paragraphs(check, "Before `` padded `` after",
+                           {{"Before `` padded `` after", {{{7, 9, 17, 19}, "padded"}}}},
+                           "MD-043: literal text removes one space on each side");
+    check_inline_paragraphs(check, "`first\n\nsecond`", {{"`first", {}}, {"second`", {}}},
+                           "MD-044: blank lines split paragraphs before scanning");
+
+    check_inline_paragraphs(check, "a ` first  \r\nsecond ` z",
+                           {{"a ` first\nsecond ` z", {{{2, 3, 17, 18}, "first second"}}}},
+                           "a retained LF becomes a space inside code");
+    check_inline_paragraphs(check, "a `  \n` z",
+                           {{"a `\n` z", {{{2, 3, 4, 5}, " "}}}},
+                           "an all-space span preserves its spaces after LF normalization");
+    check_inline_paragraphs(check, "a `x\ry` z", {{"a `x\ry` z", {{{2, 3, 6, 7}, "x y"}}}},
+                           "a bare CR stays in the prepared source and becomes a space inside code");
+    check_inline_code(check, "a `x\r\ny` z", {{{2, 3, 7, 8}, "x y"}},
+                      "a CRLF in inline source becomes one space inside code");
+    constexpr std::string_view padding = "x `   ` ` left` `right ` `  two  ` `\t padded \t` `\xC2\xA0word\xC2\xA0`";
+    check_inline_paragraphs(check, padding,
+                           {{padding, {{{2, 3, 6, 7}, "   "}, {{8, 9, 14, 15}, " left"},
+                                       {{16, 17, 23, 24}, "right "}, {{25, 26, 33, 34}, " two "},
+                                       {{35, 36, 46, 47}, "\t padded \t"},
+                                       {{48, 49, 57, 58}, "\xC2\xA0word\xC2\xA0"}}}},
+                           "all-space and one-sided padding, tabs, and nonbreaking spaces stay literal");
+
+    constexpr std::string_view unicode =
+        "\xE2\x99\xAB" "e\xCC\x81`` **a** [ref]|&amp; \\` x``` end ``\xE9\x9B\xAA";
+    check_inline_paragraphs(check, unicode,
+                           {{unicode, {{{6, 8, 39, 41}, "**a** [ref]|&amp; \\` x``` end"}}}},
+                           "ranges count UTF-8 bytes and skip longer runs over protected punctuation");
+    constexpr std::string_view escaped = "a \\``x` \\\\`y` z";
+    check_inline_paragraphs(check, escaped,
+                           {{escaped, {{{4, 5, 6, 7}, "x"}, {{10, 11, 12, 13}, "y"}}}},
+                           "escape parity and a backtick remaining after an escaped opener");
+    check_inline_paragraphs(check, "a \\`escaped` z\n\na `x``\n\nx `a\\` z",
+                           {{"a \\`escaped` z", {}}, {"a `x``", {}}, {"x `a\\` z", {{{2, 3, 5, 6}, "a\\"}}}},
+                           "escaped openers and longer closers stay visible, while an interior backslash is literal");
+}
+
+void check_literal_code_in_table(const auto& check) {
+    constexpr std::string_view input = "Code | Tail\n--- | ---\n`` [x](y)|\\|&amp;``` `` | final";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(input.data(), input.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyUtf8View code{};
+    MarkyUtf8View tail{};
+    const bool is_table = status == MARKY_STATUS_OK && marky_document_block_count(document.get()) == 1 &&
+                          marky_document_table_column_count(document.get(), 0) == 2 &&
+                          marky_document_table_row_content_count(document.get(), 0, 0) == 2 &&
+                          marky_document_table_cell_at(document.get(), 0, 0, 0, &code) == MARKY_STATUS_OK &&
+                          marky_document_table_cell_at(document.get(), 0, 0, 1, &tail) == MARKY_STATUS_OK;
+    check(is_table, "table splitting skips the full code span to the next real pipe");
+    if (is_table) {
+        const std::string_view prepared(code.data, code.byte_count);
+        check(prepared == "`` [x](y)|\\|&amp;``` ``" && std::string_view(tail.data, tail.byte_count) == "final",
+              "table splitting preserves code source and the following cell");
+        check_inline_code(check, prepared, {{{0, 2, 21, 23}, "[x](y)|\\|&amp;```"}},
+                          "inline code normalizes cell padding and preserves literal pipes, escapes, and punctuation");
+    }
+}
+
 void check_cancellation(const auto& check) {
     MarkyCancellationToken* raw_token = nullptr;
     check(marky_cancellation_token_create(&raw_token) == MARKY_STATUS_OK && raw_token != nullptr,
@@ -851,6 +965,8 @@ int main() {
     check_combining_delimiters(check);
     check_malformed_blocks(check);
     check_code_spans(check);
+    check_literal_code_spans(check);
+    check_literal_code_in_table(check);
     check_cancellation(check);
     check_concurrent_calls(check);
 

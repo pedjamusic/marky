@@ -6,7 +6,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
 - **T07 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the T07.S2 candidate E60 (E61). Standalone image metadata landed on `main` as `2e71ef4` (E62). Portable table parsing landed as `df7cb77` (E59).
-- **T08.S1 is next when selected.** Reuse the code-span matcher shared by the table parser and verify MD-041–044 against production paragraph boundaries. [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
+- **T08.S1 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable code-span candidate E63. E64 records acceptance. [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -23,7 +23,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
-| T08 | [04](phases/04-inline-semantics.md) | queued | T08.S1 queued; T08.S2 queued; T08.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T08 | [04](phases/04-inline-semantics.md) | in_progress | T08.S1 done; T08.S2 queued; T08.S3 queued | E63 verifies the literal scanner and shared table matcher. E64 records user acceptance. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -149,6 +149,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E60 | T07.S2 standalone image metadata | Uncommitted on `codex/t07-s2-image-metadata` at `ef83f74bad8ffba9859ab294d567a41abb3e55b0`. Seven-file patch SHA-256 `8b1635a0e61d6a4de909cf8129effe4652d924b174f8036afbe139a1420dd652` excludes this ledger. Patch and logs are in `/tmp/MarkyT07S2.2t1YQa/`. | [Mac verification](#t07s2-mac-run). Debug, Release, and AddressSanitizer plus UndefinedBehaviorSanitizer CTest passed 2/2 each. The Swift proof adapter checked nine image-related corpus fixtures. The full macOS scheme passed 117 unit tests and eight UI tests, with two opt-in performance tests skipped. | E61 records user PASS. T10 owns inline and reference interpretation. T11.S2 owns native image presentation and access. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E61 | T07.S2 and T07 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E60. | The seven-file working-tree patch matched E60 byte for byte. macOS Debug, Release, and sanitizer CTest reruns each passed 2/2. Remote main matched the candidate base `ef83f74`. | T07.S2 and T07 accepted. PASS authorizes commit, fast-forward to local main, main push, and merged-branch cleanup. |
 | E62 | T07.S2 and T07 integration | Accepted candidate and acceptance record committed as `2e71ef40f11d38190ca88177d2a36e1033734a0b`, 2026-11-13. | `git merge --ff-only codex/t07-s2-image-metadata` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T07 delivered. T08.S1 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E63 | T08.S1 literal code spans | Uncommitted on `codex/t08-s1-literal-code-spans` at `be3ca2f69f79410a223da666ab968fafb00a3d87`. The four-file patch under `core/` has SHA-256 `c17bbf86b10b4ade7af9da265bdd93867789bf2f5f333643e22b38cd7220e578`. The patch and run artifacts are in `/tmp/MarkyT08S1.V9cc3V/`. | [Mac verification](#t08s1-mac-run). Portable Debug, Release, and sanitizer CTest each passed 2/2. The shared corpus probe matched code text for 15 fixtures. The full Mac scheme passed 117 unit tests and eight UI tests, with two opt-in performance tests skipped. | Awaiting user PASS. The scanner works on prepared source inside the core. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E64 | T08.S1 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E63. | The four-file patch matched E63 byte for byte. macOS Debug, Release, and sanitizer CTest reruns each passed 2/2. The 15-fixture probe passed again. Remote main matched the candidate base `be3ca2f`. | PASS authorizes the focused commit, fast-forward to local main, main push, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -249,6 +251,28 @@ The two intentional test failures exited 8. The ordinary tests passed on the nex
 The new C checks failed before image blocks were emitted and passed with recognition enabled. The Swift suite covered MD-037–039, MD-079–083, and MD-090. It verified exact metadata bytes, the table-to-image transition, and prepared prose for malformed and inline syntax. The reference-image case remains prepared source until T10 handles definitions and inline alt text.
 
 A local comparison checked 7,020 combinations against the Swift matcher. It found that the core accepted vertical tabs and form feeds inside titles that Swift rejects. After correcting the matcher, all 7,020 comparisons agreed. A C11 consumer verified every field in 100,000 image blocks after freeing the 7,900,000-byte input.
+
+### T08.S1 Mac run
+
+macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake and CTest 4.4.5, Xcode 27.2 (27B52), and macOS SDK 27.2. Set `T08S1_BUILD` to a fresh temporary directory and run from the repository root.
+
+```sh
+sdk_path=$(xcrun --sdk macosx --show-sdk-path)
+for config in Debug Release; do
+	build_dir="$T08S1_BUILD/core-$config"
+	cmake -S core -B "$build_dir" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="$config" \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_SYSROOT="$sdk_path" \
+		-DCMAKE_CXX_FLAGS='-Wall -Wextra -Wpedantic -Werror'
+	cmake --build "$build_dir" --parallel 4
+	ctest --test-dir "$build_dir" --output-on-failure --no-tests=error
+done
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+	-configuration Debug -derivedDataPath "$T08S1_BUILD/xcode" -parallel-testing-enabled NO test
+```
+
+The sanitizer build repeated Debug in `core-Sanitizers` with `-fno-omit-frame-pointer -fsanitize=address,undefined` appended to `CMAKE_CXX_FLAGS`. The portable tests start from paragraphs and table cells returned by the C document API. They check MD-041–044, prepared UTF-8 byte ranges, escapes, literal punctuation, padding, line endings, and table pipes. Disabling padding removal in a temporary copy made the MD-043 regression and four related cases fail with CTest exit 8.
+
+An independent probe linked the Release archive and compared literal code bytes with the checked-in expectations for MD-004, MD-013–014, MD-022, MD-028, MD-034, MD-041–044, MD-048, MD-062, MD-064, MD-069, and MD-074. The comparison covered code text and checked range ordering and bounds. Emphasis, links, and entities remain later inline work. The shared matcher follows Swift's table delimiter boundaries when a combining mark attaches to a backtick. Foundation's inline parser differs on that edge outside the accepted fixtures. Recheck it for T12 reader parity.
 
 ## Git authorization and integration
 
@@ -403,6 +427,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Create local branch and implement T07.S2 | User selected T07.S2 and replied **"Create the branch"**, 2026-11-13. | Created `codex/t07-s2-image-metadata` from clean `main/ef83f74` before editing. E60 identifies the candidate. |
 | Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E60 under repository policy. | Authorized in E61 and executed in E62. |
+
+### T08.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T08.S1 | User selected T08.S1 and replied **"Create the branch"**, 2026-11-13. | Created `codex/t08-s1-literal-code-spans` from clean `main/be3ca2f` before editing. E63 identifies the candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E63 under repository policy. | E64 records authorization. |
 
 ## Contract amendments
 

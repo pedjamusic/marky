@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -45,6 +46,14 @@ inline std::size_t code_span_end(std::string_view text, std::size_t opening,
     return std::string_view::npos;
 }
 
+// Half-open UTF-8 byte ranges in the prepared inline source.
+struct CodeSpan {
+    std::size_t begin;
+    std::size_t content_begin;
+    std::size_t content_end;
+    std::size_t end;
+};
+
 // Callers visit potential openings from left to right. Successful matches
 // advance past the bytes they scanned. After a miss, index the remaining
 // runs on demand so later misses cannot rescan the same suffix repeatedly.
@@ -52,13 +61,16 @@ class CodeSpanMatcher {
 public:
     explicit CodeSpanMatcher(std::string_view text) : text(text) {}
 
-    std::size_t end(std::size_t opening, std::size_t length) {
-        if (!saw_unmatched) {
-            const auto result = code_span_end(text, opening, length);
-            saw_unmatched = result == std::string_view::npos;
-            return result;
-        }
+    std::optional<CodeSpan> match(std::size_t opening, std::size_t length) {
         const auto search_start = opening + length;
+        if (!saw_unmatched) {
+            const auto end = code_span_end(text, opening, length);
+            if (end != std::string_view::npos) {
+                return CodeSpan{opening, search_start, end - length, end};
+            }
+            saw_unmatched = true;
+            return std::nullopt;
+        }
         if (!closers) {
             closers.emplace();
             for (auto cursor = search_start; const auto run = next_backtick_run(text, cursor); cursor += run) {
@@ -67,11 +79,14 @@ public:
         }
         const auto runs = closers->find(length);
         if (runs == closers->end()) {
-            return std::string_view::npos;
+            return std::nullopt;
         }
         const auto& positions = runs->second;
         const auto closing = std::lower_bound(positions.begin(), positions.end(), search_start);
-        return closing == positions.end() ? std::string_view::npos : *closing + length;
+        if (closing == positions.end()) {
+            return std::nullopt;
+        }
+        return CodeSpan{opening, search_start, *closing, *closing + length};
     }
 
 private:
@@ -79,6 +94,59 @@ private:
     bool saw_unmatched = false;
     std::optional<std::unordered_map<std::size_t, std::vector<std::size_t>>> closers;
 };
+
+class CodeSpanScanner {
+public:
+    explicit CodeSpanScanner(std::string_view text) : text(text), spans(text) {}
+
+    std::optional<CodeSpan> next() {
+        while ((cursor = text.find_first_of("\\`", cursor)) != std::string_view::npos) {
+            const auto suffix = text.substr(cursor + 1);
+            if (text[cursor] == '\\') {
+                if (!suffix.empty() && grapheme_suffix_width(suffix) == 0) {
+                    // The only syntax this scanner visits is ASCII.
+                    ++cursor;
+                }
+                ++cursor;
+                continue;
+            }
+            const auto length = backtick_run_length(text.substr(cursor));
+            if (length == 0) {
+                ++cursor;
+                continue;
+            }
+            if (const auto span = spans.match(cursor, length)) {
+                cursor = span->end;
+                return span;
+            }
+            cursor += length;
+        }
+        return std::nullopt;
+    }
+
+private:
+    std::string_view text;
+    CodeSpanMatcher spans;
+    std::size_t cursor = 0;
+};
+
+inline std::string normalize_code_span(std::string_view content) {
+    std::string literal;
+    literal.reserve(content.size());
+    for (std::size_t index = 0; index < content.size(); ++index) {
+        const auto byte = content[index];
+        if (byte == '\r' && index + 1 < content.size() && content[index + 1] == '\n') {
+            continue;
+        }
+        literal.push_back(byte == '\r' || byte == '\n' ? ' ' : byte);
+    }
+    if (literal.starts_with(' ') && literal.ends_with(' ') &&
+        literal.find_first_not_of(' ') != std::string::npos) {
+        literal.pop_back();
+        literal.erase(0, 1);
+    }
+    return literal;
+}
 
 }
 
