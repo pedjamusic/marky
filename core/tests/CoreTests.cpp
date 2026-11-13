@@ -935,6 +935,8 @@ struct ExpectedStyledToken {
     marky::InlineTokenKind kind;
     marky::InlineTrait traits = marky::InlineTrait::none;
     std::optional<std::string_view> text = std::nullopt;
+    std::optional<std::string_view> destination = std::nullopt;
+    std::optional<std::string_view> title = std::nullopt;
 };
 
 void check_styled_tokens(const auto& check, std::string_view source,
@@ -945,13 +947,77 @@ void check_styled_tokens(const auto& check, std::string_view source,
         return;
     }
     auto token = tokens.begin();
-    for (const auto& [begin, raw, kind, traits, decoded] : expected) {
+    for (const auto& [begin, raw, kind, traits, decoded, destination, title] : expected) {
         check(token->begin == begin && token->end == begin + raw.size() &&
                   source.substr(begin, raw.size()) == raw && token->kind == kind &&
-                  token->traits == traits && token->text == decoded.value_or(raw),
+                  token->traits == traits && token->text == decoded.value_or(raw) &&
+                  (token->link ? token->link->destination : std::nullopt) == destination &&
+                  (token->link ? token->link->title : std::nullopt) == title,
               fixture);
         ++token;
     }
+}
+
+void check_inline_links(const auto& check) {
+    using enum marky::InlineTokenKind;
+    using enum marky::InlineTrait;
+    check_styled_tokens(check, "[one](https://one.test)[two](https://two.test) [Wiki](File_(format))",
+                        {{1, "one", text, none, {}, "https://one.test"},
+                         {24, "two", text, none, {}, "https://two.test"},
+                         {46, " ", text}, {48, "Wiki", text, none, {}, "File_(format)"}},
+                        "MD-030 adjacent links own separate destinations and balance parentheses");
+    check_styled_tokens(check, "[**linked**](https://one.test) **[linked](https://two.test)** [linked](https://two.test)",
+                        {{3, "linked", text, strong, {}, "https://one.test"}, {30, " ", text},
+                         {34, "linked", text, strong, {}, "https://two.test"}, {61, " ", text},
+                         {63, "linked", text, none, {}, "https://two.test"}},
+                        "MD-032 repeated labels preserve their own traits and destinations");
+    check_styled_tokens(check, "**[a *b* `x[y]` &copy;](<../a b> 'Tip &amp; more')**",
+                        {{3, "a ", text, strong, {}, "../a b", "Tip & more"},
+                         {6, "b", text, strong | emphasis, {}, "../a b", "Tip & more"},
+                         {8, " ", text, strong, {}, "../a b", "Tip & more"},
+                         {9, "`x[y]`", code, strong, "x[y]", "../a b", "Tip & more"},
+                         {15, " ", text, strong, {}, "../a b", "Tip & more"},
+                         {16, "&copy;", literal, strong, "©", "../a b", "Tip & more"}},
+                        "formatted label composes with outer strong and decodes destination and title");
+    check_styled_tokens(check, R"([a\]b [c]](a\(b\)?x=1&amp;y=2 (tip)))",
+                        {{1, "a", text, none, {}, "a(b)?x=1&y=2", "tip"},
+                         {2, R"(\])", literal, none, "]", "a(b)?x=1&y=2", "tip"},
+                         {4, "b [c]", text, none, {}, "a(b)?x=1&y=2", "tip"}},
+                        "escaped brackets and balanced nested label text");
+    check_styled_tokens(check, "*a [b*](link) [c](a`b) z`",
+                        {{0, "*a ", text}, {4, "b*", text, none, {}, "link"},
+                         {13, " ", text}, {15, "c", text, none, {}, "a`b"}, {22, " z`", text}},
+                        "delimiters and code cannot cross into a label or out of a destination");
+    check_styled_tokens(check, "<https://x.test/a&amp;b> <me@host> <mailto:user@example.com>",
+                        {{0, "<https://x.test/a&amp;b>", literal, none, "https://x.test/a&b", "https://x.test/a&b"},
+                         {24, " ", text}, {25, "<me@host>", literal, none, "me@host", "mailto:me@host"},
+                         {34, " ", text},
+                         {35, "<mailto:user@example.com>", literal, none, "mailto:user@example.com", "mailto:user@example.com"}},
+                        "MD-031 angle URL, email, and mailto links");
+    check_styled_tokens(check, "***https://x.test/a(b)***, www.x.test me@x.test.",
+                        {{3, "https://x.test/a(b)", literal, strong | emphasis, {}, "https://x.test/a(b)"},
+                         {25, ", ", text}, {27, "www.x.test", literal, none, {}, "http://www.x.test"},
+                         {37, " ", text}, {38, "me@x.test", literal, none, {}, "mailto:me@x.test"},
+                         {47, ".", text}},
+                        "bare URL and email links leave surrounding styles and punctuation intact");
+    check_styled_tokens(check, "[outer [inner](https://i.test)](https://o.test) [x](https://x.test \"title\")",
+                        {{0, "[outer ", text}, {8, "inner", text, none, {}, "https://i.test"},
+                         {30, "](", text}, {32, "https://o.test", literal, none, {}, "https://o.test"},
+                         {46, ") ", text}, {49, "x", text, none, {}, "https://x.test", "title"}},
+                        "MD-077 inner link wins and bare outer destination remains independently linked");
+    check_styled_tokens(check, "[x](https://example.test/a(b) [bad](<http://[bad>)",
+                        {{0, "[x](", text}, {4, "https://example.test/a(b)", literal, none, {}, "https://example.test/a(b)"},
+                         {29, " ", text}, {31, "bad", text}},
+                        "MD-078 malformed outer source stays readable and the invalid authority has no destination");
+    check_styled_tokens(check, R"(\[x](target) `[x](target) <me@host>` <a href="https://x.test">)",
+                        {{0, R"(\[)", literal, none, "["}, {2, "x](target) ", text},
+                         {13, "`[x](target) <me@host>`", code, none, "[x](target) <me@host>"},
+                         {36, " ", text}, {37, R"(<a href="https://x.test">)", literal}},
+                        "escape, code, and raw HTML protect link syntax");
+    check_styled_tokens(check, "[a](x y) [b](<bad\npath>) [c]()",
+                        {{0, "[a](x y) [b](", text}, {13, "<bad\npath>", literal}, {23, ") ", text},
+                         {26, "c", text}},
+                        "malformed targets remain source text and empty targets have no destination");
 }
 
 struct ExpectedStyledParagraph {
@@ -1354,6 +1420,7 @@ int main() {
     check_emphasis_delimiters(check);
     check_combined_styles(check);
     check_final_inline_data(check);
+    check_inline_links(check);
     check_literal_code_in_table(check);
     check_cancellation(check);
     check_concurrent_calls(check);

@@ -87,6 +87,353 @@ std::optional<InlineToken> entity_at(std::string_view source, std::size_t begin)
     return std::nullopt;
 }
 
+constexpr auto letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"sv;
+constexpr auto digits = "0123456789"sv;
+constexpr auto alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"sv;
+constexpr auto link_space = " \t\r\n"sv;
+
+bool escaped_punctuation(std::string_view source) {
+    return source.size() >= 2 && source.front() == '\\' && ascii_punctuation(source[1]);
+}
+
+std::string decode_link_text(std::string_view source, bool unescape) {
+    std::string result;
+    for (std::size_t index = 0; index < source.size();) {
+        if (unescape && escaped_punctuation(source.substr(index))) {
+            result += source[index + 1];
+            index += 2;
+        } else if (auto entity = source[index] == '&' ? entity_at(source, index) : std::nullopt) {
+            result += entity->text;
+            index = entity->end;
+        } else {
+            result += source[index++];
+        }
+    }
+    return result;
+}
+
+struct LinkTarget {
+    std::size_t end;
+    std::string_view destination;
+    std::optional<std::string_view> title = std::nullopt;
+};
+
+std::size_t skip_space(std::string_view source, std::size_t begin) {
+    return std::min(source.find_first_not_of(link_space, begin), source.size());
+}
+
+std::optional<LinkTarget> inline_target(std::string_view source) {
+    if (!source.starts_with('(')) {
+        return std::nullopt;
+    }
+    auto cursor = skip_space(source, 1);
+    auto begin = cursor;
+    const bool angle = source.substr(cursor).starts_with('<');
+    if (angle) {
+        begin = ++cursor;
+        while (cursor < source.size() && source[cursor] != '>') {
+            if (source[cursor] == '<' || line_ending_width(source.substr(cursor)) != 0) {
+                return std::nullopt;
+            }
+            cursor += escaped_punctuation(source.substr(cursor)) ? 2 : 1;
+        }
+        if (cursor == source.size()) {
+            return std::nullopt;
+        }
+    } else {
+        unsigned depth = 0;
+        while (cursor < source.size() && link_space.find(source[cursor]) == link_space.npos) {
+            const char byte = source[cursor];
+            if (byte == ')' && depth == 0) {
+                break;
+            }
+            if (escaped_punctuation(source.substr(cursor))) {
+                cursor += 2;
+                continue;
+            }
+            if (byte == '(' && ++depth > 32) {
+                return std::nullopt;
+            }
+            if (byte == ')') {
+                --depth;
+            }
+            ++cursor;
+        }
+        if (depth != 0) {
+            return std::nullopt;
+        }
+    }
+
+    LinkTarget target{0, source.substr(begin, cursor - begin)};
+    if (angle) {
+        ++cursor;
+    }
+    const auto after_destination = cursor;
+    cursor = skip_space(source, cursor);
+    if (cursor != after_destination && cursor < source.size() && "\"'("sv.find(source[cursor]) != source.npos) {
+        const char close = source[cursor] == '(' ? ')' : source[cursor];
+        const auto title_begin = ++cursor;
+        for (; cursor < source.size() && source[cursor] != close; ++cursor) {
+            if (source[cursor] == '(' && close == ')') {
+                return std::nullopt;
+            }
+            if (escaped_punctuation(source.substr(cursor))) {
+                // A final backslash may precede the closing quote in the native parser.
+                if (source[cursor + 1] != close || !source.substr(skip_space(source, cursor + 2)).starts_with(')')) {
+                    ++cursor;
+                }
+            }
+        }
+        if (cursor == source.size()) {
+            return std::nullopt;
+        }
+        target.title = source.substr(title_begin, cursor - title_begin);
+        cursor = skip_space(source, cursor + 1);
+    }
+    if (!source.substr(cursor).starts_with(')')) {
+        return std::nullopt;
+    }
+    target.end = cursor + 1;
+    return target;
+}
+
+bool scheme(std::string_view name) {
+    return !name.empty() && letters.find(name.front()) != letters.npos &&
+        std::ranges::all_of(name.substr(1), [](char byte) {
+            return alphanumeric.find(byte) != alphanumeric.npos || "+-."sv.find(byte) != alphanumeric.npos;
+        });
+}
+
+std::optional<std::string> portable_destination(std::string destination) {
+    const auto first = destination.find_first_of(":/?#");
+    auto authority = std::string_view(destination);
+    if (first != destination.npos && destination[first] == ':') {
+        if (!scheme(authority.substr(0, first))) {
+            return std::nullopt;
+        }
+        authority.remove_prefix(first + 1);
+    }
+    if (authority.starts_with("//")) {
+        authority.remove_prefix(2);
+        authority = authority.substr(0, authority.find_first_of("/?#"));
+        if (const auto user = authority.rfind('@'); user != authority.npos) {
+            authority.remove_prefix(user + 1);
+        }
+        if (authority.starts_with('[')) {
+            const auto close = authority.find(']');
+            if (close == authority.npos || close == 1) {
+                return std::nullopt;
+            }
+            authority.remove_prefix(close + 1);
+            if (!authority.empty() && !authority.starts_with(':')) {
+                return std::nullopt;
+            }
+        } else {
+            const auto port = authority.find(':');
+            if (authority.substr(0, port).find_first_of("[]<>\"\\^\x60{|}") != authority.npos) {
+                return std::nullopt;
+            }
+            authority = port == authority.npos ? std::string_view{} : authority.substr(port);
+        }
+        if (!authority.empty() && authority.substr(1).find_first_not_of(digits) != authority.npos) {
+            return std::nullopt;
+        }
+    }
+    if (destination.empty()) {
+        return std::nullopt;
+    }
+    return destination;
+}
+
+bool domain(std::string_view source, bool require_dot) {
+    if (require_dot && source.find('.') == source.npos) {
+        return false;
+    }
+    for (;;) {
+        const auto dot = source.find('.');
+        const auto label = source.substr(0, dot);
+        if (label.empty() || label.size() > 63 || alphanumeric.find(label.front()) == alphanumeric.npos ||
+            alphanumeric.find(label.back()) == alphanumeric.npos ||
+            label.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-") != label.npos) {
+            return false;
+        }
+        if (dot == source.npos) {
+            return true;
+        }
+        source.remove_prefix(dot + 1);
+    }
+}
+
+std::optional<std::string> angle_link_destination(std::string_view label) {
+    const auto colon = label.find(':');
+    if (colon >= 2 && colon <= 32 && scheme(label.substr(0, colon))) {
+        return decode_link_text(label, false);
+    }
+    const auto at = label.find('@');
+    if (at != label.npos && at != 0 &&
+        label.substr(0, at).find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.!#$%&'*+/=?^_`{|}~-") == label.npos &&
+        domain(label.substr(at + 1), false)) {
+        return "mailto:" + std::string(label);
+    }
+    return std::nullopt;
+}
+
+std::size_t html_tag_width(std::string_view source) {
+    auto cursor = source.starts_with("</") ? std::size_t{2} : std::size_t{1};
+    if (cursor == source.size() || letters.find(source[cursor]) == letters.npos) {
+        return 0;
+    }
+    constexpr auto tag_name = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"sv;
+    cursor = std::min(source.find_first_not_of(tag_name, cursor), source.size());
+    if (source.starts_with("</")) {
+        cursor = skip_space(source, cursor);
+        return source.substr(cursor).starts_with('>') ? cursor + 1 : 0;
+    }
+    constexpr auto name_start = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:"sv;
+    constexpr auto name = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:-"sv;
+    while (cursor < source.size()) {
+        const auto before_space = cursor;
+        cursor = skip_space(source, cursor);
+        const auto suffix = source.substr(cursor);
+        if (suffix.starts_with('>') || suffix.starts_with("/>")) {
+            return cursor + (suffix.starts_with('>') ? 1 : 2);
+        }
+        if (cursor == before_space || suffix.empty() || name_start.find(suffix.front()) == name_start.npos) {
+            return 0;
+        }
+        cursor = std::min(source.find_first_not_of(name, cursor), source.size());
+        const auto equals = skip_space(source, cursor);
+        if (!source.substr(equals).starts_with('=')) {
+            continue;
+        }
+        cursor = skip_space(source, equals + 1);
+        if (cursor == source.size()) {
+            return 0;
+        }
+        const char quote = source[cursor];
+        if (quote == '\'' || quote == '"') {
+            const auto end = source.find(quote, cursor + 1);
+            if (end == source.npos) {
+                return 0;
+            }
+            cursor = end + 1;
+        } else {
+            const auto end = std::min(source.find_first_of(" \t\r\n\"'=<>`", cursor), source.size());
+            if (end == cursor) {
+                return 0;
+            }
+            cursor = end;
+        }
+    }
+    return 0;
+}
+
+constexpr auto bare_email_characters =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._+-"sv;
+
+bool starts_case_insensitive(std::string_view source, std::string_view prefix) {
+    return source.size() >= prefix.size() && std::ranges::equal(source.substr(0, prefix.size()), prefix,
+        [](char byte, char lower) {
+            return byte == lower || (byte >= 'A' && byte <= 'Z' && byte + ('a' - 'A') == lower);
+        });
+}
+
+std::size_t bare_url_width(std::string_view source, std::size_t prefix) {
+    const auto valid_host = [](std::string_view host) {
+        constexpr auto host_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.%,-"sv;
+        return !host.empty() && !host.starts_with('-') && std::ranges::all_of(host, [host_chars](char byte) {
+            return static_cast<unsigned char>(byte) >= 0x80 || host_chars.find(byte) != host_chars.npos;
+        });
+    };
+    const auto host_end = source.find_first_of("/?#: \t\r\n<", prefix);
+    if (host_end != source.npos && "/?#"sv.find(source[host_end]) != source.npos &&
+        !valid_host(source.substr(prefix, host_end - prefix))) {
+        return 0;
+    }
+    auto end = std::min(source.find_first_of(" \t\r\n<"), source.size());
+    if (source.substr(0, end).ends_with(';')) {
+        const auto amp = source.substr(0, end).rfind('&');
+        if (amp != source.npos && amp + 1 < end - 1 &&
+            source.substr(amp + 1, end - amp - 2).find_first_not_of(alphanumeric) == source.npos) {
+            end = amp;
+        }
+    }
+    const auto url = source.substr(0, end);
+    auto excess_closers = std::ranges::count(url, ')') - std::ranges::count(url, '(');
+    while (end > prefix) {
+        const char byte = source[end - 1];
+        if (byte == ')' && excess_closers > 0) {
+            --excess_closers;
+        } else if ("?!.,:;*_~"sv.find(byte) == source.npos) {
+            break;
+        }
+        --end;
+    }
+    auto host = source.substr(prefix, end - prefix);
+    host = host.substr(0, host.find_first_of("/?#"));
+    host = host.substr(0, host.find(':'));
+    return valid_host(host) ? end : 0;
+}
+
+std::optional<InlineToken> bare_link(std::string_view source, std::size_t begin, bool in_label,
+                                    std::size_t& email_search_end) {
+    const auto tail = source.substr(begin);
+    const char previous = begin == 0 ? ' ' : source[begin - 1];
+    const bool blocked_url = in_label || previous == '[' ||
+        (previous == '<' && tail.substr(std::min(tail.find_first_of(" \t\r\n<>"), tail.size())).starts_with('>'));
+    const bool after_word = alphanumeric.find(previous) != alphanumeric.npos ||
+        static_cast<unsigned char>(previous) >= 0x80;
+    if (after_word) {
+        return std::nullopt;
+    }
+    if (!blocked_url) {
+        constexpr std::array prefixes{"https://"sv, "http://"sv, "ftp://"sv, "www."sv};
+        for (const auto prefix : prefixes) {
+            if (!starts_case_insensitive(tail, prefix)) {
+                continue;
+            }
+            if (tail.size() > prefix.size()) {
+                const auto width = bare_url_width(tail, prefix == "www." ? 0 : prefix.size());
+                if (width == 0) {
+                    return std::nullopt;
+                }
+                const auto text = tail.substr(0, width);
+                auto destination = prefix == "www." ? "http://" + std::string(text) : std::string(text);
+                if (auto value = portable_destination(std::move(destination))) {
+                    return InlineToken{InlineTokenKind::literal, begin, begin + width, std::string(text),
+                                       InlineTrait::none, std::make_shared<InlineLink>(InlineLink{std::move(value), {}})};
+                }
+            }
+            return std::nullopt;
+        }
+    }
+    if (begin < email_search_end || alphanumeric.find(tail.front()) == alphanumeric.npos) {
+        return std::nullopt;
+    }
+    const auto prefix = starts_case_insensitive(tail, "mailto:") ? std::size_t{7} : 0;
+    if (prefix == 0 && bare_email_characters.find(previous) != bare_email_characters.npos && previous != '_') {
+        return std::nullopt;
+    }
+    const auto local_end = std::min(tail.find_first_not_of(bare_email_characters, prefix), tail.size());
+    email_search_end = begin + local_end;
+    if (local_end == prefix || !tail.substr(local_end).starts_with('@')) {
+        return std::nullopt;
+    }
+    auto end = std::min(tail.find_first_not_of(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-", local_end + 1), tail.size());
+    while (end > local_end + 1 && tail[end - 1] == '.') {
+        --end;
+    }
+    if (!domain(tail.substr(local_end + 1, end - local_end - 1), true)) {
+        return std::nullopt;
+    }
+    const auto text = tail.substr(0, end);
+    auto destination = prefix == 0 ? "mailto:" + std::string(text) : std::string(text);
+    return InlineToken{InlineTokenKind::literal, begin, begin + end, std::string(text), InlineTrait::none,
+                       std::make_shared<InlineLink>(InlineLink{std::move(destination), {}})};
+}
+
 enum class Neighbor { whitespace, punctuation, other };
 
 Neighbor classify_neighbor(std::string_view suffix) {
@@ -292,15 +639,100 @@ void append_text(std::vector<InlineToken>& result, std::string_view source,
 
 }
 
+std::optional<InlineToken> InlineScanner::link_or_html_at_cursor() {
+    const auto suffix = source.substr(cursor);
+    if (suffix.starts_with('<')) {
+        std::size_t end = 1;
+        for (; end < suffix.size(); ++end) {
+            const auto byte = static_cast<unsigned char>(suffix[end]);
+            if (byte <= ' ' || byte == 0x7F || byte == '<' || byte == '>') {
+                break;
+            }
+        }
+        if (suffix.substr(end).starts_with('>')) {
+            const auto label = suffix.substr(1, end - 1);
+            if (auto destination = angle_link_destination(label)) {
+                auto text = decode_link_text(label, false);
+                auto link = portable_destination(std::move(*destination));
+                return InlineToken{InlineTokenKind::literal, cursor, cursor + end + 1, std::move(text),
+                                   InlineTrait::none, std::make_shared<InlineLink>(InlineLink{std::move(link), {}})};
+            }
+        }
+
+        auto width = html_tag_width(suffix);
+        constexpr std::array starts{"<!--"sv, "<?"sv, "<![CDATA["sv, "<!"sv};
+        constexpr std::array ends{"-->"sv, "?>"sv, "]]>"sv, ">"sv};
+        for (std::size_t i = 0; width == 0 && i < starts.size(); ++i) {
+            if (!suffix.starts_with(starts[i])) {
+                continue;
+            }
+            if (i == 3 && (suffix.size() == 2 || suffix[2] < 'A' || suffix[2] > 'Z')) {
+                break;
+            }
+            if (!missing_html_closers[i]) {
+                const auto close = suffix.find(ends[i], starts[i].size());
+                if (close == suffix.npos) {
+                    missing_html_closers[i] = true;
+                } else {
+                    width = close + ends[i].size();
+                }
+            }
+            break;
+        }
+        if (width != 0) {
+            return InlineToken{InlineTokenKind::literal, cursor, cursor + width, std::string(suffix.substr(0, width))};
+        }
+        return std::nullopt;
+    }
+    if (suffix.starts_with('[')) {
+        bool image = cursor > 0 && source[cursor - 1] == '!';
+        if (image) {
+            auto marker = cursor - 1;
+            while (marker > 0 && source[marker - 1] == '\\') {
+                --marker;
+            }
+            image = (cursor - 1 - marker) % 2 == 0;
+        }
+        brackets.push_back({cursor, image});
+    } else if (suffix.starts_with(']') && !brackets.empty()) {
+        const auto bracket = brackets.back();
+        brackets.pop_back();
+        if (!bracket.image) {
+            if (const auto target = inline_target(suffix.substr(1))) {
+                auto destination = portable_destination(decode_link_text(target->destination, true));
+                std::optional<std::string> title;
+                if (target->title) {
+                    title = decode_link_text(*target->title, true);
+                }
+                const auto end = cursor + 1 + target->end;
+                auto link = std::make_shared<InlineLink>(InlineLink{std::move(destination), std::move(title)});
+                bracket_links.push_back({bracket.begin, cursor, end, std::move(link)});
+                // A successful inner link makes any enclosing link opener inactive.
+                brackets.clear();
+                return InlineToken{InlineTokenKind::literal, cursor, end, {}};
+            }
+        }
+    } else if (!suffix.starts_with(']')) {
+        return bare_link(source, cursor, !brackets.empty(), bare_search_end);
+    }
+    return std::nullopt;
+}
+
 std::optional<InlineToken> InlineScanner::next_special() {
-    while ((cursor = source.find_first_of("\\`&\r\n", cursor)) != std::string_view::npos) {
+    while (cursor < source.size()) {
+        if (!scan_links) {
+            cursor = source.find_first_of("\\`&\r\n", cursor);
+            if (cursor == source.npos) {
+                break;
+            }
+        }
         const auto suffix = source.substr(cursor + 1);
         switch (source[cursor]) {
         case '\\':
             if (const auto width = line_ending_width(suffix)) {
                 return InlineToken{InlineTokenKind::line_break, cursor, cursor + 1 + width, "\n"};
             }
-            if (!suffix.empty() && ascii_punctuation(suffix.front())) {
+            if (escaped_punctuation(source.substr(cursor))) {
                 return InlineToken{InlineTokenKind::literal, cursor, cursor + 2, std::string(suffix.substr(0, 1))};
             }
             break;
@@ -319,9 +751,18 @@ std::optional<InlineToken> InlineScanner::next_special() {
                 return entity;
             }
             break;
-        default:
+        case '\r':
+        case '\n':
             return InlineToken{InlineTokenKind::line_break, cursor,
                                cursor + line_ending_width(source.substr(cursor)), "\n"};
+        default:
+            if (scan_links && (source[cursor] == '<' || source[cursor] == '[' || source[cursor] == ']' ||
+                alphanumeric.find(source[cursor]) != alphanumeric.npos)) {
+                if (auto link = link_or_html_at_cursor()) {
+                    return link;
+                }
+            }
+            break;
         }
         ++cursor;
     }
@@ -346,15 +787,14 @@ std::optional<InlineToken> InlineScanner::next() {
     return InlineToken{InlineTokenKind::text, begin, text_end, std::string(source.substr(begin, text_end - begin))};
 }
 
-std::vector<InlineToken> resolve_inline(std::string_view source) {
-    std::vector<InlineToken> tokens;
+namespace {
+
+std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<InlineToken> tokens) {
     std::vector<DelimiterRun> runs;
-    InlineScanner scanner(source);
-    while (auto token = scanner.next()) {
-        if (token->kind == InlineTokenKind::text) {
-            collect_delimiters(runs, source, *token);
+    for (const auto& token : tokens) {
+        if (token.kind == InlineTokenKind::text) {
+            collect_delimiters(runs, source, token);
         }
-        tokens.push_back(std::move(*token));
     }
     if (!match_delimiters(runs)) {
         return tokens;
@@ -383,6 +823,63 @@ std::vector<InlineToken> resolve_inline(std::string_view source) {
             traits = traits | run->opens;
         }
         append_text(result, source, cursor, token.end, traits);
+    }
+    return result;
+}
+
+}
+
+std::vector<InlineToken> resolve_inline(std::string_view source) {
+    InlineScanner scanner(source);
+    scanner.scan_links = true;
+    std::vector<InlineToken> tokens;
+    while (auto token = scanner.next()) {
+        tokens.push_back(std::move(*token));
+    }
+    if (scanner.bracket_links.empty()) {
+        return resolve_styles(source, std::move(tokens));
+    }
+
+    // Style labels in their own delimiter scope. In the surrounding text each
+    // whole link is a single protected token that can inherit outer styles.
+    std::vector<InlineToken> outer;
+    std::vector<std::vector<InlineToken>> labels;
+    auto token = tokens.begin();
+    for (const auto& bracket : scanner.bracket_links) {
+        while (token->end <= bracket.begin) {
+            outer.push_back(std::move(*token++));
+        }
+        if (token->begin < bracket.begin) {
+            append_text(outer, source, token->begin, bracket.begin, InlineTrait::none);
+        }
+        outer.push_back({InlineTokenKind::literal, bracket.begin, bracket.end, {}, InlineTrait::none, bracket.link});
+
+        std::vector<InlineToken> label;
+        while (token->begin < bracket.label_end) {
+            if (token->begin <= bracket.begin) {
+                append_text(label, source, bracket.begin + 1, token->end, InlineTrait::none);
+            } else {
+                label.push_back(std::move(*token));
+            }
+            ++token;
+        }
+        ++token; // The closing bracket and target are a single scanner token.
+        labels.push_back(resolve_styles(source, std::move(label)));
+    }
+    outer.insert(outer.end(), std::make_move_iterator(token), std::make_move_iterator(tokens.end()));
+
+    std::vector<InlineToken> result;
+    auto label = labels.begin();
+    for (auto& styled : resolve_styles(source, std::move(outer))) {
+        if (styled.link && styled.text.empty()) {
+            for (auto& piece : *label++) {
+                piece.traits = piece.traits | styled.traits;
+                piece.link = styled.link;
+                result.push_back(std::move(piece));
+            }
+        } else {
+            result.push_back(std::move(styled));
+        }
     }
     return result;
 }
