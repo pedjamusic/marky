@@ -10,7 +10,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 - **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71).
 - **T09.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable delimiter candidate E72 (E73). The slice landed on `main` as `a7523b5` (E74). T09.S2 follows with the combined-style candidate below. [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
 - **T09.S2 and T09 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the combined-style candidate E75 (E76). The slice landed on `main` as `5c1f41e` (E77). [Verification](#t09s2-mac-run)
-- **T10.S1 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable inline-link candidate and the updated Mac build with native link hover (E78–E80). T10.S2 follows with document-wide reference links. [Verification](#t10s1-mac-run)
+- **T10.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable inline-link candidate and the updated Mac build with native link hover (E78–E80). Both landed on `main` (E81). T10.S2 follows with document-wide reference links. [Verification](#t10s1-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -29,7 +29,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2, E76 records user PASS, and E77 records integration. |
-| T10 | [04](phases/04-inline-semantics.md) | in_progress | T10.S1 done; T10.S2 queued; T10.S3 queued | E78–E80 record verification and user PASS. References and the complete document corpus follow in S2 and S3. |
+| T10 | [04](phases/04-inline-semantics.md) | in_progress | T10.S1 done; T10.S2 queued; T10.S3 queued | E78–E81 record verification, user PASS, and integration. References and the complete document corpus follow in S2 and S3. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T13 | [06](phases/06-project-rules.md) | queued | T13.S1 queued; T13.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -171,6 +171,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E78 | T10.S1 inline links, autolinks, and formatted labels | Uncommitted on `codex/t10-s1-inline-links` from `c71c114e0114aa709e23bbf62afcac4d1c70be22`. The three-file code/test patch is `/tmp/MarkyT10S1.2Pafal/T10.S1.patch`, SHA-256 `997ce1bc125ffce6b44931886061aab26887a2b51389e6986e0f2d847f2e9dea`. | [Mac verification](#t10s1-mac-run). Debug, Release, and sanitizer CTest each passed 2/2. All 14 selected shared fixtures matched. Xcode passed 117 unit tests and produced a signed, sandbox-enabled Release app. | User PASS pending. The app uses the Swift reader. T10.S2 owns reference resolution and T10.S3 owns inline images and document-level integration. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E79 | Native link hover requested during T10.S1 review | Uncommitted on the same branch and base. The four-file hover patch is `/tmp/MarkyLinkHover.7QAjSD/LinkHover.patch`, SHA-256 `7709e34bf8f10c52e4bb9aa0b1bb8cd26cc22a5c7cbf6d50b059ae3bed09fe1e`. | All 117 Mac unit tests passed. Six UI tests passed in the full run. Hover and folder-row tap failed during window interference and both passed in the focused rerun. The signed Release build opened the link sample. | User PASS pending for the updated candidate. The E78 core patch still matches the working tree. |
 | E80 | T10.S1 and native hover acceptance | User **PASS** ("pass"), 2026-11-13, accepts E78 and E79. | Both patches matched the working tree byte for byte. The Release signature verified with E79's code directory hash. The recorded core, corpus, unit, and UI results apply to the accepted code. Local and remote `main` matched `c71c114` before integration. | PASS authorizes commit, fast-forward to local `main`, push of `main`, and cleanup of the merged local branch. |
+| E81 | T10.S1 and native hover integration | Portable links landed as `f515bfbe219444ede80c54e19d985ec7bde0c4d6`. Native hover and the acceptance record landed as `544fa6b73f175b96356ce04721e7faaa1e255c78`, 2026-11-13. | Local `main` fast-forwarded. `git push origin main` succeeded, and `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted tip before deletion of `codex/t10-s1-inline-links`. This ledger update uses the same main-push authorization. | T10.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -605,7 +606,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T10.S1 | User selected T10.S1 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t10-s1-inline-links` from clean `main/c71c114` before editing. E78 identifies the candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E78 and E79 under repository policy. | E80 records authorization. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E78 and E79 under repository policy. | E80 records authorization and E81 records execution. |
 
 ## Contract amendments
 
