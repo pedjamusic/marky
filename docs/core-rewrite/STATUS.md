@@ -6,7 +6,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
 - **T07 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the T07.S2 candidate E60 (E61). Standalone image metadata landed on `main` as `2e71ef4` (E62). Portable table parsing landed as `df7cb77` (E59).
-- **T08.S1 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable code-span candidate E63. E64 records acceptance. [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
+- **T08.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable code-span candidate E63. The slice landed on `main` as `4cd3d3d` (E65). **T08.S2 is next when selected.** [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -23,7 +23,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
-| T08 | [04](phases/04-inline-semantics.md) | in_progress | T08.S1 done; T08.S2 queued; T08.S3 queued | E63 verifies the literal scanner and shared table matcher. E64 records user acceptance. |
+| T08 | [04](phases/04-inline-semantics.md) | in_progress | T08.S1 done; T08.S2 queued; T08.S3 queued | E63 verifies the literal scanner and shared table matcher. E64 records user acceptance and E65 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -151,6 +151,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E62 | T07.S2 and T07 integration | Accepted candidate and acceptance record committed as `2e71ef40f11d38190ca88177d2a36e1033734a0b`, 2026-11-13. | `git merge --ff-only codex/t07-s2-image-metadata` and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T07 delivered. T08.S1 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E63 | T08.S1 literal code spans | Uncommitted on `codex/t08-s1-literal-code-spans` at `be3ca2f69f79410a223da666ab968fafb00a3d87`. The four-file patch under `core/` has SHA-256 `c17bbf86b10b4ade7af9da265bdd93867789bf2f5f333643e22b38cd7220e578`. The patch and run artifacts are in `/tmp/MarkyT08S1.V9cc3V/`. | [Mac verification](#t08s1-mac-run). Portable Debug, Release, and sanitizer CTest each passed 2/2. The shared corpus probe matched code text for 15 fixtures. The full Mac scheme passed 117 unit tests and eight UI tests, with two opt-in performance tests skipped. | Awaiting user PASS. The scanner works on prepared source inside the core. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E64 | T08.S1 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E63. | The four-file patch matched E63 byte for byte. macOS Debug, Release, and sanitizer CTest reruns each passed 2/2. The 15-fixture probe passed again. Remote main matched the candidate base `be3ca2f`. | PASS authorizes the focused commit, fast-forward to local main, main push, and merged-branch cleanup. |
+| E65 | T08.S1 integration | Accepted candidate and acceptance record committed as `4cd3d3ddc2d40f74bbec99b8ccfeba108298022b`, 2026-11-13. | Local `main` fast-forwarded to the candidate and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08.S1 delivered. T08.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -433,7 +434,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T08.S1 | User selected T08.S1 and replied **"Create the branch"**, 2026-11-13. | Created `codex/t08-s1-literal-code-spans` from clean `main/be3ca2f` before editing. E63 identifies the candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E63 under repository policy. | E64 records authorization. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E63 under repository policy. | E64 records authorization and E65 records execution. |
 
 ## Contract amendments
 
