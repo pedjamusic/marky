@@ -930,14 +930,11 @@ private struct MarkdownDocumentBlocks: View {
             ForEach(blocks) { block in
                 switch block.kind {
                 case .heading(let level, let rendered):
-                    Text(rendered)
-                        .textSelection(.enabled)
+                    MarkdownLinkText(text: rendered)
                         .padding(.top, topSpacing(for: block))
                         .padding(.bottom, typography.headingSpacingAfter(for: level))
                 case .paragraph(let rendered):
-                    Text(rendered)
-                        .lineSpacing(typography.bodyLineSpacing)
-                        .textSelection(.enabled)
+                    MarkdownLinkText(text: rendered, lineSpacing: typography.bodyLineSpacing)
                         .padding(.top, topSpacing(for: block))
                         .padding(.bottom, typography.paragraphBlockSpacing)
                 case .list(let items):
@@ -1015,6 +1012,84 @@ private extension Array {
     }
 }
 
+private struct MarkdownLinkText: View {
+    let text: AttributedString
+    var lineSpacing: CGFloat = 0
+
+    @State private var pointer: CGPoint?
+    @State private var linkBounds: [LinkBounds] = []
+
+    private struct LinkID: TextAttribute {
+        let index: Int
+    }
+
+    private struct LinkBounds: Equatable {
+        let id: LinkID
+        let rect: CGRect
+    }
+
+    var body: some View {
+        if text.runs.contains(where: { $0.link != nil }) {
+            let hoveredLink = pointer.flatMap { point in
+                linkBounds.first { $0.rect.contains(point) }?.id
+            }
+            annotatedText(hoveredLink: hoveredLink)
+                .lineSpacing(lineSpacing)
+                .textSelection(.enabled)
+                .onContinuousHover(coordinateSpace: .global) { phase in
+                    switch phase {
+                    case .active(let point): pointer = point
+                    case .ended: pointer = nil
+                    }
+                }
+                .backgroundPreferenceValue(Text.LayoutKey.self) { layouts in
+                    GeometryReader { geometry in
+                        let frame = geometry.frame(in: .global)
+                        let bounds = layouts.flatMap { anchored in
+                            let origin = geometry[anchored.origin]
+                            return anchored.layout.flatMap { line in
+                                line.compactMap { run -> LinkBounds? in
+                                    guard let id = run[LinkID.self] else { return nil }
+                                    let rect = run.typographicBounds.rect.offsetBy(
+                                        dx: frame.minX + origin.x,
+                                        dy: frame.minY + origin.y
+                                    )
+                                    return LinkBounds(id: id, rect: rect)
+                                }
+                            }
+                        }
+                        Color.clear
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                            .onChange(of: bounds, initial: true) { _, bounds in linkBounds = bounds }
+                    }
+                }
+        } else {
+            Text(text)
+                .lineSpacing(lineSpacing)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func annotatedText(hoveredLink: LinkID?) -> Text {
+        var result = Text(verbatim: "")
+        // Group adjacent styles with the same destination into one link target.
+        for (index, (url, range)) in text.runs[\.link].enumerated() {
+            var segment = AttributedString(text[range])
+            var part = Text(segment)
+            if url != nil {
+                let id = LinkID(index: index)
+                if hoveredLink == id {
+                    segment.appKit.foregroundColor = .controlAccentColor
+                }
+                part = Text(segment).customAttribute(id)
+            }
+            result = Text("\(result)\(part)")
+        }
+        return result
+    }
+}
+
 private struct MarkdownQuoteBlock: View {
     let rendered: AttributedString
     let typography: MarkdownTypography
@@ -1025,10 +1100,8 @@ private struct MarkdownQuoteBlock: View {
             RoundedRectangle(cornerRadius: MarkyTheme.quoteBarCornerRadius)
                 .fill(MarkyTheme.quoteBarColor(for: colorScheme))
                 .frame(width: MarkyTheme.quoteBarWidth)
-            Text(rendered)
-                .lineSpacing(typography.bodyLineSpacing)
+            MarkdownLinkText(text: rendered, lineSpacing: typography.bodyLineSpacing)
                 .foregroundStyle(Color.secondary)
-                .textSelection(.enabled)
         }
         .padding(.leading, MarkyTheme.quoteLeadingInset)
     }
@@ -1153,25 +1226,26 @@ private struct MarkdownTableView: View {
             }
         }()
 
-        return Text(cell.content)
-            .lineSpacing(typography.bodyLineSpacing * MarkyTheme.tableLineSpacingScale)
-            .multilineTextAlignment(textAlignment)
-            .foregroundStyle(Color.primary)
-            .textSelection(.enabled)
-            .padding(.horizontal, MarkyTheme.tableCellHorizontalPadding)
-            .padding(.vertical, MarkyTheme.tableCellVerticalPadding)
-            .frame(width: width, alignment: frameAlignment)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
-            .background(
-                isHeader
-                    ? MarkyTheme.tableHeaderBackgroundColor(for: colorScheme)
-                    : MarkyTheme.tableRowBackgroundColor(isAlternate: isAlternate, for: colorScheme)
-            )
-            .overlay(
-                Rectangle()
-                    .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
-            )
+        return MarkdownLinkText(
+            text: cell.content,
+            lineSpacing: typography.bodyLineSpacing * MarkyTheme.tableLineSpacingScale
+        )
+        .multilineTextAlignment(textAlignment)
+        .foregroundStyle(Color.primary)
+        .padding(.horizontal, MarkyTheme.tableCellHorizontalPadding)
+        .padding(.vertical, MarkyTheme.tableCellVerticalPadding)
+        .frame(width: width, alignment: frameAlignment)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
+        .background(
+            isHeader
+                ? MarkyTheme.tableHeaderBackgroundColor(for: colorScheme)
+                : MarkyTheme.tableRowBackgroundColor(isAlternate: isAlternate, for: colorScheme)
+        )
+        .overlay(
+            Rectangle()
+                .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+        )
     }
 }
 
@@ -1425,9 +1499,7 @@ private struct MarkdownListBlock: View {
                     Text(item.marker)
                         .font(Font(typography.listMarkerFont(for: item.marker)))
                         .frame(width: typography.listMarkerColumnWidth, alignment: .leading)
-                    Text(item.body)
-                        .lineSpacing(typography.bodyLineSpacing)
-                        .textSelection(.enabled)
+                    MarkdownLinkText(text: item.body, lineSpacing: typography.bodyLineSpacing)
                 }
                 .padding(.leading, CGFloat(item.nestingLevel) * typography.nestedListIndent)
                 .padding(.top, topSpacing(for: index))

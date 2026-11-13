@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.5]
+
+- Reader links use the macOS accent color while the pointer is over their text.
+
 ## [0.2.4] - 2026-11-06
 
 Manual validation passed on 2026-11-06.

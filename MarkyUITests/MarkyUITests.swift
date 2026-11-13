@@ -6,7 +6,7 @@ final class MarkyUITests: XCTestCase {
     }
 
     @MainActor
-    private func makeSeededApp() throws -> XCUIApplication {
+    private func makeSeededApp(additionalDocuments: [String: String] = [:]) throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["MARKY_UI_TEST_SEED"] = "1"
         app.launchEnvironment["MARKY_UI_TEST_FIXTURE_ID"] = UUID().uuidString
@@ -17,7 +17,7 @@ final class MarkyUITests: XCTestCase {
             "WIDE_TABLE.md": "# Wide Table Fixture\n\n| Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 | Col 8 Target |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: |\n| Cell 1 Alpha | Cell 2 Beta | Cell 3 Gamma | Cell 4 Delta | Cell 5 Epsilon | Cell 6 Zeta | Cell 7 Eta | Cell 8 Theta Target |",
             "docs/GUIDE.md": "# Guide Fixture\n\nExpanded folder guide content."
         ]
-        let payload = try JSONSerialization.data(withJSONObject: documents)
+        let payload = try JSONSerialization.data(withJSONObject: documents.merging(additionalDocuments) { _, added in added })
         app.launchEnvironment["MARKY_UI_TEST_FIXTURE_JSON"] = try XCTUnwrap(String(data: payload, encoding: .utf8))
         app.launchArguments = [
             "-settings.appearanceMode", "system",
@@ -111,6 +111,43 @@ final class MarkyUITests: XCTestCase {
         XCTAssertTrue(parent.waitForExistence(timeout: 5))
         XCTAssertTrue(child.exists)
         XCTAssertGreaterThan(child.frame.minX, parent.frame.minX + 5)
+    }
+
+    @MainActor
+    func testHoverHighlightsOnlyTheLinkUnderThePointer() throws {
+        let app = try makeSeededApp(additionalDocuments: [
+            "LINKS.md": "# Link Fixture\n\n[**Bold** and *italic*](https://example.com)\n\n[Other link](https://example.com)\n\nPlain text nearby."
+        ])
+        app.launch()
+        defer { app.terminate() }
+
+        let links = app.outlines["files-outline"].staticTexts["LINKS.md"]
+        XCTAssertTrue(links.waitForExistence(timeout: 5))
+        app.activate()
+        links.click()
+
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        let firstLink = reader.staticTexts["Bold and italic"].firstMatch
+        let otherLink = reader.staticTexts["Other link"].firstMatch
+        let plainText = reader.staticTexts["Plain text nearby."].firstMatch
+        XCTAssertTrue(firstLink.waitForExistence(timeout: 5))
+        XCTAssertTrue(otherLink.exists)
+        XCTAssertTrue(plainText.exists)
+
+        plainText.hover()
+        let firstAtRest = firstLink.screenshot().pngRepresentation
+        let otherAtRest = otherLink.screenshot().pngRepresentation
+
+        firstLink.hover()
+        XCTAssertFalse(firstAtRest == firstLink.screenshot().pngRepresentation, "Hover should recolor the first link")
+        XCTAssertTrue(otherAtRest == otherLink.screenshot().pngRepresentation, "The other link should stay at rest")
+
+        otherLink.hover()
+        XCTAssertTrue(firstAtRest == firstLink.screenshot().pngRepresentation, "The first link should return to rest")
+        XCTAssertFalse(otherAtRest == otherLink.screenshot().pngRepresentation, "Hover should recolor the other link")
+
+        plainText.hover()
+        XCTAssertTrue(otherAtRest == otherLink.screenshot().pngRepresentation, "Moving to plain text should clear hover")
     }
 
     @MainActor
