@@ -11,7 +11,7 @@ let package = Package(
         .target(
             name: "MarkyCore",
             path: ".",
-            sources: ["src/Document.cpp"],
+            sources: ["src/Document.cpp", "src/InlineSyntax.cpp"],
             publicHeadersPath: "include"
         ),
     ],

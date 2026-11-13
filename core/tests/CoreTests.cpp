@@ -1,5 +1,5 @@
 #include "MarkyCore.h"
-#include "../src/LiteralSyntax.h"
+#include "../src/InlineSyntax.h"
 
 #include <array>
 #include <barrier>
@@ -734,16 +734,24 @@ struct ExpectedCodeSpan {
 
 void check_inline_code(const auto& check, std::string_view prepared,
                        std::initializer_list<ExpectedCodeSpan> expected, std::string_view fixture) {
-    marky::CodeSpanScanner scanner(prepared);
-    for (const auto& [bytes, literal] : expected) {
-        const auto span = scanner.next();
-        const bool ranges_match = span && span->begin == bytes.begin && span->end == bytes.end &&
-                                  span->content_begin == bytes.content_begin && span->content_end == bytes.content_end;
-        check(ranges_match && marky::normalize_code_span(
-                                  prepared.substr(span->content_begin, span->content_end - span->content_begin)) == literal,
+    marky::InlineScanner scanner(prepared);
+    marky::CodeSpanMatcher matcher(prepared);
+    auto next = expected.begin();
+    while (const auto token = scanner.next()) {
+        if (token->kind != marky::InlineTokenKind::code) {
+            continue;
+        }
+        if (next == expected.end()) {
+            check(false, fixture);
+            return;
+        }
+        const auto& [bytes, literal] = *next++;
+        const auto span = matcher.match(token->begin, marky::backtick_run_length(prepared.substr(token->begin)));
+        check(token->begin == bytes.begin && token->end == bytes.end && token->text == literal &&
+                  span && span->content_begin == bytes.content_begin && span->content_end == bytes.content_end,
               fixture);
     }
-    check(!scanner.next(), fixture);
+    check(next == expected.end(), fixture);
 }
 
 struct ExpectedInlineParagraph {
@@ -818,8 +826,110 @@ void check_literal_code_spans(const auto& check) {
                            "escaped openers and longer closers stay visible, while an interior backslash is literal");
 }
 
+struct ExpectedInlineToken {
+    marky::InlineTokenKind kind;
+    std::string_view source;
+    std::string_view text;
+};
+
+void check_inline_tokens(const auto& check, std::string_view source,
+                         std::initializer_list<ExpectedInlineToken> expected, std::string_view fixture) {
+    marky::InlineScanner scanner(source);
+    size_t offset = 0;
+    for (const auto& [kind, raw, text] : expected) {
+        const auto token = scanner.next();
+        check(token && token->kind == kind && token->begin == offset && token->end == offset + raw.size() &&
+                  source.substr(offset).starts_with(raw) && token->text == text,
+              fixture);
+        offset += raw.size();
+    }
+    check(offset == source.size() && !scanner.next() && !scanner.next(), fixture);
+}
+
+void check_paragraph_tokens(const auto& check, std::string_view input,
+                            std::initializer_list<ExpectedInlineToken> expected, std::string_view fixture) {
+    MarkyDocument* raw_document = nullptr;
+    const auto status = marky_document_create(input.data(), input.size(), &raw_document);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    MarkyUtf8View view{};
+    if (status != MARKY_STATUS_OK || marky_document_block_count(document.get()) != 1 ||
+        marky_document_paragraph_at(document.get(), 0, &view) != MARKY_STATUS_OK) {
+        check(false, fixture);
+        return;
+    }
+    check_inline_tokens(check, std::string_view(view.data, view.byte_count), expected, fixture);
+}
+
+void check_inline_normalization(const auto& check) {
+    using enum marky::InlineTokenKind;
+    check_inline_tokens(check, "", {}, "empty inline source has no tokens");
+    check_paragraph_tokens(check, R"(\*literal\* \[label\] `&amp; **raw**`)",
+                           {{literal, R"(\*)", "*"}, {text, "literal", "literal"}, {literal, R"(\*)", "*"},
+                            {text, " ", " "}, {literal, R"(\[)", "["}, {text, "label", "label"},
+                            {literal, R"(\])", "]"}, {text, " ", " "}, {code, "`&amp; **raw**`", "&amp; **raw**"}},
+                           "MD-028: escaped syntax and code stay protected");
+    check_paragraph_tokens(check, "&copy; 2026 Marky &amp; Co. &lt;tag&gt; &#65;",
+                           {{literal, "&copy;", "\xC2\xA9"}, {text, " 2026 Marky ", " 2026 Marky "},
+                            {literal, "&amp;", "&"}, {text, " Co. ", " Co. "}, {literal, "&lt;", "<"},
+                            {text, "tag", "tag"}, {literal, "&gt;", ">"}, {text, " ", " "}, {literal, "&#65;", "A"}},
+                           "MD-029: provisional named entities and decimal entities decode as literal text");
+    check_paragraph_tokens(check, "first  \nsecond\r\nthird",
+                           {{text, "first", "first"}, {line_break, "\n", "\n"}, {text, "second third", "second third"}},
+                           "MD-045: two spaces produce LF and soft CRLF becomes a space");
+    check_paragraph_tokens(check, "first\\\r\nsecond",
+                           {{text, "first", "first"}, {line_break, "\\\n", "\n"}, {text, "second", "second"}},
+                           "MD-046: a single trailing backslash is consumed by the break");
+    check_paragraph_tokens(check, "first\\\\\nsecond",
+                           {{text, "first", "first"}, {literal, R"(\\)", "\\"}, {line_break, "\n", "\n"},
+                            {text, "second", "second"}},
+                           "MD-047: an escaped backslash stays visible before a retained LF");
+    check_inline_tokens(check, "first\r\nsecond\\\rthird",
+                        {{text, "first", "first"}, {line_break, "\r\n", "\n"}, {text, "second", "second"},
+                         {line_break, "\\\r", "\n"}, {text, "third", "third"}},
+                        "retained CRLF and backslash-CR each produce one line boundary");
+
+    check_paragraph_tokens(check, "&bogus; &amp &#x1F3B5; &#0; &#x110000; &NotEqualTilde;",
+                           {{text, "&bogus; &amp ", "&bogus; &amp "}, {literal, "&#x1F3B5;", "\xF0\x9F\x8E\xB5"},
+                            {text, " ", " "}, {literal, "&#0;", "\xEF\xBF\xBD"}, {text, " ", " "},
+                            {literal, "&#x110000;", "\xEF\xBF\xBD"}, {text, " ", " "},
+                            {literal, "&NotEqualTilde;", "\xE2\x89\x82\xCC\xB8"}},
+                           "MD-073: malformed entities stay visible and provisional multi-scalar spelling stays exact");
+    check_paragraph_tokens(check, R"(\\*yes* \*no\* `&copy; \*x\*`)",
+                           {{literal, R"(\\)", "\\"}, {text, "*yes* ", "*yes* "}, {literal, R"(\*)", "*"},
+                            {text, "no", "no"}, {literal, R"(\*)", "*"}, {text, " ", " "},
+                            {code, R"(`&copy; \*x\*`)", R"(&copy; \*x\*)"}},
+                           "MD-074: escape parity leaves unescaped emphasis delimiters for T09");
+    check_paragraph_tokens(check, "&lt;script&gt;hi&lt;/script&gt; <broken",
+                           {{literal, "&lt;", "<"}, {text, "script", "script"}, {literal, "&gt;", ">"},
+                            {text, "hi", "hi"}, {literal, "&lt;", "<"}, {text, "/script", "/script"},
+                            {literal, "&gt;", ">"}, {text, " <broken", " <broken"}},
+                           "MD-086: decoded angle brackets remain literal");
+
+    check_inline_tokens(check, R"(\&amp; \\&amp; &amp;lt; &#42;x&#42; &#96;x&#96; &#10; &NewLine;)",
+                        {{literal, R"(\&)", "&"}, {text, "amp; ", "amp; "}, {literal, R"(\\)", "\\"},
+                         {literal, "&amp;", "&"}, {text, " ", " "}, {literal, "&amp;", "&"}, {text, "lt; ", "lt; "},
+                         {literal, "&#42;", "*"}, {text, "x", "x"}, {literal, "&#42;", "*"}, {text, " ", " "},
+                         {literal, "&#96;", "`"}, {text, "x", "x"}, {literal, "&#96;", "`"}, {text, " ", " "},
+                         {literal, "&#10;", "\n"}, {text, " ", " "}, {literal, "&NewLine;", "\n"}},
+                        "escaped ampersands and decoded text are never scanned as syntax");
+    check_inline_tokens(check, "&#x; &#; &Amp; &#-1; &#65 &#x123456789; &#000000065; &bad&amp;",
+                        {{text, "&#x; &#; &Amp; &#-1; &#65 &#x123456789; &#000000065; &bad",
+                                "&#x; &#; &Amp; &#-1; &#65 &#x123456789; &#000000065; &bad"}, {literal, "&amp;", "&"}},
+                        "malformed syntax leaves a subsequent valid entity available");
+    check_inline_tokens(check, "&#X00000041;&#00000065;&#xD800;&#xFFFFFFFF;&#x10FFFF;&#x80;",
+                        {{literal, "&#X00000041;", "A"}, {literal, "&#00000065;", "A"},
+                         {literal, "&#xD800;", "\xEF\xBF\xBD"}, {literal, "&#xFFFFFFFF;", "\xEF\xBF\xBD"},
+                         {literal, "&#x10FFFF;", "\xF4\x8F\xBF\xBF"}, {literal, "&#x80;", "\xC2\x80"}},
+                        "the native digit limit and scalar handling include both UTF-8 boundaries and invalid values");
+    check_inline_tokens(check, "Cafe\xCC\x81 e&#769; \\A \\3 \\ \xC2\xA0 \\",
+                        {{text, "Cafe\xCC\x81 e", "Cafe\xCC\x81 e"}, {literal, "&#769;", "\xCC\x81"},
+                         {text, " \\A \\3 \\ \xC2\xA0 \\", " \\A \\3 \\ \xC2\xA0 \\"}},
+                        "Unicode scalar spelling and backslashes before nonpunctuation stay intact");
+}
+
 void check_literal_code_in_table(const auto& check) {
-    constexpr std::string_view input = "Code | Tail\n--- | ---\n`` [x](y)|\\|&amp;``` `` | final";
+    constexpr std::string_view input = "Code | Tail\n--- | ---\n`` [x](y)|\\|&amp;``` `` | final &amp;";
     MarkyDocument* raw_document = nullptr;
     const auto status = marky_document_create(input.data(), input.size(), &raw_document);
     const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
@@ -834,10 +944,14 @@ void check_literal_code_in_table(const auto& check) {
     check(is_table, "table splitting skips the full code span to the next real pipe");
     if (is_table) {
         const std::string_view prepared(code.data, code.byte_count);
-        check(prepared == "`` [x](y)|\\|&amp;``` ``" && std::string_view(tail.data, tail.byte_count) == "final",
+        check(prepared == "`` [x](y)|\\|&amp;``` ``",
               "table splitting preserves code source and the following cell");
         check_inline_code(check, prepared, {{{0, 2, 21, 23}, "[x](y)|\\|&amp;```"}},
                           "inline code normalizes cell padding and preserves literal pipes, escapes, and punctuation");
+        using enum marky::InlineTokenKind;
+        check_inline_tokens(check, std::string_view(tail.data, tail.byte_count),
+                            {{text, "final ", "final "}, {literal, "&amp;", "&"}},
+                            "table text outside code decodes the entity");
     }
 }
 
@@ -966,6 +1080,7 @@ int main() {
     check_malformed_blocks(check);
     check_code_spans(check);
     check_literal_code_spans(check);
+    check_inline_normalization(check);
     check_literal_code_in_table(check);
     check_cancellation(check);
     check_concurrent_calls(check);

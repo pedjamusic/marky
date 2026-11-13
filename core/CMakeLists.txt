@@ -3,6 +3,7 @@ project(MarkyCore LANGUAGES CXX)
 
 add_library(marky_core STATIC
     src/Document.cpp
+    src/InlineSyntax.cpp
 )
 target_include_directories(marky_core PUBLIC include)
 target_compile_features(marky_core PUBLIC cxx_std_20)

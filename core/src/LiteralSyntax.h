@@ -95,41 +95,6 @@ private:
     std::optional<std::unordered_map<std::size_t, std::vector<std::size_t>>> closers;
 };
 
-class CodeSpanScanner {
-public:
-    explicit CodeSpanScanner(std::string_view text) : text(text), spans(text) {}
-
-    std::optional<CodeSpan> next() {
-        while ((cursor = text.find_first_of("\\`", cursor)) != std::string_view::npos) {
-            const auto suffix = text.substr(cursor + 1);
-            if (text[cursor] == '\\') {
-                if (!suffix.empty() && grapheme_suffix_width(suffix) == 0) {
-                    // The only syntax this scanner visits is ASCII.
-                    ++cursor;
-                }
-                ++cursor;
-                continue;
-            }
-            const auto length = backtick_run_length(text.substr(cursor));
-            if (length == 0) {
-                ++cursor;
-                continue;
-            }
-            if (const auto span = spans.match(cursor, length)) {
-                cursor = span->end;
-                return span;
-            }
-            cursor += length;
-        }
-        return std::nullopt;
-    }
-
-private:
-    std::string_view text;
-    CodeSpanMatcher spans;
-    std::size_t cursor = 0;
-};
-
 inline std::string normalize_code_span(std::string_view content) {
     std::string literal;
     literal.reserve(content.size());
