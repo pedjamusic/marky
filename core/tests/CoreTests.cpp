@@ -1133,6 +1133,71 @@ void check_final_inline_data(const auto& check) {
           "label normalization retains an embedded null scalar");
 }
 
+void check_combined_styles(const auto& check) {
+    using enum marky::InlineTokenKind;
+    using enum marky::InlineTrait;
+    constexpr auto both = strong | emphasis;
+    constexpr auto all_styles = both | strikethrough;
+    constexpr auto struck_emphasis = emphasis | strikethrough;
+    constexpr std::string_view nested =
+        "***both*** **bold and *italic*** *italic and **bold*** foo_bar_baz";
+    check_styled_paragraphs(check, nested,
+                            {{nested, {{3, "both", text, both}, {10, " ", text},
+                                       {13, "bold and ", text, strong}, {23, "italic", text, both},
+                                       {32, " ", text}, {34, "italic and ", text, emphasis},
+                                       {47, "bold", text, both}, {54, " foo_bar_baz", text}}}},
+                            "MD-027: adjacent combined runs and both orders of nesting");
+    constexpr std::string_view code_and_strike = "**before `a*b` after** ~~*gone*~~";
+    check_styled_paragraphs(check, code_and_strike,
+                            {{code_and_strike, {{2, "before ", text, strong}, {9, "`a*b`", code, strong, "a*b"},
+                                                {14, " after", text, strong}, {22, " ", text},
+                                                {26, "gone", text, struck_emphasis}}}},
+                            "MD-069: protected code inherits outer strong and strike combines with emphasis");
+
+    constexpr std::string_view protected_code =
+        "Z ~~***\xE9\x9B\xAA ``**x** | &amp; \\_`` e\xCC\x81***~~ !";
+    check_styled_paragraphs(check, protected_code,
+                            {{protected_code,
+                              {{0, "Z ", text}, {7, "\xE9\x9B\xAA ", text, all_styles},
+                               {11, "``**x** | &amp; \\_``", code, all_styles, "**x** | &amp; \\_"},
+                               {31, " e\xCC\x81", text, all_styles}, {40, " !", text}}}},
+                            "all outer traits survive protected punctuation and Unicode on both sides of code");
+    constexpr std::string_view literals = "~~*\xE9\x9B\xAA &NotEqualTilde; \\* &#126;*~~";
+    check_styled_tokens(check, literals,
+                        {{3, "\xE9\x9B\xAA ", text, struck_emphasis},
+                         {7, "&NotEqualTilde;", literal, struck_emphasis, "\xE2\x89\x82\xCC\xB8"},
+                         {22, " ", text, struck_emphasis}, {23, "\\*", literal, struck_emphasis, "*"},
+                         {25, " ", text, struck_emphasis}, {26, "&#126;", literal, struck_emphasis, "~"}},
+                        "offline entities and escapes inherit outer traits without contributing delimiters");
+    check_styled_tokens(check, "x ~~**a\\\nb**~~ y",
+                        {{0, "x ", text}, {6, "a", text, strong | strikethrough},
+                         {7, "\\\n", line_break, strong | strikethrough, "\n"},
+                         {9, "b", text, strong | strikethrough}, {14, " y", text}},
+                        "a retained break keeps both enclosing traits");
+
+    check_styled_tokens(check, "**a*b****", {{0, "**a", text}, {4, "b", text, emphasis}, {6, "***", text}},
+                        "a failed interior closer limits later searches of the same width class");
+    check_styled_tokens(check, "****a**b*****", {{0, "****a", text}, {7, "b", text, strong}, {10, "***", text}},
+                        "failed width classes also leave longer leading runs literal");
+    constexpr std::string_view mixed_strike = "~a~~ b~";
+    check_styled_tokens(check, mixed_strike, {{0, mixed_strike, text}},
+                        "a mismatched close-only tilde run retires the earlier opener");
+    check_styled_tokens(check, "~~_snow_~~", {{3, "snow", text, struck_emphasis}},
+                        "adjacent strike markers preserve an underscore's outer word boundary");
+    check_styled_tokens(check, "******a*b******",
+                        {{6, "a", text, both}, {8, "b", text, strong}, {14, "*", text}},
+                        "an inner emphasis close clears emphasis while strong continues");
+    check_styled_tokens(check, "*a _b_ c*",
+                        {{1, "a ", text, emphasis}, {4, "b", text, emphasis}, {6, " c", text}},
+                        "an inner emphasis close clears the same trait opened by a different marker");
+    check_styled_tokens(check, "**a **b** c**",
+                        {{2, "a ", text, strong}, {6, "b", text, strong}, {9, " c", text}},
+                        "a nested strong close clears strong from the tail of the outer span");
+    check_styled_tokens(check, "~~a ~b~ c~~",
+                        {{2, "a ", text, strikethrough}, {5, "b", text, strikethrough}, {7, " c", text}},
+                        "a nested strike close clears strike from the tail of the outer span");
+}
+
 void check_literal_code_in_table(const auto& check) {
     constexpr std::string_view input = "Code | Tail\n--- | ---\n`` [x](y)|\\|&amp;``` `` | final &amp;";
     MarkyDocument* raw_document = nullptr;
@@ -1287,6 +1352,7 @@ int main() {
     check_literal_code_spans(check);
     check_inline_normalization(check);
     check_emphasis_delimiters(check);
+    check_combined_styles(check);
     check_final_inline_data(check);
     check_literal_code_in_table(check);
     check_cancellation(check);

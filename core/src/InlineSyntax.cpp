@@ -98,7 +98,6 @@ Neighbor classify_neighbor(std::string_view suffix) {
         if (scalar == ' ' || (scalar >= '\t' && scalar <= '\r' && scalar != '\v')) {
             return Neighbor::whitespace;
         }
-        // The native parser treats a tilde next to an underscore like a word character.
         return scalar != '~' && ascii_punctuation(static_cast<char>(scalar)) ?
             Neighbor::punctuation : Neighbor::other;
     }
@@ -112,10 +111,18 @@ Neighbor classify_neighbor(std::string_view suffix) {
     return contains(unicode_data::punctuation_ranges) ? Neighbor::punctuation : Neighbor::other;
 }
 
-enum class DelimiterKind { asterisk, underscore, tilde };
+Neighbor classify_previous(std::string_view source, std::size_t end) {
+    if (end == 0) {
+        return Neighbor::whitespace;
+    }
+    auto begin = end - 1;
+    while ((static_cast<unsigned char>(source[begin]) & 0xC0) == 0x80) {
+        --begin;
+    }
+    return classify_neighbor(source.substr(begin, end - begin));
+}
 
-constexpr std::array inline_traits{InlineTrait::emphasis, InlineTrait::strong, InlineTrait::strikethrough};
-using TraitCounts = std::array<std::size_t, inline_traits.size()>;
+enum class DelimiterKind { asterisk, underscore, tilde };
 
 struct DelimiterRun {
     std::size_t begin;
@@ -125,13 +132,13 @@ struct DelimiterRun {
     bool can_close;
     std::size_t closing_bytes = 0;
     std::size_t opening_bytes = 0;
-    TraitCounts opens{};
-    TraitCounts closes{};
+    InlineTrait opens = InlineTrait::none;
+    InlineTrait closes = InlineTrait::none;
 
     std::size_t remaining() const { return length - closing_bytes - opening_bytes; }
 
     std::size_t opener_class() const {
-        return kind == DelimiterKind::tilde ? length - 1 : (can_close ? 3 : 0) + length % 3;
+        return (can_close ? 3 : 0) + length % 3;
     }
 };
 
@@ -147,15 +154,24 @@ void collect_delimiters(std::vector<DelimiterRun>& runs, std::string_view source
         }
 
         // Inspect source scalars even when a neighboring token decodes to different text.
-        auto previous = begin;
-        if (previous > 0) {
-            --previous;
-            while ((static_cast<unsigned char>(source[previous]) & 0xC0) == 0x80) {
-                --previous;
-            }
+        const auto end = begin + length;
+        auto before = classify_previous(source, begin);
+        auto after = classify_neighbor(source.substr(end));
+        // Adjacent strike markers inherit the outer boundary for emphasis flanking.
+        auto before_tildes = begin;
+        while (before_tildes > 0 && source[before_tildes - 1] == '~') {
+            --before_tildes;
         }
-        const auto before = classify_neighbor(source.substr(previous, begin - previous));
-        const auto after = classify_neighbor(source.substr(begin + length));
+        if (before_tildes < begin && classify_previous(source, before_tildes) != Neighbor::other) {
+            before = Neighbor::punctuation;
+        }
+        auto after_tildes = end;
+        while (after_tildes < source.size() && source[after_tildes] == '~') {
+            ++after_tildes;
+        }
+        if (after_tildes > end && classify_neighbor(source.substr(after_tildes)) != Neighbor::other) {
+            after = Neighbor::punctuation;
+        }
         const bool left_flanking = after != Neighbor::whitespace &&
             (after != Neighbor::punctuation || before != Neighbor::other);
         const bool right_flanking = before != Neighbor::whitespace &&
@@ -174,9 +190,6 @@ constexpr auto no_opener = std::string_view::npos;
 using OpenerHeads = std::array<std::size_t, 6>;
 
 std::size_t matching_opener(const DelimiterRun& closer, const OpenerHeads& heads) {
-    if (closer.kind == DelimiterKind::tilde) {
-        return heads[closer.length - 1];
-    }
     auto latest = no_opener;
     const auto closer_remainder = closer.length % 3;
     for (std::size_t bucket = 0; bucket < heads.size(); ++bucket) {
@@ -199,28 +212,32 @@ bool match_delimiters(std::vector<DelimiterRun>& runs) {
         std::size_t run_index;
         std::size_t previous_in_class;
     };
-    std::vector<Opener> stack;
-    std::array<OpenerHeads, 3> heads_by_kind;
-    for (auto& heads : heads_by_kind) {
-        heads.fill(no_opener);
-    }
-    const auto heads_for = [&](DelimiterKind kind) -> OpenerHeads& {
-        return heads_by_kind[static_cast<std::size_t>(kind)];
+    struct OpenerSearch {
+        OpenerHeads heads;
+        std::array<std::size_t, 3> first_run{};
     };
+    std::vector<Opener> stack;
+    std::array<OpenerSearch, 3> searches;
+    for (auto& search : searches) {
+        search.heads.fill(no_opener);
+    }
     const auto pop = [&] {
         const auto& opener = stack.back();
         const auto& run = runs[opener.run_index];
-        heads_for(run.kind)[run.opener_class()] = opener.previous_in_class;
+        searches[static_cast<std::size_t>(run.kind)].heads[run.opener_class()] = opener.previous_in_class;
         stack.pop_back();
     };
 
     bool matched = false;
     for (std::size_t index = 0; index < runs.size(); ++index) {
         auto& closer = runs[index];
-        auto& heads = heads_for(closer.kind);
+        auto& [heads, first_run] = searches[static_cast<std::size_t>(closer.kind)];
+        auto& first_opener = first_run[closer.length % 3];
         while (closer.can_close && closer.remaining() > 0) {
             const auto position = matching_opener(closer, heads);
-            if (position == no_opener) {
+            if (position == no_opener || stack[position].run_index < first_opener) {
+                // The reader excludes runs before a failed closer from later searches of this width class.
+                first_opener = index;
                 break;
             }
             // A pair rules out crossing matches. Restore each removed opener's class head.
@@ -228,12 +245,18 @@ bool match_delimiters(std::vector<DelimiterRun>& runs) {
                 pop();
             }
             auto& opener = runs[stack.back().run_index];
+            if (closer.kind == DelimiterKind::tilde && opener.length != closer.length) {
+                // Unequal strike runs stay visible but cannot pair with later runs.
+                pop();
+                break;
+            }
             const auto width = std::min({opener.remaining(), closer.remaining(), std::size_t{2}});
-            const auto trait = closer.kind == DelimiterKind::tilde ? 2 : width - 1;
+            const auto trait = closer.kind == DelimiterKind::tilde ? InlineTrait::strikethrough :
+                               width == 2 ? InlineTrait::strong : InlineTrait::emphasis;
             opener.opening_bytes += width;
             closer.closing_bytes += width;
-            ++opener.opens[trait];
-            ++closer.closes[trait];
+            opener.opens = opener.opens | trait;
+            closer.closes = closer.closes | trait;
             matched = true;
             if (opener.remaining() == 0) {
                 pop();
@@ -248,14 +271,8 @@ bool match_delimiters(std::vector<DelimiterRun>& runs) {
     return matched;
 }
 
-InlineTrait active_traits(const TraitCounts& counts) {
-    auto traits = InlineTrait::none;
-    for (std::size_t index = 0; index < counts.size(); ++index) {
-        if (counts[index] > 0) {
-            traits = traits | inline_traits[index];
-        }
-    }
-    return traits;
+InlineTrait remove_traits(InlineTrait traits, InlineTrait removed) {
+    return static_cast<InlineTrait>(static_cast<unsigned>(traits) & ~static_cast<unsigned>(removed));
 }
 
 void append_text(std::vector<InlineToken>& result, std::string_view source,
@@ -344,11 +361,11 @@ std::vector<InlineToken> resolve_inline(std::string_view source) {
     }
 
     std::vector<InlineToken> result;
-    TraitCounts counts{};
+    auto traits = InlineTrait::none;
     auto run = runs.cbegin();
     for (auto& token : tokens) {
         if (token.kind != InlineTokenKind::text) {
-            token.traits = active_traits(counts);
+            token.traits = traits;
             result.push_back(std::move(token));
             continue;
         }
@@ -357,19 +374,15 @@ std::vector<InlineToken> resolve_inline(std::string_view source) {
             if (run->closing_bytes == 0 && run->opening_bytes == 0) {
                 continue;
             }
-            append_text(result, source, cursor, run->begin, active_traits(counts));
+            append_text(result, source, cursor, run->begin, traits);
+            // The reader clears a trait at each close, including when an outer span uses it.
+            traits = remove_traits(traits, run->closes);
             // A run can close on its left and reopen on its right, leaving literal bytes between.
-            for (std::size_t index = 0; index < counts.size(); ++index) {
-                counts[index] -= run->closes[index];
-            }
             cursor = run->begin + run->length;
-            append_text(result, source, run->begin + run->closing_bytes, cursor - run->opening_bytes,
-                        active_traits(counts));
-            for (std::size_t index = 0; index < counts.size(); ++index) {
-                counts[index] += run->opens[index];
-            }
+            append_text(result, source, run->begin + run->closing_bytes, cursor - run->opening_bytes, traits);
+            traits = traits | run->opens;
         }
-        append_text(result, source, cursor, token.end, active_traits(counts));
+        append_text(result, source, cursor, token.end, traits);
     }
     return result;
 }
