@@ -9,7 +9,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 - **T08.S2 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable lexer candidate E66 (E67). The slice landed on `main` as `3dae9f8` (E68). [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
 - **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71).
 - **T09.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable delimiter candidate E72 (E73). The slice landed on `main` as `a7523b5` (E74). T09.S2 follows with the combined-style candidate below. [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
-- **T09.S2 and T09 are accepted.** User **PASS** ("pass"), 2026-11-13, accepts the combined-style candidate E75 (E76). [Verification](#t09s2-mac-run)
+- **T09.S2 and T09 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the combined-style candidate E75 (E76). The slice landed on `main` as `5c1f41e` (E77). T10.S1 is next when selected. [Verification](#t09s2-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -27,7 +27,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
-| T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2 and E76 records user PASS. |
+| T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2, E76 records user PASS, and E77 records integration. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -166,6 +166,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E74 | T09.S1 integration | The accepted candidate and PASS record landed as `a7523b571b938cc78319af47835049d83eae6564`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. The final ledger update uses the same main-push authorization. | T09.S1 delivered. T09.S2 is next when selected. The combined trait and range work, open T09 receipts, and non-Mac execution remain in their assigned slices. |
 | E75 | T09.S2 nested and combined styles | Uncommitted on `codex/t09-s2-combined-styles` from `0951527400c91623d017b087b54a155bdd5a69f1`. The two-file code/test patch excluding this ledger is `/tmp/MarkyT09S2.v3jeem/T09.S2.patch`, SHA-256 `3cf9027cc144f8fd4d6f8195b69af8547960ce2c8bfd22bd57162f9e3493d4b6`. | [Mac verification](#t09s2-mac-run). Both CTest targets passed in Debug, Release, and the sanitizer build. Xcode passed 117 unit tests. The Release probe matched 17 shared fixtures and the list/quote portion of MD-071. | User PASS pending. Review the patch and the recorded test results. PASS authorizes commit, merge, push of `main`, and local branch cleanup. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E76 | T09.S2 and T09 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E75. | The patch hash and reverse application check matched the working tree. Debug, Release, and sanitizer CTest each passed 2/2 again. All 17 shared fixtures and both direct comparisons matched the recorded results. The separate combining-mark sweep reproduced 426 style differences with identical visible bytes. Local and remote `main` matched `0951527`. | PASS authorizes the focused commit, fast-forward to local `main`, push of `main`, and merged-branch cleanup. |
+| E77 | T09.S2 and T09 integration | The accepted candidate and PASS record landed as `5c1f41ec9dcc3b4026da3026bd564cbb7604a239`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T09 delivered. T10.S1 is next when selected. T11.S1 retains native combining-mark projection and T12 retains production parity. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -581,7 +582,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T09.S2 | User selected T09.S2 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t09-s2-combined-styles` from clean `main/0951527` before editing. E75 identifies the candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E75 under repository policy. | E76 records authorization. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E75 under repository policy. | E76 records authorization and E77 records execution. |
 
 ## Contract amendments
 
