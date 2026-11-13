@@ -6,7 +6,10 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 #include <vector>
+
+struct MarkyDocument;
 
 namespace marky {
 
@@ -22,6 +25,10 @@ struct InlineLink {
     std::optional<std::string> destination;
     std::optional<std::string> title;
 };
+
+using ReferenceLinks = std::unordered_map<std::string, std::shared_ptr<const InlineLink>>;
+
+std::optional<InlineLink> reference_target(std::string_view destination, std::optional<std::string_view> title);
 
 struct InlineToken {
     InlineTokenKind kind;
@@ -43,7 +50,7 @@ public:
     std::optional<InlineToken> next();
 
 private:
-    friend std::vector<InlineToken> resolve_inline(std::string_view source);
+    friend std::vector<InlineToken> resolve_inline(std::string_view source, const ReferenceLinks* references);
 
     struct BracketLink {
         std::size_t begin;
@@ -63,8 +70,14 @@ private:
     struct OpenBracket {
         std::size_t begin;
         bool image;
+        bool contains_closed_bracket = false;
     };
 
+    std::shared_ptr<const InlineLink> reference_link(const OpenBracket& bracket, std::size_t& end);
+
+    const ReferenceLinks* references = nullptr;
+    std::size_t reference_syntax_end = 0;
+    bool missing_reference_close = false;
     std::vector<OpenBracket> brackets;
     std::vector<BracketLink> bracket_links;
     std::array<bool, 4> missing_html_closers{};
@@ -74,7 +87,8 @@ private:
 // Resolve styles and links in one prepared region of validated UTF-8. Consumed
 // delimiters are gaps between the returned source ranges. Destinations are
 // decoded Markdown data. URL serialization and opening belong to the host.
-std::vector<InlineToken> resolve_inline(std::string_view source);
+std::vector<InlineToken> resolve_inline(std::string_view source, const ReferenceLinks* references = nullptr);
+std::vector<InlineToken> resolve_inline(std::string_view source, const MarkyDocument& document);
 
 }
 

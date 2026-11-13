@@ -1,6 +1,8 @@
 #include "MarkyCore.h"
+#include "InlineSyntax.h"
 #include "ListCharacterProperties.h"
 #include "LiteralSyntax.h"
+#include "ReferenceLabel.h"
 
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
 #include "DocumentTestCheckpoints.h"
@@ -56,6 +58,7 @@ struct MarkyDocument {
     };
 
     const std::vector<Block> blocks;
+    const marky::ReferenceLinks references;
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
     ~MarkyDocument() { marky::test::document_destroyed(); }
 #endif
@@ -120,6 +123,16 @@ bool horizontal_whitespace_only(std::string_view text) {
         text.remove_prefix(width);
     }
     return text.empty();
+}
+
+size_t regex_whitespace_width(std::string_view text) {
+    // The Swift source matchers use ICU \s, which excludes U+200B.
+    return text.starts_with("\xE2\x80\x8B") ? 0 : whitespace_width(text, true);
+}
+
+bool has_regex_line_terminator(std::string_view text) {
+    return text.find_first_of("\n\v\f\r") != text.npos || text.find("\xC2\x85") != text.npos ||
+           text.find("\xE2\x80\xA8") != text.npos || text.find("\xE2\x80\xA9") != text.npos;
 }
 
 size_t combining_accent_width(std::string_view text) {
@@ -430,23 +443,19 @@ std::optional<ImageSource> standalone_image(std::string_view line) {
         return std::nullopt;
     }
     const auto alt = line.substr(2, alt_end - 2);
-    const auto image_space = [](std::string_view text) {
-        // ICU \s uses Unicode whitespace and excludes U+200B.
-        return text.starts_with("\xE2\x80\x8B") ? size_t{0} : whitespace_width(text, true);
-    };
     auto body = line.substr(alt_end + 2);
     body.remove_suffix(1);
-    while (const auto width = image_space(body)) {
+    while (const auto width = regex_whitespace_width(body)) {
         body.remove_prefix(width);
     }
     const auto finish = [&](std::string_view destination, std::string_view tail) -> std::optional<ImageSource> {
         if (tail.empty()) {
             return ImageSource{alt, destination, std::nullopt};
         }
-        if (image_space(tail) == 0) {
+        if (regex_whitespace_width(tail) == 0) {
             return std::nullopt;
         }
-        while (const auto width = image_space(tail)) {
+        while (const auto width = regex_whitespace_width(tail)) {
             tail.remove_prefix(width);
         }
         if (tail.empty()) {
@@ -462,13 +471,11 @@ std::optional<ImageSource> standalone_image(std::string_view line) {
         }
         const auto title = tail.substr(1, close - 1);
         tail.remove_prefix(close + 1);
-        while (const auto width = image_space(tail)) {
+        while (const auto width = regex_whitespace_width(tail)) {
             tail.remove_prefix(width);
         }
         // Match ICU's dot, which excludes line terminators even within one source line.
-        if (!tail.empty() || title.find_first_of("\n\v\f\r") != std::string_view::npos ||
-            title.find("\xC2\x85") != std::string_view::npos || title.find("\xE2\x80\xA8") != std::string_view::npos ||
-            title.find("\xE2\x80\xA9") != std::string_view::npos) {
+        if (!tail.empty() || has_regex_line_terminator(title)) {
             return std::nullopt;
         }
         return ImageSource{alt, destination, title};
@@ -482,14 +489,75 @@ std::optional<ImageSource> standalone_image(std::string_view line) {
         }
     }
     size_t end = 0;
-    while (end < body.size() && body[end] != '>' && image_space(body.substr(end)) == 0) {
+    while (end < body.size() && body[end] != '>' && regex_whitespace_width(body.substr(end)) == 0) {
         ++end;
     }
     return end > 0 ? finish(body.substr(0, end), body.substr(end)) : std::nullopt;
 }
 
+bool collect_reference(std::string_view line, marky::ReferenceLinks& references) {
+    const auto indent = marky::delimiter_run_length(line, ' ');
+    if (indent > 3 || !line.substr(indent).starts_with('[')) {
+        return false;
+    }
+    const auto label_begin = indent + 1;
+    const auto label_end = line.find(']', label_begin);
+    if (label_end == line.npos || label_end == label_begin || !line.substr(label_end).starts_with("]:")) {
+        return false;
+    }
+    auto tail = line.substr(label_end + 2);
+    while (const auto width = regex_whitespace_width(tail)) {
+        tail.remove_prefix(width);
+    }
+    // The Swift matcher allows either angle bracket to be omitted.
+    const size_t begin = tail.starts_with('<') && tail.size() > 1 && tail[1] != '>' &&
+                         regex_whitespace_width(tail.substr(1)) == 0 ? 1 : 0;
+    size_t end = begin;
+    while (end < tail.size() && tail[end] != '>' && regex_whitespace_width(tail.substr(end)) == 0) {
+        ++end;
+    }
+    if (end == begin) {
+        return false;
+    }
+    const auto destination = tail.substr(begin, end - begin);
+    tail.remove_prefix(end + (tail.substr(end).starts_with('>') ? 1 : 0));
+
+    std::optional<std::string_view> title;
+    if (!tail.empty()) {
+        if (regex_whitespace_width(tail) == 0) {
+            return false;
+        }
+        while (const auto width = regex_whitespace_width(tail)) {
+            tail.remove_prefix(width);
+        }
+        if (!tail.empty()) {
+            const auto close = tail.find_last_of("\"')");
+            if (std::string_view("\"'(").find(tail.front()) == tail.npos || close == tail.npos || close == 0) {
+                return false;
+            }
+            title = tail.substr(1, close - 1);
+            tail.remove_prefix(close + 1);
+            while (const auto width = regex_whitespace_width(tail)) {
+                tail.remove_prefix(width);
+            }
+            if (!tail.empty() || has_regex_line_terminator(*title)) {
+                return false;
+            }
+        }
+    }
+    auto key = marky::normalize_reference_label(line.substr(label_begin, label_end - label_begin));
+    auto link = marky::reference_target(destination, title);
+    if (key.empty() || !link) {
+        return false;
+    }
+    if (!references.contains(key)) {
+        references.emplace(std::move(key), std::make_shared<marky::InlineLink>(std::move(*link)));
+    }
+    return true;
+}
+
 std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
-    std::string_view source, const MarkyCancellationToken* token) {
+    std::string_view source, const MarkyCancellationToken* token, marky::ReferenceLinks& references) {
     std::vector<MarkyDocument::Block> blocks;
     std::optional<Fence> open;
     std::string text;
@@ -564,6 +632,10 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
         if (open) {
             append_literal(line);
             return;
+        }
+
+        if (collect_reference(line, references)) {
+            line = {};
         }
 
         const auto indent = code_indent(line);
@@ -742,6 +814,10 @@ const MarkyDocument::Table* table_at(const MarkyDocument* document, size_t block
 
 }
 
+std::vector<marky::InlineToken> marky::resolve_inline(std::string_view source, const MarkyDocument& document) {
+    return resolve_inline(source, &document.references);
+}
+
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
                                   MarkyDocument** out_document) {
     return marky_document_create_cancellable(utf8, byte_count, nullptr, out_document);
@@ -788,7 +864,8 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
     }
 
     const auto input = byte_count == 0 ? std::string_view("") : std::string_view(utf8, byte_count);
-    auto blocks = parse_blocks(input, token);
+    marky::ReferenceLinks references;
+    auto blocks = parse_blocks(input, token, references);
     if (!blocks) {
         return MARKY_STATUS_CANCELLED;
     }
@@ -799,7 +876,7 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
         return MARKY_STATUS_CANCELLED;
     }
 
-    auto document = std::make_unique<MarkyDocument>(std::move(*blocks));
+    auto document = std::make_unique<MarkyDocument>(std::move(*blocks), std::move(references));
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
     marky::test::checkpoint(marky::test::Checkpoint::beforeDocumentPublication);
 #endif

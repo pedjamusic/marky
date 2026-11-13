@@ -10,7 +10,8 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 - **T08.S3 and T08 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the offline data candidate E69 (E70). The slice landed on `main` as `adfac85` (E71).
 - **T09.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable delimiter candidate E72 (E73). The slice landed on `main` as `a7523b5` (E74). T09.S2 follows with the combined-style candidate below. [Phase definition](phases/04-inline-semantics.md#t09--emphasis-and-combined-traits)
 - **T09.S2 and T09 are accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the combined-style candidate E75 (E76). The slice landed on `main` as `5c1f41e` (E77). [Verification](#t09s2-mac-run)
-- **T10.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable inline-link candidate and the updated Mac build with native link hover (E78–E80). Both landed on `main` (E81). T10.S2 follows with document-wide reference links. [Verification](#t10s1-mac-run)
+- **T10.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable inline-link candidate and the updated Mac build with native link hover (E78–E80). Both landed on `main` (E81). [Verification](#t10s1-mac-run)
+- **T10.S2 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable reference-link candidate (E82–E83). T10.S3 follows after integration. [Verification](#t10s2-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -29,7 +30,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2, E76 records user PASS, and E77 records integration. |
-| T10 | [04](phases/04-inline-semantics.md) | in_progress | T10.S1 done; T10.S2 queued; T10.S3 queued | E78–E81 record verification, user PASS, and integration. References and the complete document corpus follow in S2 and S3. |
+| T10 | [04](phases/04-inline-semantics.md) | in_progress | T10.S1 done; T10.S2 done; T10.S3 queued | E78–E81 record S1 verification, user PASS, and integration. E82–E83 record S2 verification and user PASS. S3 owns inline image alt text and the complete document corpus. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T13 | [06](phases/06-project-rules.md) | queued | T13.S1 queued; T13.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -172,6 +173,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E79 | Native link hover requested during T10.S1 review | Uncommitted on the same branch and base. The four-file hover patch is `/tmp/MarkyLinkHover.7QAjSD/LinkHover.patch`, SHA-256 `7709e34bf8f10c52e4bb9aa0b1bb8cd26cc22a5c7cbf6d50b059ae3bed09fe1e`. | All 117 Mac unit tests passed. Six UI tests passed in the full run. Hover and folder-row tap failed during window interference and both passed in the focused rerun. The signed Release build opened the link sample. | User PASS pending for the updated candidate. The E78 core patch still matches the working tree. |
 | E80 | T10.S1 and native hover acceptance | User **PASS** ("pass"), 2026-11-13, accepts E78 and E79. | Both patches matched the working tree byte for byte. The Release signature verified with E79's code directory hash. The recorded core, corpus, unit, and UI results apply to the accepted code. Local and remote `main` matched `c71c114` before integration. | PASS authorizes commit, fast-forward to local `main`, push of `main`, and cleanup of the merged local branch. |
 | E81 | T10.S1 and native hover integration | Portable links landed as `f515bfbe219444ede80c54e19d985ec7bde0c4d6`. Native hover and the acceptance record landed as `544fa6b73f175b96356ce04721e7faaa1e255c78`, 2026-11-13. | Local `main` fast-forwarded. `git push origin main` succeeded, and `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted tip before deletion of `codex/t10-s1-inline-links`. This ledger update uses the same main-push authorization. | T10.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E82 | T10.S2 document-wide reference links | Uncommitted on `codex/t10-s2-reference-links` from `d6a3692c6bcda615760f36674acb7a7054687194`. The eight-file patch at `/tmp/MarkyT10S2.s1mri1/T10.S2.patch` excludes this ledger. SHA-256 `45ba9b81e0b98abb6322fdbf8cb6f5903c470b094ca9441b62b95339a81bf44e`. | [Mac verification](#t10s2-mac-run). Debug, Release, and sanitizer CTest each passed 2/2. The Release probe matched 22 shared fixtures. The sanitizer probe checked 20,010 inputs. Xcode passed 117 unit tests. | Awaiting user PASS. T10.S3 owns inline image alt text and full document semantics at the C boundary. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E83 | T10.S2 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E82. | The candidate diff matched the verified patch byte for byte. The patch hash and reverse application check passed. Local and remote `main` matched `d6a3692` before integration. | PASS authorizes the focused commit, fast-forward to local `main`, push of `main`, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -412,6 +415,14 @@ macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake and CTest 4.4.5, Xcode 27.2
 
 E79 updates the native candidate at `/tmp/MarkyLinkHover.7QAjSD/xcode/Build/Products/Release/Marky.app`. The Release command above produced the locally signed sandbox build with code directory hash `970ff47d6806e1ff383c5f44d29cbb7b009b1e2f`. Hover a formatted label, a quote link, and a table link in the opened sample. Move onto surrounding text to confirm the resting color returns. The UI test compares screenshots across two same-destination links and nearby plain text. The Debug run added `-only-testing:MarkyUITests/MarkyUITests` to the unit command and recorded `MarkyHoverTests.xcresult`. The focused rerun recorded `MarkyHoverRetest.xcresult` in the same directory.
 
+### T10.S2 Mac run
+
+macOS 27.2 (26B123) arm64, Apple Clang 21.0.0, CMake and CTest 4.4.5, Xcode 27.2 (27B52), and macOS SDK 27.2. Repeat the [T09.S1 build and test commands](#t09s1-mac-run) in a fresh directory. E82 logs and the final `MarkyTests-final.xcresult` are in `/tmp/MarkyT10S2.s1mri1`.
+
+- The document owns the first valid definition per normalized label. Core tests resolve references before and after definitions, including across headings, list items, quotes, and table cells. They check full, collapsed, and shortcut forms, exact ranges and traits, duplicate labels, Unicode, inline-link precedence, malformed and unresolved references, and code and escape protection. Fault tests exercise cancellation and allocation failure after reference collection. The initial regression failed against the prior core because definitions remained visible as a block.
+- `probe.cpp` uses the C document API and the internal document-aware inline resolver. `python3 /tmp/MarkyT10S2.s1mri1/compare.py` matched MD-004, MD-014, MD-030–036, MD-040, MD-071–078, and MD-084–087 against the unchanged corpus. `stress.py` checked ordered, in-bounds ranges for 20,010 seeded mixed or long malformed inputs under ASan/UBSan. The Swift proof adapter verifies that MD-082 hides the definition. Alt text for reference images belongs to T10.S3.
+- Review used the roadmap and repository standards in-session. Inspect the patch or repeat the portable tests to accept this slice. The running app still uses the existing Swift reader. UI tests and Windows/Linux execution were outside this run.
+
 ## Git authorization and integration
 
 This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
@@ -607,6 +618,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Create local branch and implement T10.S1 | User selected T10.S1 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t10-s1-inline-links` from clean `main/c71c114` before editing. E78 identifies the candidate. |
 | Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E78 and E79 under repository policy. | E80 records authorization and E81 records execution. |
+
+### T10.S2 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T10.S2 | User requested implementation and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t10-s2-reference-links` from clean `main/d6a3692` before editing. E82 identifies the candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E82 under repository policy. | E83 records authorization. |
 
 ## Contract amendments
 

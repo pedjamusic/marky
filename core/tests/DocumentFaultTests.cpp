@@ -23,7 +23,8 @@ std::string block_input() {
            "\n~~~\n\n    indented\n\nAfter\n\n- [x] List item with owned source\n  continuation\n02) Next item"
            "\n> Quote line with owned source\n>> Nested quote"
            "\nA | B\n--- | ---\nOwned table cell with allocated source | row\nShort row"
-           "\n![Image with owned alt text](<owned image destination.png> 'Image with an owned title')\nAfter";
+           "\n![Image with owned alt text](<owned image destination.png> 'Image with an owned title')\nAfter"
+           "\n[guide]: <docs/owned-guide.md> \"An owned reference title\"";
 }
 
 void check_document_failure(const auto& check, Checkpoint injection_point,
@@ -201,6 +202,11 @@ int main() {
     check_document_failure(check, Checkpoint::afterBlockLine,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), after_image);
     check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), after_image);
+    // The last line has added owned metadata to the pending reference map.
+    constexpr size_t after_reference = 21;
+    check_document_failure(check, Checkpoint::afterBlockLine,
+                           MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), after_reference);
+    check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), after_reference);
     check_document_failure(check, Checkpoint::beforeDocumentAllocation,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get());
     check_document_failure(check, Checkpoint::beforeDocumentPublication,

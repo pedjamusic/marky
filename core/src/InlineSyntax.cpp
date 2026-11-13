@@ -1,4 +1,5 @@
 #include "InlineSyntax.h"
+#include "ReferenceLabel.h"
 #include "Utf8.h"
 #include "generated/NamedEntities.h"
 #include "generated/UnicodeData.h"
@@ -639,6 +640,50 @@ void append_text(std::vector<InlineToken>& result, std::string_view source,
 
 }
 
+std::optional<InlineLink> reference_target(std::string_view destination, std::optional<std::string_view> title) {
+    auto value = portable_destination(decode_link_text(destination, false));
+    if (!value) {
+        return std::nullopt;
+    }
+    return InlineLink{std::move(value), title ? std::optional(decode_link_text(*title, true)) : std::nullopt};
+}
+
+std::shared_ptr<const InlineLink> InlineScanner::reference_link(const OpenBracket& bracket, std::size_t& end) {
+    if (references == nullptr || references->empty() || bracket.begin < reference_syntax_end ||
+        source.substr(end).starts_with('(')) {
+        return {};
+    }
+
+    std::string_view label;
+    bool uses_display_label = true;
+    if (source.substr(end).starts_with('[') && !missing_reference_close) {
+        auto close = end + 1;
+        for (; close < source.size() && source[close] != ']'; ++close) {
+            if (escaped_punctuation(source.substr(close))) {
+                ++close;
+            }
+        }
+        if (close == source.size()) {
+            missing_reference_close = true;
+        } else {
+            const auto explicit_label = source.substr(end + 1, close - end - 1);
+            label = explicit_label;
+            uses_display_label = explicit_label.empty();
+            end = close + 1;
+            // A missing explicit key must not let either bracket pair become a shortcut.
+            reference_syntax_end = end;
+        }
+    }
+    if (bracket.image || (bracket.contains_closed_bracket && uses_display_label)) {
+        return {};
+    }
+    if (uses_display_label) {
+        label = source.substr(bracket.begin + 1, cursor - bracket.begin - 1);
+    }
+    const auto match = references->find(normalize_reference_label(label));
+    return match == references->end() ? nullptr : match->second;
+}
+
 std::optional<InlineToken> InlineScanner::link_or_html_at_cursor() {
     const auto suffix = source.substr(cursor);
     if (suffix.starts_with('<')) {
@@ -697,6 +742,11 @@ std::optional<InlineToken> InlineScanner::link_or_html_at_cursor() {
     } else if (suffix.starts_with(']') && !brackets.empty()) {
         const auto bracket = brackets.back();
         brackets.pop_back();
+        if (!brackets.empty()) {
+            brackets.back().contains_closed_bracket = true;
+        }
+        auto end = cursor + 1;
+        std::shared_ptr<const InlineLink> link;
         if (!bracket.image) {
             if (const auto target = inline_target(suffix.substr(1))) {
                 auto destination = portable_destination(decode_link_text(target->destination, true));
@@ -704,13 +754,18 @@ std::optional<InlineToken> InlineScanner::link_or_html_at_cursor() {
                 if (target->title) {
                     title = decode_link_text(*target->title, true);
                 }
-                const auto end = cursor + 1 + target->end;
-                auto link = std::make_shared<InlineLink>(InlineLink{std::move(destination), std::move(title)});
-                bracket_links.push_back({bracket.begin, cursor, end, std::move(link)});
-                // A successful inner link makes any enclosing link opener inactive.
-                brackets.clear();
-                return InlineToken{InlineTokenKind::literal, cursor, end, {}};
+                end += target->end;
+                link = std::make_shared<InlineLink>(InlineLink{std::move(destination), std::move(title)});
             }
+        }
+        if (!link) {
+            link = reference_link(bracket, end);
+        }
+        if (link) {
+            bracket_links.push_back({bracket.begin, cursor, end, std::move(link)});
+            // A successful inner link makes any enclosing link opener inactive.
+            brackets.clear();
+            return InlineToken{InlineTokenKind::literal, cursor, end, {}};
         }
     } else if (!suffix.starts_with(']')) {
         return bare_link(source, cursor, !brackets.empty(), bare_search_end);
@@ -829,9 +884,10 @@ std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<Inl
 
 }
 
-std::vector<InlineToken> resolve_inline(std::string_view source) {
+std::vector<InlineToken> resolve_inline(std::string_view source, const ReferenceLinks* references) {
     InlineScanner scanner(source);
     scanner.scan_links = true;
+    scanner.references = references;
     std::vector<InlineToken> tokens;
     while (auto token = scanner.next()) {
         tokens.push_back(std::move(*token));

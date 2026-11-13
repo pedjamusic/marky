@@ -14,6 +14,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 
 namespace {
 
@@ -485,7 +486,7 @@ void check_image_blocks(const auto& check) {
                         "![pic][asset]\n\n[asset]: image.png",
                  {{prose, "See ![icon](icon.png) inline"}, {prose, "![alt](my photo.png)"},
                   {prose, "![outer [inner]](image.png)"}, {prose, "![a\\]b](image.png)"},
-                  {prose, "![pic][asset]"}, {prose, "[asset]: image.png"}},
+                  {prose, "![pic][asset]"}},
                  "MD-039/079–082 leave inline, malformed, nested, escaped and reference images in prepared prose");
     check_blocks(check, "![alt](image.png 'title\vtext')\n\n![alt](image.png 'title\ftext')",
                  {{prose, "![alt](image.png 'title\vtext')"}, {prose, "![alt](image.png 'title\ftext')"}},
@@ -940,8 +941,9 @@ struct ExpectedStyledToken {
 };
 
 void check_styled_tokens(const auto& check, std::string_view source,
-                         std::initializer_list<ExpectedStyledToken> expected, std::string_view fixture) {
-    const auto tokens = marky::resolve_inline(source);
+                         std::initializer_list<ExpectedStyledToken> expected, std::string_view fixture,
+                         const MarkyDocument* document = nullptr) {
+    const auto tokens = document ? marky::resolve_inline(source, *document) : marky::resolve_inline(source);
     if (tokens.size() != expected.size()) {
         check(false, fixture);
         return;
@@ -1028,7 +1030,10 @@ struct ExpectedStyledParagraph {
 void check_styled_paragraphs(const auto& check, std::string_view source,
                              std::initializer_list<ExpectedStyledParagraph> expected, std::string_view fixture) {
     MarkyDocument* raw_document = nullptr;
-    const auto status = marky_document_create(source.data(), source.size(), &raw_document);
+    const auto status = [&] {
+        const std::string input(source);
+        return marky_document_create(input.data(), input.size(), &raw_document);
+    }();
     const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
         document(raw_document, marky_document_release);
     if (status != MARKY_STATUS_OK || marky_document_block_count(document.get()) != expected.size()) {
@@ -1044,7 +1049,76 @@ void check_styled_paragraphs(const auto& check, std::string_view source,
         }
         const std::string_view prepared(view.data, view.byte_count);
         check(prepared == paragraph.prepared, fixture);
-        check_styled_tokens(check, prepared, paragraph.tokens, fixture);
+        check_styled_tokens(check, prepared, paragraph.tokens, fixture, document.get());
+    }
+}
+
+void check_document_reference_links(const auto& check) {
+    using enum marky::InlineTokenKind;
+    using enum marky::InlineTrait;
+    check_styled_paragraphs(check,
+        "[**Read the guide**][Guide]\r\n[guide]: <https://example.com/a)b?x=1&amp;y=2> \"Tip &amp; more\"\r\n"
+        "[GUIDE]: https://duplicate.test\r\n[guide][] and [guide]",
+        {{"[**Read the guide**][Guide]",
+          {{3, "Read the guide", text, strong, {}, "https://example.com/a)b?x=1&y=2", "Tip & more"}}},
+         {"[guide][] and [guide]",
+          {{1, "guide", text, none, {}, "https://example.com/a)b?x=1&y=2", "Tip & more"},
+           {9, " and ", text}, {15, "guide", text, none, {}, "https://example.com/a)b?x=1&y=2", "Tip & more"}}}},
+        "document references resolve before and after definitions with styles, duplicates, entities and parentheses");
+    check_styled_paragraphs(check,
+        "[Café\t  Key] [cafe\xCC\x81 key][] [STRASSE] [straße]\n\n"
+        "[  CAFÉ KEY ]: ../guide.md\n[straße]: street.md",
+        {{"[Café\t  Key] [cafe\xCC\x81 key][] [STRASSE] [straße]",
+          {{1, "Café\t  Key", text, none, {}, "../guide.md"}, {13, " ", text},
+           {15, "cafe\xCC\x81 key", text, none, {}, "../guide.md"},
+           {28, " [STRASSE] ", text}, {40, "straße", text, none, {}, "street.md"}}}},
+        "MD-072 and whitespace normalization preserve visible spelling and distinguish sharp S from SS");
+    check_styled_paragraphs(check,
+        "[known][missing] [missing][known] [known](x)\n\n[known]: guide.md\n[broken]:\n[broken]",
+        {{"[known][missing] [missing][known] [known](x)",
+          {{0, "[known][missing] ", text}, {18, "missing", text, none, {}, "guide.md"},
+           {33, " ", text}, {35, "known", text, none, {}, "x"}}},
+         {"[broken]: [broken]", {{0, "[broken]: [broken]", text}}}},
+        "undefined and malformed references stay visible while inline targets take precedence");
+    check_styled_paragraphs(check,
+        "[bad]: http://[bad\n\n[bad]\n\n[`x[y]` *z*][ref] `[ref]` \\[ref\\]\n[ref]: target",
+        {{"[bad]: http://[bad", {{0, "[bad]: http://[bad", text}}},
+         {"[bad]", {{0, "[bad]", text}}},
+         {"[`x[y]` *z*][ref] `[ref]` \\[ref\\]",
+          {{1, "`x[y]`", code, none, "x[y]", "target"}, {7, " ", text, none, {}, "target"},
+           {9, "z", text, emphasis, {}, "target"}, {17, " ", text}, {18, "`[ref]`", code, none, "[ref]"},
+           {25, " ", text}, {26, "\\[", literal, none, "["}, {28, "ref", text}, {31, "\\]", literal, none, "]"}}}},
+        "invalid destinations, inline code and escaped brackets stay readable");
+    check_blocks(check,
+        "```\n[ref]: fenced\n```\n\n    [ref]: indented\n\t[ref]: tabbed\n\n[ref]: real\n\n[ref]",
+        {{MARKY_BLOCK_CODE, "[ref]: fenced"}, {MARKY_BLOCK_CODE, "[ref]: indented\n[ref]: tabbed"},
+         {MARKY_BLOCK_PARAGRAPH, "[ref]"}},
+        "fenced and indented definitions stay in their literal blocks");
+
+    constexpr std::string_view containers =
+        "# [Heading][ref]\n\n- [List][ref]\n\n> [Quote][ref]\n\n"
+        "Name | Link\n--- | ---\nTable | [Cell][ref]\n\n[ref]: docs/guide.md";
+    MarkyDocument* raw = nullptr;
+    const auto status = marky_document_create(containers.data(), containers.size(), &raw);
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)> document(raw, marky_document_release);
+    MarkyUtf8View heading{}, cell{};
+    MarkyListItemView item{};
+    MarkyQuoteLineView quote{};
+    MarkyBlockKind heading_kind = MARKY_BLOCK_INVALID;
+    const bool prepared = status == MARKY_STATUS_OK && marky_document_block_count(raw) == 4 &&
+        marky_document_block_at(raw, 0, &heading_kind, &heading) == MARKY_STATUS_OK &&
+        heading_kind == MARKY_BLOCK_HEADING &&
+        marky_document_list_item_at(raw, 1, 0, &item) == MARKY_STATUS_OK &&
+        marky_document_quote_line_at(raw, 2, 0, &quote) == MARKY_STATUS_OK &&
+        marky_document_table_cell_at(raw, 3, 0, 1, &cell) == MARKY_STATUS_OK;
+    check(prepared, "reference collection preserves heading, list, quote and table blocks");
+    if (prepared) {
+        for (const auto& [view, label] : {std::pair{heading, "Heading"}, std::pair{item.source, "List"},
+                                          std::pair{quote.source, "Quote"}, std::pair{cell, "Cell"}}) {
+            check_styled_tokens(check, std::string_view(view.data, view.byte_count),
+                {{1, label, text, none, {}, "docs/guide.md"}},
+                "the same document definition resolves links across block types", raw);
+        }
     }
 }
 
@@ -1421,6 +1495,7 @@ int main() {
     check_combined_styles(check);
     check_final_inline_data(check);
     check_inline_links(check);
+    check_document_reference_links(check);
     check_literal_code_in_table(check);
     check_cancellation(check);
     check_concurrent_calls(check);

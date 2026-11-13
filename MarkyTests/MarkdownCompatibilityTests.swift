@@ -219,8 +219,8 @@ struct MarkdownCompatibilityTests {
             let document = try await CoreMarkdownParser.parse(fixture.input)
             let kinds = document.blocks.map(projectCoreBlock).map(\.kind)
             if fixture.id == "MD-082" {
-                // T10.S2 will consume the definition, and T10.S3 will interpret the alt text.
-                #expect(document.blocks == [.paragraph("![pic][asset]"), .paragraph("[asset]: image.png")])
+                // T10.S3 will interpret the remaining image syntax as alt text.
+                #expect(document.blocks == [.paragraph("![pic][asset]")])
                 continue
             }
             #expect(kinds == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
