@@ -6,7 +6,7 @@ Updated: 2026-11-13. This is the authoritative live ledger. [README](README.md) 
 
 - **T06 accepted and delivered.** User **PASS** ("pass"), 2026-11-08, accepts E54 (E55). T06.S2 landed on `main` as `bd91ede` (E56). The portable parser and Swift proof adapter preserve source-ordered quote lines, marker depth, empty lines, and boundaries with adjacent blocks. T06.S1 was accepted and integrated in E52–E53.
 - **T07 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the T07.S2 candidate E60 (E61). Standalone image metadata landed on `main` as `2e71ef4` (E62). Portable table parsing landed as `df7cb77` (E59).
-- **T08.S2 is accepted.** User **PASS** ("pass"), 2026-11-13, accepts the portable lexer candidate E66. Integration is pending. T08.S3 supplies final named entity and Unicode data. T08.S1 landed as `4cd3d3d` (E65). [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
+- **T08.S2 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable lexer candidate E66 (E67). The slice landed on `main` as `3dae9f8` (E68). **T08.S3 is next when selected.** It supplies final named entity and Unicode data and reruns the provisional fixtures offline. [Phase definition](phases/04-inline-semantics.md#t08--literal-spans-escapes-and-normalization)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03. T07 closes its OWE-T01 and OWE-T04 receipts. T10 and T11 retain their OWE-T07 work.
 
 ## Ticket and slice state
@@ -23,7 +23,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T05 | [03](phases/03-document-blocks.md) | done | T05.S1 done; T05.S2 done; T05.S3 done | E42 and E46 record S1/S2 integration. E47 and E48 record S3 verification and application. User PASS recorded in E49 and integration in E50. |
 | T06 | [03](phases/03-document-blocks.md) | done | T06.S1 done; T06.S2 done | E51–E53 record the list slice. E54 verifies quote structure, source, depth, boundaries, and lifetime. E55 records user PASS and E56 records integration. |
 | T07 | [03](phases/03-document-blocks.md) | done | T07.S1 done; T07.S2 done | E57–E59 record the table slice. E60–E62 record image verification, user PASS, and integration. |
-| T08 | [04](phases/04-inline-semantics.md) | in_progress | T08.S1 done; T08.S2 done; T08.S3 queued | E63–E65 cover literal code and table matching. E66 verifies escapes, line boundaries, numeric entities, and provisional named entity cases. E67 records user acceptance. |
+| T08 | [04](phases/04-inline-semantics.md) | in_progress | T08.S1 done; T08.S2 done; T08.S3 queued | E63–E65 cover literal code and table matching. E66–E68 verify, accept, and integrate escapes, line boundaries, numeric entities, and provisional named entity cases. |
 | T09 | [04](phases/04-inline-semantics.md) | queued | T09.S1 queued; T09.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T10 | [04](phases/04-inline-semantics.md) | queued | T10.S1 queued; T10.S2 queued; T10.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T11 | [05](phases/05-mac-document-integration.md) | queued | T11.S1 queued; T11.S2 queued; T11.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -154,6 +154,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E65 | T08.S1 integration | Accepted candidate and acceptance record committed as `4cd3d3ddc2d40f74bbec99b8ccfeba108298022b`, 2026-11-13. | Local `main` fast-forwarded to the candidate and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08.S1 delivered. T08.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 | E66 | T08.S2 inline escapes, breaks, and entities | Verified before commit on `codex/t08-s2-inline-escapes-entities` at `784481073f62194062b604f9426d09ae846a31a8`. The six-file build and test patch has SHA-256 `99638270aa530f0c835e6ff53590fbee539079c0b0d473e4c66f7108547cca1d`. The patch and run artifacts are in `/tmp/MarkyT08S2.MnrjHS/`. | [Mac verification](#t08s2-mac-run). Debug, Release, and sanitizer CTest each passed 2/2. A separate probe matched 12 corpus fixtures. The Mac suite passed 117 unit tests. | Named entity evidence is provisional. T08.S3 owns final offline data and reference-label normalization. B03/OWE-T03 still tracks Windows/MSVC and Linux/GCC execution. |
 | E67 | T08.S2 acceptance | User **PASS** ("pass"), 2026-11-13, accepts E66. | All eight candidate files matched the review patch byte for byte before acceptance bookkeeping. Mac Debug, Release, and sanitizer CTest each passed 2/2 again. The 12-fixture probe passed again. Local and remote main matched the candidate base `7844810`. | PASS authorizes the focused commit, fast-forward to local main, main push, and merged-branch cleanup. |
+| E68 | T08.S2 integration | The accepted candidate and acceptance record landed as `3dae9f88ae892a3dbcb84a2a6612948cbe798d4d`, 2026-11-13. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the candidate before deletion of the merged local branch. This ledger-only handoff uses the same main-push authorization. | T08.S2 delivered. T08.S3 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
 
 ### T06.S1 Mac run
 
@@ -470,7 +471,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T08.S2 | User selected T08.S2 and replied **"Create the branch and implement"**, 2026-11-13. | Created `codex/t08-s2-inline-escapes-entities` from clean `main/7844810` before editing. E66 identifies the candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E66 under repository policy. | E67 records authorization. Execution pending. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E66 under repository policy. | E67 records authorization and E68 records execution. |
 
 ## Contract amendments
 
