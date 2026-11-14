@@ -941,9 +941,8 @@ struct ExpectedStyledToken {
 };
 
 void check_styled_tokens(const auto& check, std::string_view source,
-                         std::initializer_list<ExpectedStyledToken> expected, std::string_view fixture,
-                         const MarkyDocument* document = nullptr) {
-    const auto tokens = document ? marky::resolve_inline(source, *document) : marky::resolve_inline(source);
+                         std::initializer_list<ExpectedStyledToken> expected, std::string_view fixture) {
+    const auto tokens = marky::resolve_inline(source);
     if (tokens.size() != expected.size()) {
         check(false, fixture);
         return;
@@ -1027,6 +1026,32 @@ struct ExpectedStyledParagraph {
     std::initializer_list<ExpectedStyledToken> tokens;
 };
 
+std::optional<std::string_view> inline_bytes(MarkyUtf8View view) {
+    return view.data ? std::optional(std::string_view(view.data, view.byte_count)) : std::nullopt;
+}
+
+void check_document_runs(const auto& check, const MarkyDocument* document, MarkyInlineLocation location,
+                         std::string_view prepared, std::initializer_list<ExpectedStyledToken> expected,
+                         std::string_view fixture) {
+    check(marky_document_inline_run_count(document, location) == expected.size(), fixture);
+    size_t index = 0;
+    for (const auto& [begin, raw, kind, traits, text, destination, title] : expected) {
+        auto flags = static_cast<MarkyInlineFlags>(traits);
+        if (kind == marky::InlineTokenKind::code) {
+            flags |= MARKY_INLINE_CODE;
+        } else if (kind == marky::InlineTokenKind::line_break) {
+            flags |= MARKY_INLINE_LINE_BREAK;
+        }
+        MarkyInlineRunView run{};
+        check(marky_document_inline_run_at(document, location, index++, &run) == MARKY_STATUS_OK &&
+                  run.flags == flags && run.source_begin == begin && run.source_end == begin + raw.size() &&
+                  prepared.substr(begin, raw.size()) == raw && inline_bytes(run.text) == text.value_or(raw) &&
+                  inline_bytes(run.link_destination) == destination && inline_bytes(run.link_title) == title &&
+                  run.image_destination.data == nullptr && run.image_title.data == nullptr,
+              fixture);
+    }
+}
+
 void check_styled_paragraphs(const auto& check, std::string_view source,
                              std::initializer_list<ExpectedStyledParagraph> expected, std::string_view fixture) {
     MarkyDocument* raw_document = nullptr;
@@ -1043,13 +1068,14 @@ void check_styled_paragraphs(const auto& check, std::string_view source,
     std::size_t index = 0;
     for (const auto& paragraph : expected) {
         MarkyUtf8View view{};
-        if (marky_document_paragraph_at(document.get(), index++, &view) != MARKY_STATUS_OK) {
+        const auto block = index++;
+        if (marky_document_paragraph_at(document.get(), block, &view) != MARKY_STATUS_OK) {
             check(false, fixture);
             continue;
         }
         const std::string_view prepared(view.data, view.byte_count);
         check(prepared == paragraph.prepared, fixture);
-        check_styled_tokens(check, prepared, paragraph.tokens, fixture, document.get());
+        check_document_runs(check, document.get(), {block, 0, 0}, prepared, paragraph.tokens, fixture);
     }
 }
 
@@ -1113,13 +1139,97 @@ void check_document_reference_links(const auto& check) {
         marky_document_table_cell_at(raw, 3, 0, 1, &cell) == MARKY_STATUS_OK;
     check(prepared, "reference collection preserves heading, list, quote and table blocks");
     if (prepared) {
-        for (const auto& [view, label] : {std::pair{heading, "Heading"}, std::pair{item.source, "List"},
-                                          std::pair{quote.source, "Quote"}, std::pair{cell, "Cell"}}) {
-            check_styled_tokens(check, std::string_view(view.data, view.byte_count),
-                {{1, label, text, none, {}, "docs/guide.md"}},
-                "the same document definition resolves links across block types", raw);
+        const std::array locations{MarkyInlineLocation{0, 0, 0}, MarkyInlineLocation{1, 0, 0},
+                                   MarkyInlineLocation{2, 0, 0}, MarkyInlineLocation{3, 1, 1}};
+        const std::array views{heading, item.source, quote.source, cell};
+        const std::array labels{"Heading", "List", "Quote", "Cell"};
+        for (size_t index = 0; index < locations.size(); ++index) {
+            check_document_runs(check, raw, locations[index], *inline_bytes(views[index]),
+                {{1, labels[index], text, none, {}, "docs/guide.md"}},
+                "the same document definition resolves links across block types");
         }
     }
+}
+
+void check_document_inline_images(const auto& check) {
+    constexpr std::string_view image = R"(![*alt* **bold** `x[y]` [text](inner) ![nested](inner.png) &amp; \]](<../a b.png> "Tip &amp; more"))";
+    const std::string prepared = "**[" + std::string(image) + "](page 'Link title')**";
+    MarkyDocument* raw = nullptr;
+    {
+        std::string input = "## " + prepared + "\n\n"
+            "- ![picture][asset]\n- ![asset][] and ![asset]\n- ![asset][missing] and ![missing]\n\n"
+            "> *![a\n> b](quote.png)*\n\n"
+            "Icon | Note\n--- | ---\n![cell](cell.png) | ![](<> '')\nShort\n\n"
+            "`![protected](icon.png)` and \\![linked](page) and ![malformed](a b.png)\n\n"
+            "```\n![literal](pic)\n```\n\n"
+            "[asset]: first.png 'Image title'\n[ASSET]: second.png";
+        check(marky_document_create(input.data(), input.size(), &raw) == MARKY_STATUS_OK && raw,
+              "document with inline images must parse");
+        input.assign(input.size(), '?');
+    }
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)> document(raw, marky_document_release);
+    MarkyInlineRunView run{};
+    const auto read = [&](MarkyInlineLocation location, size_t index, std::string_view expected) {
+        return marky_document_inline_run_at(raw, location, index, &run) == MARKY_STATUS_OK &&
+            inline_bytes(run.text) == expected;
+    };
+
+    check(marky_document_inline_run_count(raw, {0, 0, 0}) == 1 &&
+              read({0, 0, 0}, 0, "alt bold x[y] text nested & ]") &&
+              run.flags == (MARKY_INLINE_STRONG | MARKY_INLINE_IMAGE_ALT) &&
+              run.source_begin == 3 && run.source_end == 3 + image.size() &&
+              inline_bytes(run.link_destination) == "page" && inline_bytes(run.link_title) == "Link title" &&
+              inline_bytes(run.image_destination) == "../a b.png" && inline_bytes(run.image_title) == "Tip & more",
+          "owned image alt flattens its description and inherits the enclosing link and styles");
+    check(read({1, 0, 0}, 0, "picture") && run.flags == MARKY_INLINE_IMAGE_ALT &&
+              inline_bytes(run.image_destination) == "first.png" && inline_bytes(run.image_title) == "Image title" &&
+              run.link_destination.data == nullptr,
+          "full image reference uses the first document definition without creating a link");
+    check(marky_document_inline_run_count(raw, {1, 1, 0}) == 3 &&
+              read({1, 1, 0}, 0, "asset") && inline_bytes(run.image_destination) == "first.png" &&
+              read({1, 1, 0}, 2, "asset") && inline_bytes(run.image_destination) == "first.png",
+          "collapsed and shortcut image references resolve");
+    check(read({1, 2, 0}, 0, "![asset][missing] and ![missing]") && run.flags == 0,
+          "undefined image references remain readable without shortcut fallback");
+    check(read({2, 0, 0}, 0, "a\nb") && run.flags == (MARKY_INLINE_EMPHASIS | MARKY_INLINE_IMAGE_ALT),
+          "quote image alt and outer styles can span prepared lines");
+    check(read({3, 1, 0}, 0, "cell") && inline_bytes(run.image_destination) == "cell.png" &&
+              read({3, 1, 1}, 0, "\xEF\xBF\xBC") && run.flags == MARKY_INLINE_IMAGE_ALT &&
+              inline_bytes(run.image_destination) == "" && inline_bytes(run.image_title) == "",
+          "table cells keep empty image descriptions and distinguish empty metadata from missing metadata");
+    check(read({4, 0, 0}, 0, "![protected](icon.png)") && run.flags == MARKY_INLINE_CODE &&
+              read({4, 0, 0}, 3, "linked") && run.flags == 0 && inline_bytes(run.link_destination) == "page" &&
+              read({4, 0, 0}, 4, " and ![malformed](a b.png)") && run.flags == 0,
+          "code, escaped markers and malformed image targets retain their normal interpretation");
+
+    for (const auto location : {MarkyInlineLocation{0, 1, 0}, MarkyInlineLocation{1, 0, 1},
+                                MarkyInlineLocation{2, 0, 1}, MarkyInlineLocation{3, 2, 1},
+                                MarkyInlineLocation{3, 3, 0}, MarkyInlineLocation{5, 0, 0}}) {
+        check(marky_document_inline_run_count(raw, location) == 0 &&
+                  marky_document_inline_run_at(raw, location, 0, &run) == MARKY_STATUS_INVALID_ARGUMENT &&
+                  run.flags == 0 && run.source_begin == 0 && run.source_end == 0 &&
+                  run.text.data == nullptr && run.link_destination.data == nullptr && run.link_title.data == nullptr &&
+                  run.image_destination.data == nullptr && run.image_title.data == nullptr,
+              "invalid or empty inline regions clear the result, including padded and literal cells");
+    }
+    check(marky_document_inline_run_count(nullptr, {0, 0, 0}) == 0 &&
+              marky_document_inline_run_at(raw, {0, 0, 0}, 1, &run) == MARKY_STATUS_INVALID_ARGUMENT &&
+              marky_document_inline_run_at(raw, {0, 0, 0}, 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "inline run access validates document, run index, and output pointer");
+
+    std::string deep = "Before ";
+    for (size_t depth = 0; depth < 10000; ++depth) {
+        deep += "![";
+    }
+    deep += "description";
+    for (size_t depth = 0; depth < 10000; ++depth) {
+        deep += "](x)";
+    }
+    deep += " after";
+    const auto tokens = marky::resolve_inline(deep);
+    check(tokens.size() == 3 && tokens[1].text == "description" && tokens[1].image &&
+              tokens[1].image->destination == "x" && tokens[1].begin == 7 && tokens[1].end == deep.size() - 6,
+          "deep image nesting resolves with bounded call stack usage");
 }
 
 void check_emphasis_delimiters(const auto& check) {
@@ -1495,6 +1605,7 @@ int main() {
     check_combined_styles(check);
     check_final_inline_data(check);
     check_inline_links(check);
+    check_document_inline_images(check);
     check_document_reference_links(check);
     check_literal_code_in_table(check);
     check_cancellation(check);

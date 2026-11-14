@@ -20,11 +20,14 @@
 #include <vector>
 
 struct MarkyDocument {
+    using InlineRuns = std::vector<marky::InlineToken>;
+
     struct ListItem {
         size_t depth;
         MarkyListMarkerKind marker_kind;
         std::string ordered_marker;
         std::string source;
+        InlineRuns runs = {};
     };
 
     using List = std::vector<ListItem>;
@@ -37,7 +40,13 @@ struct MarkyDocument {
     using Quote = std::vector<QuoteLine>;
 
     struct Table {
-        using Row = std::vector<std::string>;
+        struct Cell {
+            explicit Cell(std::string_view text) : source(text) {}
+            std::string source;
+            InlineRuns runs;
+        };
+
+        using Row = std::vector<Cell>;
 
         Row headers;
         std::vector<MarkyTableAlignment> alignments;
@@ -55,10 +64,10 @@ struct MarkyDocument {
         MarkyBlockKind kind;
         uint32_t heading_level;
         std::variant<std::string, List, Quote, Table, Image> content;
+        InlineRuns runs = {};
     };
 
     const std::vector<Block> blocks;
-    const marky::ReferenceLinks references;
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
     ~MarkyDocument() { marky::test::document_destroyed(); }
 #endif
@@ -653,7 +662,7 @@ std::optional<std::vector<MarkyDocument::Block>> parse_blocks(
                     }
                     row.emplace_back(*cell);
                 }
-                while (!row.empty() && row.back().empty()) {
+                while (!row.empty() && row.back().source.empty()) {
                     row.pop_back();
                 }
                 return;
@@ -812,10 +821,100 @@ const MarkyDocument::Table* table_at(const MarkyDocument* document, size_t block
     return std::get_if<MarkyDocument::Table>(&document->blocks[block_index].content);
 }
 
+bool resolve_document_inline(std::vector<MarkyDocument::Block>& blocks,
+                             const marky::ReferenceLinks& references, const MarkyCancellationToken* token) {
+    const auto resolve = [&](std::string_view source, MarkyDocument::InlineRuns& runs) {
+        if (cancellation_requested(token)) {
+            return false;
+        }
+        runs = marky::resolve_inline(source, &references, token ? &token->requested : nullptr);
+#ifdef MARKY_CORE_TEST_CHECKPOINTS
+        marky::test::checkpoint(marky::test::Checkpoint::afterInlineRegion);
+#endif
+        return !cancellation_requested(token);
+    };
+    const auto resolve_row = [&](MarkyDocument::Table::Row& row) {
+        return std::ranges::all_of(row, [&](auto& cell) { return resolve(cell.source, cell.runs); });
+    };
+    for (auto& block : blocks) {
+        if (cancellation_requested(token)) {
+            return false;
+        }
+        switch (block.kind) {
+        case MARKY_BLOCK_PARAGRAPH:
+        case MARKY_BLOCK_HEADING:
+            if (!resolve(std::get<std::string>(block.content), block.runs)) {
+                return false;
+            }
+            break;
+        case MARKY_BLOCK_LIST:
+            for (auto& item : std::get<MarkyDocument::List>(block.content)) {
+                if (!resolve(item.source, item.runs)) {
+                    return false;
+                }
+            }
+            break;
+        case MARKY_BLOCK_QUOTE: {
+            std::string source;
+            const auto& lines = std::get<MarkyDocument::Quote>(block.content);
+            for (const auto& line : lines) {
+                if (cancellation_requested(token)) {
+                    return false;
+                }
+                if (&line != &lines.front()) {
+                    source.push_back('\n');
+                }
+                source.append(line.source);
+            }
+            if (!resolve(source, block.runs)) {
+                return false;
+            }
+            break;
+        }
+        case MARKY_BLOCK_TABLE: {
+            auto& table = std::get<MarkyDocument::Table>(block.content);
+            if (!resolve_row(table.headers) || !std::ranges::all_of(table.rows, resolve_row)) {
+                return false;
+            }
+            break;
+        }
+        }
+    }
+    return true;
 }
 
-std::vector<marky::InlineToken> marky::resolve_inline(std::string_view source, const MarkyDocument& document) {
-    return resolve_inline(source, &document.references);
+const MarkyDocument::InlineRuns* inline_region_at(const MarkyDocument* document, MarkyInlineLocation location) {
+    const auto [block_index, row, column] = location;
+    if (block_index >= marky_document_block_count(document)) {
+        return nullptr;
+    }
+    const auto& block = document->blocks[block_index];
+    switch (block.kind) {
+    case MARKY_BLOCK_PARAGRAPH:
+    case MARKY_BLOCK_HEADING:
+    case MARKY_BLOCK_QUOTE:
+        return row == 0 && column == 0 ? &block.runs : nullptr;
+    case MARKY_BLOCK_LIST: {
+        const auto& items = std::get<MarkyDocument::List>(block.content);
+        return column == 0 && row < items.size() ? &items[row].runs : nullptr;
+    }
+    case MARKY_BLOCK_TABLE: {
+        const auto& table = std::get<MarkyDocument::Table>(block.content);
+        if (row > table.rows.size()) {
+            return nullptr;
+        }
+        const auto& cells = row == 0 ? table.headers : table.rows[row - 1];
+        return column < cells.size() ? &cells[column].runs : nullptr;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+MarkyUtf8View optional_view(const std::optional<std::string>& text) {
+    return text ? MarkyUtf8View{text->data(), text->size()} : MarkyUtf8View{};
+}
+
 }
 
 MarkyStatus marky_document_create(const char* utf8, size_t byte_count,
@@ -866,7 +965,7 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
     const auto input = byte_count == 0 ? std::string_view("") : std::string_view(utf8, byte_count);
     marky::ReferenceLinks references;
     auto blocks = parse_blocks(input, token, references);
-    if (!blocks) {
+    if (!blocks || !resolve_document_inline(*blocks, references, token)) {
         return MARKY_STATUS_CANCELLED;
     }
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
@@ -876,7 +975,7 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
         return MARKY_STATUS_CANCELLED;
     }
 
-    auto document = std::make_unique<MarkyDocument>(std::move(*blocks), std::move(references));
+    auto document = std::make_unique<MarkyDocument>(std::move(*blocks));
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
     marky::test::checkpoint(marky::test::Checkpoint::beforeDocumentPublication);
 #endif
@@ -885,6 +984,8 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
     }
     *out_document = document.release();
     return MARKY_STATUS_OK;
+} catch (const marky::InlineCancelled&) {
+    return MARKY_STATUS_CANCELLED;
 } catch (const std::bad_alloc&) {
     return MARKY_STATUS_ALLOCATION_FAILURE;
 } catch (...) {
@@ -1012,7 +1113,7 @@ MarkyStatus marky_document_table_column_at(const MarkyDocument* document, size_t
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     const auto& header = table->headers[column_index];
-    *out_column = {table->alignments[column_index], {header.data(), header.size()}};
+    *out_column = {table->alignments[column_index], {header.source.data(), header.source.size()}};
     return MARKY_STATUS_OK;
 }
 
@@ -1027,7 +1128,7 @@ MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t b
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     const auto& row = table->rows[row_index];
-    const auto source = column_index < row.size() ? std::string_view(row[column_index]) : std::string_view("");
+    const auto source = column_index < row.size() ? std::string_view(row[column_index].source) : std::string_view("");
     *out_cell = {source.data(), source.size()};
     return MARKY_STATUS_OK;
 }
@@ -1047,8 +1148,47 @@ MarkyStatus marky_document_image_at(const MarkyDocument* document, size_t block_
     }
     out_image->alt = {image->alt.data(), image->alt.size()};
     out_image->destination = {image->destination.data(), image->destination.size()};
-    if (image->title) {
-        out_image->title = {image->title->data(), image->title->size()};
+    out_image->title = optional_view(image->title);
+    return MARKY_STATUS_OK;
+}
+
+size_t marky_document_inline_run_count(const MarkyDocument* document, MarkyInlineLocation location) {
+    const auto* runs = inline_region_at(document, location);
+    return runs ? runs->size() : 0;
+}
+
+MarkyStatus marky_document_inline_run_at(const MarkyDocument* document, MarkyInlineLocation location,
+                                         size_t run_index, MarkyInlineRunView* out_run) {
+    if (out_run == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_run = {};
+    const auto* runs = inline_region_at(document, location);
+    if (runs == nullptr || run_index >= runs->size()) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    const auto& run = (*runs)[run_index];
+    static_assert(static_cast<MarkyInlineFlags>(marky::InlineTrait::emphasis) == MARKY_INLINE_EMPHASIS &&
+                  static_cast<MarkyInlineFlags>(marky::InlineTrait::strong) == MARKY_INLINE_STRONG &&
+                  static_cast<MarkyInlineFlags>(marky::InlineTrait::strikethrough) == MARKY_INLINE_STRIKETHROUGH);
+    auto flags = static_cast<MarkyInlineFlags>(run.traits);
+    if (run.kind == marky::InlineTokenKind::code) {
+        flags |= MARKY_INLINE_CODE;
+    } else if (run.kind == marky::InlineTokenKind::line_break) {
+        flags |= MARKY_INLINE_LINE_BREAK;
+    }
+    out_run->flags = flags;
+    out_run->source_begin = run.begin;
+    out_run->source_end = run.end;
+    out_run->text = {run.text.data(), run.text.size()};
+    if (run.link) {
+        out_run->link_destination = optional_view(run.link->destination);
+        out_run->link_title = optional_view(run.link->title);
+    }
+    if (run.image) {
+        out_run->flags |= MARKY_INLINE_IMAGE_ALT;
+        out_run->image_destination = optional_view(run.image->destination);
+        out_run->image_title = optional_view(run.image->title);
     }
     return MARKY_STATUS_OK;
 }

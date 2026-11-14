@@ -207,6 +207,9 @@ int main() {
     check_document_failure(check, Checkpoint::afterBlockLine,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), after_reference);
     check_mid_call_cancellation(check, Checkpoint::afterBlockLine, 0, document.get(), after_reference);
+    check_document_failure(check, Checkpoint::afterInlineRegion,
+                           MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get(), 2);
+    check_mid_call_cancellation(check, Checkpoint::afterInlineRegion, 0, document.get(), 2);
     check_document_failure(check, Checkpoint::beforeDocumentAllocation,
                            MARKY_STATUS_ALLOCATION_FAILURE, 0, document.get());
     check_document_failure(check, Checkpoint::beforeDocumentPublication,

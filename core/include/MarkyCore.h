@@ -14,6 +14,7 @@ typedef uint32_t MarkyStatus;
 typedef uint32_t MarkyBlockKind;
 typedef uint32_t MarkyListMarkerKind;
 typedef uint32_t MarkyTableAlignment;
+typedef uint32_t MarkyInlineFlags;
 
 enum {
     MARKY_STATUS_OK = 0,
@@ -50,6 +51,15 @@ enum {
     MARKY_TABLE_ALIGNMENT_RIGHT = 3
 };
 
+enum {
+    MARKY_INLINE_EMPHASIS = 1,
+    MARKY_INLINE_STRONG = 2,
+    MARKY_INLINE_STRIKETHROUGH = 4,
+    MARKY_INLINE_CODE = 8,
+    MARKY_INLINE_LINE_BREAK = 16,
+    MARKY_INLINE_IMAGE_ALT = 32
+};
+
 typedef struct {
     const char* data;
     size_t byte_count;
@@ -78,6 +88,23 @@ typedef struct {
     MarkyUtf8View title;
 } MarkyImageView;
 
+typedef struct {
+    size_t block_index;
+    size_t row_index;
+    size_t column_index;
+} MarkyInlineLocation;
+
+typedef struct {
+    MarkyInlineFlags flags;
+    size_t source_begin;
+    size_t source_end;
+    MarkyUtf8View text;
+    MarkyUtf8View link_destination;
+    MarkyUtf8View link_title;
+    MarkyUtf8View image_destination;
+    MarkyUtf8View image_title;
+} MarkyInlineRunView;
+
 /*
  * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
  * The input may be NULL for zero bytes. Embedded NUL bytes are preserved.
@@ -88,7 +115,7 @@ typedef struct {
  * Normalizes CRLF line endings to LF. Fenced code contains the literal lines
  * between its delimiters, which can be empty. Indented code retains literal
  * content after stripping the required indentation and trailing blank lines.
- * Paragraph and heading text is prepared Markdown awaiting inline parsing.
+ * Block text for paragraphs and headings is prepared Markdown.
  * Soft paragraph lines join with spaces and hard breaks retain LF. Thematic
  * breaks, lists, quotes, tables and images have empty block text. List items expose prepared
  * Markdown source, with continuation lines separated by LF. Quote lines expose
@@ -221,6 +248,25 @@ MarkyStatus marky_document_table_cell_at(const MarkyDocument* document, size_t b
  */
 MarkyStatus marky_document_image_at(const MarkyDocument* document, size_t block_index,
                                     MarkyImageView* out_image);
+
+/*
+ * Inline regions use zero-based locations. Use row and column zero for a
+ * paragraph, heading, or entire quote body. A list uses its item index as
+ * the row and column zero. A table uses row zero for headers, followed by
+ * body rows, with the column index for each cell.
+ *
+ * Count returns zero for an invalid location or an empty region. Run access
+ * zeroes a non-NULL output on failure. All successful views borrow immutable
+ * UTF-8 until document release. Optional fields use a NULL data pointer when
+ * absent and a non-NULL pointer when present, including empty strings.
+ * Source ranges are half-open byte offsets in the prepared region. For a
+ * quote, the source is its prepared lines joined with LF. An image alt run
+ * spans the whole image expression.
+ * An image alt run may also carry a link if the image is inside a link label.
+ */
+size_t marky_document_inline_run_count(const MarkyDocument* document, MarkyInlineLocation location);
+MarkyStatus marky_document_inline_run_at(const MarkyDocument* document, MarkyInlineLocation location,
+                                         size_t run_index, MarkyInlineRunView* out_run);
 
 /* Releases an owned result once and invalidates all its views. NULL is a no-op. */
 void marky_document_release(MarkyDocument* document);

@@ -8,13 +8,18 @@
 #include <array>
 #include <charconv>
 #include <cstdint>
-#include <iterator>
 #include <utility>
 
 namespace marky {
 namespace {
 
 using namespace std::string_view_literals;
+
+void check_cancelled(const std::atomic<bool>* cancelled) {
+    if (cancelled && cancelled->load(std::memory_order_relaxed)) {
+        throw InlineCancelled{};
+    }
+}
 
 bool ascii_punctuation(char byte) {
     return (byte >= '!' && byte <= '/') || (byte >= ':' && byte <= '@') ||
@@ -490,9 +495,11 @@ struct DelimiterRun {
     }
 };
 
-void collect_delimiters(std::vector<DelimiterRun>& runs, std::string_view source, const InlineToken& token) {
+void collect_delimiters(std::vector<DelimiterRun>& runs, std::string_view source, const InlineToken& token,
+                        const std::atomic<bool>* cancelled) {
     const auto text = source.substr(token.begin, token.end - token.begin);
     for (std::size_t offset = 0; (offset = text.find_first_of("*_~", offset)) != text.npos;) {
+        check_cancelled(cancelled);
         const auto marker = text[offset];
         const auto length = delimiter_run_length(text.substr(offset), marker);
         const auto begin = token.begin + offset;
@@ -555,7 +562,7 @@ std::size_t matching_opener(const DelimiterRun& closer, const OpenerHeads& heads
     return latest;
 }
 
-bool match_delimiters(std::vector<DelimiterRun>& runs) {
+bool match_delimiters(std::vector<DelimiterRun>& runs, const std::atomic<bool>* cancelled) {
     struct Opener {
         std::size_t run_index;
         std::size_t previous_in_class;
@@ -578,6 +585,7 @@ bool match_delimiters(std::vector<DelimiterRun>& runs) {
 
     bool matched = false;
     for (std::size_t index = 0; index < runs.size(); ++index) {
+        check_cancelled(cancelled);
         auto& closer = runs[index];
         auto& [heads, first_run] = searches[static_cast<std::size_t>(closer.kind)];
         auto& first_opener = first_run[closer.length % 3];
@@ -674,7 +682,7 @@ std::shared_ptr<const InlineLink> InlineScanner::reference_link(const OpenBracke
             reference_syntax_end = end;
         }
     }
-    if (bracket.image || (bracket.contains_closed_bracket && uses_display_label)) {
+    if (bracket.contains_closed_bracket && uses_display_label) {
         return {};
     }
     if (uses_display_label) {
@@ -738,43 +746,51 @@ std::optional<InlineToken> InlineScanner::link_or_html_at_cursor() {
             }
             image = (cursor - 1 - marker) % 2 == 0;
         }
-        brackets.push_back({cursor, image});
+        brackets.push_back({cursor, image, link_floor});
     } else if (suffix.starts_with(']') && !brackets.empty()) {
         const auto bracket = brackets.back();
         brackets.pop_back();
         if (!brackets.empty()) {
             brackets.back().contains_closed_bracket = true;
         }
+        if (!bracket.image && bracket.begin < link_floor) {
+            return std::nullopt;
+        }
         auto end = cursor + 1;
-        std::shared_ptr<const InlineLink> link;
-        if (!bracket.image) {
-            if (const auto target = inline_target(suffix.substr(1))) {
-                auto destination = portable_destination(decode_link_text(target->destination, true));
-                std::optional<std::string> title;
-                if (target->title) {
-                    title = decode_link_text(*target->title, true);
-                }
-                end += target->end;
-                link = std::make_shared<InlineLink>(InlineLink{std::move(destination), std::move(title)});
+        std::shared_ptr<const InlineLink> target;
+        if (const auto parsed = inline_target(suffix.substr(1))) {
+            auto destination = decode_link_text(parsed->destination, true);
+            auto title = parsed->title ? std::optional(decode_link_text(*parsed->title, true)) : std::nullopt;
+            end += parsed->end;
+            target = std::make_shared<InlineLink>(InlineLink{
+                bracket.image ? std::optional(std::move(destination)) : portable_destination(std::move(destination)),
+                std::move(title)
+            });
+        } else {
+            target = reference_link(bracket, end);
+        }
+        if (target) {
+            bracket_matches.push_back({bracket.begin - (bracket.image ? 1 : 0), cursor, end,
+                                       bracket.image, std::move(target)});
+            if (bracket.image) {
+                // Links flattened into an image description cannot disable an enclosing link.
+                link_floor = bracket.link_floor;
+            } else {
+                link_floor = end;
             }
-        }
-        if (!link) {
-            link = reference_link(bracket, end);
-        }
-        if (link) {
-            bracket_links.push_back({bracket.begin, cursor, end, std::move(link)});
-            // A successful inner link makes any enclosing link opener inactive.
-            brackets.clear();
             return InlineToken{InlineTokenKind::literal, cursor, end, {}};
         }
     } else if (!suffix.starts_with(']')) {
-        return bare_link(source, cursor, !brackets.empty(), bare_search_end);
+        const bool in_label = !brackets.empty() &&
+            (brackets.back().image || brackets.back().begin >= link_floor);
+        return bare_link(source, cursor, in_label, bare_search_end);
     }
     return std::nullopt;
 }
 
 std::optional<InlineToken> InlineScanner::next_special() {
     while (cursor < source.size()) {
+        check_cancelled(cancelled);
         if (!scan_links) {
             cursor = source.find_first_of("\\`&\r\n", cursor);
             if (cursor == source.npos) {
@@ -844,14 +860,16 @@ std::optional<InlineToken> InlineScanner::next() {
 
 namespace {
 
-std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<InlineToken> tokens) {
+std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<InlineToken> tokens,
+                                        const std::atomic<bool>* cancelled) {
     std::vector<DelimiterRun> runs;
     for (const auto& token : tokens) {
+        check_cancelled(cancelled);
         if (token.kind == InlineTokenKind::text) {
-            collect_delimiters(runs, source, token);
+            collect_delimiters(runs, source, token, cancelled);
         }
     }
-    if (!match_delimiters(runs)) {
+    if (!match_delimiters(runs, cancelled)) {
         return tokens;
     }
 
@@ -859,6 +877,7 @@ std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<Inl
     auto traits = InlineTrait::none;
     auto run = runs.cbegin();
     for (auto& token : tokens) {
+        check_cancelled(cancelled);
         if (token.kind != InlineTokenKind::text) {
             token.traits = traits;
             result.push_back(std::move(token));
@@ -866,6 +885,7 @@ std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<Inl
         }
         auto cursor = token.begin;
         for (; run != runs.cend() && run->begin < token.end; ++run) {
+            check_cancelled(cancelled);
             if (run->closing_bytes == 0 && run->opening_bytes == 0) {
                 continue;
             }
@@ -884,57 +904,102 @@ std::vector<InlineToken> resolve_styles(std::string_view source, std::vector<Inl
 
 }
 
-std::vector<InlineToken> resolve_inline(std::string_view source, const ReferenceLinks* references) {
+std::vector<InlineToken> resolve_inline(std::string_view source, const ReferenceLinks* references,
+                                        const std::atomic<bool>* cancelled) {
     InlineScanner scanner(source);
     scanner.scan_links = true;
     scanner.references = references;
+    scanner.cancelled = cancelled;
     std::vector<InlineToken> tokens;
     while (auto token = scanner.next()) {
         tokens.push_back(std::move(*token));
     }
-    if (scanner.bracket_links.empty()) {
-        return resolve_styles(source, std::move(tokens));
+    if (scanner.bracket_matches.empty()) {
+        return resolve_styles(source, std::move(tokens), cancelled);
     }
 
-    // Style labels in their own delimiter scope. In the surrounding text each
-    // whole link is a single protected token that can inherit outer styles.
-    std::vector<InlineToken> outer;
-    std::vector<std::vector<InlineToken>> labels;
-    auto token = tokens.begin();
-    for (const auto& bracket : scanner.bracket_links) {
-        while (token->end <= bracket.begin) {
-            outer.push_back(std::move(*token++));
+    // Matches arrive in closing order. Walk opening order to separate each
+    // label's delimiters from those around it, including nested image labels.
+    auto& brackets = scanner.bracket_matches;
+    std::ranges::sort(brackets, {}, &InlineScanner::BracketMatch::begin);
+    std::vector<std::vector<InlineToken>> scopes(brackets.size() + 1);
+    std::vector<std::size_t> open{0};
+    std::size_t next_bracket = 0;
+    for (auto& token : tokens) {
+        check_cancelled(cancelled);
+        auto begin = token.begin;
+        while (next_bracket < brackets.size() && brackets[next_bracket].begin < token.end) {
+            check_cancelled(cancelled);
+            const auto& bracket = brackets[next_bracket];
+            auto& scope = scopes[open.back()];
+            append_text(scope, source, begin, bracket.begin, InlineTrait::none);
+            scope.push_back({InlineTokenKind::label, bracket.begin, bracket.end, {}});
+            open.push_back(++next_bracket);
+            begin = bracket.begin + (bracket.image ? 2 : 1);
         }
-        if (token->begin < bracket.begin) {
-            append_text(outer, source, token->begin, bracket.begin, InlineTrait::none);
+        if (open.size() > 1 && token.begin == brackets[open.back() - 1].label_end) {
+            open.pop_back();
+        } else if (begin == token.begin) {
+            scopes[open.back()].push_back(std::move(token));
+        } else {
+            append_text(scopes[open.back()], source, begin, token.end, InlineTrait::none);
         }
-        outer.push_back({InlineTokenKind::literal, bracket.begin, bracket.end, {}, InlineTrait::none, bracket.link});
-
-        std::vector<InlineToken> label;
-        while (token->begin < bracket.label_end) {
-            if (token->begin <= bracket.begin) {
-                append_text(label, source, bracket.begin + 1, token->end, InlineTrait::none);
-            } else {
-                label.push_back(std::move(*token));
-            }
-            ++token;
-        }
-        ++token; // The closing bracket and target are a single scanner token.
-        labels.push_back(resolve_styles(source, std::move(label)));
     }
-    outer.insert(outer.end(), std::make_move_iterator(token), std::make_move_iterator(tokens.end()));
+    for (auto& scope : scopes) {
+        scope = resolve_styles(source, std::move(scope), cancelled);
+    }
 
+    struct Label {
+        std::size_t scope;
+        std::size_t next = 0;
+        InlineTrait traits = InlineTrait::none;
+        std::shared_ptr<const InlineLink> link = {};
+        std::optional<std::size_t> image_run = {};
+        std::optional<std::size_t> alt_start = {};
+    };
+    std::vector<Label> labels{{0}};
     std::vector<InlineToken> result;
-    auto label = labels.begin();
-    for (auto& styled : resolve_styles(source, std::move(outer))) {
-        if (styled.link && styled.text.empty()) {
-            for (auto& piece : *label++) {
-                piece.traits = piece.traits | styled.traits;
-                piece.link = styled.link;
-                result.push_back(std::move(piece));
+    next_bracket = 0;
+    while (!labels.empty()) {
+        check_cancelled(cancelled);
+        auto& label = labels.back();
+        auto& scope = scopes[label.scope];
+        if (label.next == scope.size()) {
+            if (label.alt_start && result[*label.image_run].text.size() == *label.alt_start) {
+                // Foundation displays an object replacement character for an empty description.
+                result[*label.image_run].text += "\xEF\xBF\xBC";
+            }
+            labels.pop_back();
+            continue;
+        }
+        auto& piece = scope[label.next++];
+        piece.traits = piece.traits | label.traits;
+        if (piece.kind == InlineTokenKind::label) {
+            const auto& bracket = brackets[next_bracket++];
+            Label child{next_bracket, 0, piece.traits, label.link, label.image_run};
+            if (bracket.image) {
+                if (!child.image_run) {
+                    child.image_run = result.size();
+                    piece.kind = InlineTokenKind::literal;
+                    piece.link = label.link;
+                    piece.image = bracket.target;
+                    result.push_back(std::move(piece));
+                }
+                child.alt_start = result[*child.image_run].text.size();
+            } else {
+                child.link = bracket.target;
+            }
+            labels.push_back(std::move(child));
+        } else if (label.image_run) {
+            // An explicit backslash break is omitted inside an image description.
+            if (piece.kind != InlineTokenKind::line_break || source[piece.begin] != '\\') {
+                result[*label.image_run].text += piece.text;
             }
         } else {
-            result.push_back(std::move(styled));
+            if (label.link) {
+                piece.link = label.link;
+            }
+            result.push_back(std::move(piece));
         }
     }
     return result;

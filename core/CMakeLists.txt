@@ -27,6 +27,15 @@ if(BUILD_TESTING)
     )
     add_test(NAME marky_core_tests COMMAND marky_core_tests)
 
+    add_executable(marky_markdown_corpus tests/MarkdownCorpus.cpp)
+    target_link_libraries(marky_markdown_corpus PRIVATE marky_core)
+    set_target_properties(marky_markdown_corpus PROPERTIES CXX_EXTENSIONS NO)
+    add_test(NAME marky_markdown_corpus COMMAND "${CMAKE_COMMAND}"
+        "-DCORPUS=${CMAKE_CURRENT_SOURCE_DIR}/../MarkyTests/Fixtures/markdown-compatibility.json"
+        "-DPROBE=$<TARGET_FILE:marky_markdown_corpus>"
+        "-DINPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/CheckMarkdownCorpus.cmake")
+
     # Compile the same implementation with private hooks into the fault test only.
     add_executable(marky_core_fault_tests tests/DocumentFaultTests.cpp ${marky_core_sources})
     target_include_directories(marky_core_fault_tests PRIVATE include tests)
@@ -38,5 +47,5 @@ if(BUILD_TESTING)
         CXX_EXTENSIONS NO
     )
     add_test(NAME marky_core_fault_tests COMMAND marky_core_fault_tests)
-    set_tests_properties(marky_core_tests marky_core_fault_tests PROPERTIES TIMEOUT 60)
+    set_tests_properties(marky_core_tests marky_core_fault_tests marky_markdown_corpus PROPERTIES TIMEOUT 60)
 endif()
