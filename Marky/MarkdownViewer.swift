@@ -1320,6 +1320,12 @@ private struct MarkdownTableView: View {
 }
 
 struct MarkdownImageView: View {
+    private enum LoadState {
+        case loading
+        case loaded(NSImage)
+        case failed(String?)
+    }
+
     let alt: String
     let url: String
     let title: String?
@@ -1327,11 +1333,11 @@ struct MarkdownImageView: View {
     let typography: MarkdownTypography
     let colorScheme: ColorScheme
 
-    @State private var loadedLocalImage: NSImage?
-    @State private var loadErrorMessage: String?
+    @State private var loadState = LoadState.loading
     @State private var grantedFolderURL: URL?
     @State private var loadAttemptID = UUID()
     @State private var isPresentingFolderPicker = false
+    @State private var isPresentingPreview = false
 
     /// Normalizes and returns a remote URL if the string scheme is http or https (case-insensitively).
     static func remoteURL(from urlString: String) -> URL? {
@@ -1385,8 +1391,8 @@ struct MarkdownImageView: View {
         return nil
     }
 
-    private var isLocalImage: Bool {
-        Self.remoteURL(from: url) == nil && Self.resolveLocalFileURL(for: url, relativeTo: documentURL) != nil
+    private var imageLabel: String {
+        alt.isEmpty ? String(localized: "Image") : alt
     }
 
     var body: some View {
@@ -1401,86 +1407,81 @@ struct MarkdownImageView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: "\(url)|\(documentURL?.path ?? "")|\(loadAttemptID)") {
-            await loadLocalImageAsync(folderURL: grantedFolderURL)
+            await loadImage()
         }
     }
 
     @ViewBuilder
     private var imageContent: some View {
-        if let remoteURL = Self.remoteURL(from: url) {
-            AsyncImage(url: remoteURL) { phase in
-                switch phase {
-                case .empty:
-                    HStack(spacing: MarkyTheme.imageLoadingHStackSpacing) {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text(alt.isEmpty ? String(localized: "Loading image…") : alt)
-                            .font(.system(size: typography.bodyFontSize * MarkyTheme.imageLoadingTextFontScale))
-                            .foregroundStyle(Color.secondary)
-                    }
-                    .frame(height: MarkyTheme.imagePlaceholderHeight)
-                    .frame(maxWidth: .infinity)
-                    .background(MarkyTheme.tableHeaderBackgroundColor(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
-                                .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
-                        )
-                        .accessibilityLabel(alt.isEmpty ? String(localized: "Image") : alt)
-                case .failure:
-                    fallbackCard
-                @unknown default:
-                    fallbackCard
-                }
+        switch loadState {
+        case .loading where Self.remoteURL(from: url) != nil:
+            HStack(spacing: MarkyTheme.imageLoadingHStackSpacing) {
+                ProgressView()
+                    .scaleEffect(0.8)
+                Text(alt.isEmpty ? String(localized: "Loading image…") : alt)
+                    .font(.system(size: typography.bodyFontSize * MarkyTheme.imageLoadingTextFontScale))
+                    .foregroundStyle(Color.secondary)
             }
-        } else if let localImage = loadedLocalImage {
-            Image(nsImage: localImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
-                        .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
-                )
-                .accessibilityLabel(alt.isEmpty ? String(localized: "Image") : alt)
-        } else {
-            fallbackCard
+            .frame(height: MarkyTheme.imagePlaceholderHeight)
+            .frame(maxWidth: .infinity)
+            .background(MarkyTheme.tableHeaderBackgroundColor(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+        case .loading:
+            fallbackCard(errorMessage: nil)
+        case .loaded(let image):
+            Button {
+                isPresentingPreview = true
+            } label: {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(image.size, contentMode: .fit)
+                    .frame(maxWidth: image.size.width)
+                    .clipShape(RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: MarkyTheme.imageCornerRadius, style: .continuous)
+                            .stroke(MarkyTheme.tableBorderColor(for: colorScheme), lineWidth: MarkyTheme.tableCellBorderLineWidth)
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(imageLabel)
+            .accessibilityHint("Opens image preview")
+            .sheet(isPresented: $isPresentingPreview) {
+                MarkdownImagePreview(image: image, imageLabel: imageLabel)
+            }
+        case .failed(let errorMessage):
+            fallbackCard(errorMessage: errorMessage)
         }
     }
 
-    private var fallbackCard: some View {
+    private func fallbackCard(errorMessage: String?) -> some View {
         HStack(spacing: MarkyTheme.imageCardHStackSpacing) {
             Image(systemName: "photo")
                 .font(.system(size: MarkyTheme.imageCardIconSize))
                 .foregroundStyle(Color.secondary)
             VStack(alignment: .leading, spacing: MarkyTheme.imageCardVStackSpacing) {
-                Text(alt.isEmpty ? String(localized: "Image") : alt)
+                Text(imageLabel)
                     .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardTitleFontScale, weight: .medium))
                     .foregroundStyle(Color.primary)
                 Text(url)
                     .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardUrlFontScale, design: .monospaced))
                     .foregroundStyle(Color.secondary)
                     .lineLimit(1)
-                if let loadErrorMessage {
-                    Text(loadErrorMessage)
+                if let errorMessage {
+                    Text(errorMessage)
                         .font(.system(size: typography.bodyFontSize * MarkyTheme.imageCardUrlFontScale))
                         .foregroundStyle(Color.secondary)
                 }
             }
             .textSelection(.enabled)
 
-            if isLocalImage {
+            if Self.resolveLocalFileURL(for: url, relativeTo: documentURL) != nil {
                 Spacer()
                 Button {
                     promptForFolderAccess()
                 } label: {
                     Label(
-                        loadErrorMessage != nil ? String(localized: "Grant Folder Access…") : String(localized: "Choose Folder…"),
+                        errorMessage != nil ? String(localized: "Grant Folder Access…") : String(localized: "Choose Folder…"),
                         systemImage: "folder.badge.plus"
                     )
                 }
@@ -1500,26 +1501,48 @@ struct MarkdownImageView: View {
         .accessibilityLabel(alt.isEmpty ? String(localized: "Image: \(url)") : alt)
     }
 
-    private func loadLocalImageAsync(folderURL: URL? = nil) async {
-        self.loadedLocalImage = nil
-        self.loadErrorMessage = nil
-        guard let targetURL = Self.resolveLocalFileURL(for: url, relativeTo: documentURL) else { return }
+    private func loadImage() async {
+        guard !Task.isCancelled else { return }
+        loadState = .loading
+        let remoteURL = Self.remoteURL(from: url)
+        let localURL = Self.resolveLocalFileURL(for: url, relativeTo: documentURL)
         do {
             let image: NSImage
-            if let folderURL {
-                image = try await LocalImageLoader.loadImage(at: targetURL, under: folderURL)
+            if let remoteURL {
+                image = try await Self.loadRemoteImage(at: remoteURL)
+            } else if let localURL, let grantedFolderURL {
+                image = try await LocalImageLoader.loadImage(at: localURL, under: grantedFolderURL)
+            } else if let localURL {
+                image = try await LocalImageLoader.loadImage(at: localURL)
             } else {
-                image = try await LocalImageLoader.loadImage(at: targetURL)
+                loadState = .failed(nil)
+                return
             }
-            guard !Task.isCancelled else { return }
-            self.loadedLocalImage = image
-            self.loadErrorMessage = nil
+            try Task.checkCancellation()
+            guard image.size.width.isFinite, image.size.width > 0,
+                  image.size.height.isFinite, image.size.height > 0 else {
+                throw LocalImageLoadError.invalidImageData
+            }
+            loadState = .loaded(image)
         } catch is CancellationError {
-            // Cancelled cleanly
+            // A replacement task owns the loading state after cancellation.
         } catch {
             guard !Task.isCancelled else { return }
-            self.loadErrorMessage = error.localizedDescription
+            loadState = .failed(remoteURL == nil ? error.localizedDescription : nil)
         }
+    }
+
+    @concurrent
+    private nonisolated static func loadRemoteImage(at url: URL) async throws -> NSImage {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try Task.checkCancellation()
+        guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        guard let image = NSImage(data: data) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        return image
     }
 
     private func promptForFolderAccess() {

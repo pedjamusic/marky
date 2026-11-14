@@ -9,6 +9,8 @@
 - **Block Structures**: ATX headings (`#`), Setext headings (`===` / `---`), 4-space indented code blocks, fenced code blocks (```` ```` / `~~~`), thematic breaks (`---`, `***`, `___`), task lists (`☐` / `☑`), multi-line list continuations, and nested blockquotes (`▎ `).
 - **Images**: Local relative images resolve via standard URL semantics across project folders (e.g., `../Marky/Assets.xcassets/...`), decoding percent escapes (`%20`) and loading asynchronously off the main thread with cancellation. Standalone images accept angle-bracket destinations with spaces (`![alt](<my photo.png>)`) while rejecting unbracketed spaces. Remote image URLs (`http`/`https`, case-insensitive) load asynchronously with tokenized loading placeholders and accessible alt text, with network failure fallback cards. When local images are denied sandbox access, a user-initiated "Grant Folder Access…" button presents a native `NSOpenPanel` to grant the containing folder under security scope.
 
+- Standalone local and remote images use the decoded image's size in macOS points. The reader scales an image down proportionally when the column is narrower than the image. Click an image to open a native sheet. With macOS Keyboard Navigation enabled, you can also Tab to the image and press Space. The sheet opens in **Fit to Window** and keeps small images at their natural size. Use **Actual Size**, **Zoom In**, or **Zoom Out** to change the scale. Scroll in either direction when the image extends beyond the preview. Press Escape or click **Close** to return to the document. [AppKit image sizes](https://developer.apple.com/documentation/appkit/nsimage/size) · [SwiftUI sheets](https://developer.apple.com/documentation/swiftui/view/sheet(ispresented:ondismiss:content:)) · [SwiftUI scroll views](https://developer.apple.com/documentation/swiftui/scrollview)
+
 ## Concrete Sandbox & Security Limits
 - **Sandboxed Reader**: `ENABLE_APP_SANDBOX=YES` is enforced. No arbitrary HTML, `<script>`, or `<iframe>` execution.
 - **Approved Outgoing Network**: `ENABLE_OUTGOING_NETWORK_CONNECTIONS=YES` is configured for remote image loading. Unreachable or invalid URLs safely fall back to the branded fallback card without hanging or crashing.
@@ -20,6 +22,7 @@
   - `testHoverHighlightsOnlyTheLinkUnderThePointer`: compares rendered link screenshots before and after pointer movement across two links with the same destination and nearby plain text.
   - `testTableGeometryAndRowWrapping`: verifies column alignment across rows, multi-line wrapped cell heights (> 40pt vs single-line cells), multi-row intrinsic height (> 150pt), and sequential row vertical positioning within the unclipped table scroll view bounds with an `XCTAttachment` screenshot.
   - `testTableHorizontalScrolling`: verifies that a wide 8-column table fixture initially places distant target cells outside the viewport and smoothly scrolls them into view via native horizontal scroll interactions.
+  - `testStandaloneImagePreviewFitsZoomsAndDismisses` checks small and wide image dimensions, preview fit and zoom, Escape, and Close on the Swift reader path. `testCoreReaderDisplaysLocalImageAndMissingFileFallback` checks natural dimensions, captions, inline alt text, and missing-file fallback on the core reader path.
 - **CodeRabbit Review Fixes (2026-11-06)**: Addressed all 11 inline findings, two test nits, and the destination/scheme concerns in the review summary. Supervisor-reviewed regression coverage includes unmatched destination parentheses, distinct fenced/inline/escaped reference occurrences, and balanced image security-scope access on success, failure, and cancellation.
 - **Final automated results**: 104 unit tests passed (107 runs including parameters), recorded in `/tmp/MarkyMarkdownReview/Logs/Test/Test-Marky-2026.11.06_02-25-03-+0100.xcresult`. All seven UI tests passed in the preceding combined run (`Test-Marky-2026.11.06_02-23-06-+0100.xcresult`); that run's two unit-fixture failures were corrected and covered by the final unit run. The horizontal-scroll test verifies the complete target cell enters the viewport. The user reported manual validation **pass** on 2026-11-06.
 - **Scope limits**: This native presentation does not claim full CommonMark/GFM conformance. Standalone images render as images; images embedded within paragraph text currently display their alt text. Arbitrary HTML is not executed.
@@ -38,3 +41,12 @@ The user reported **pass** on 2026-11-06 for the reviewed Markdown reader change
 - [x] Verify local mascot image loads from `../Marky/Assets.xcassets/` and remote images load or show fallback cards.
 - [x] Verify local images without folder permission show the "Choose Folder…" / "Grant Folder Access…" button and load once granted.
 - [x] Verify switching typography modes (All System / Serif Headings + System Body / System Headings + Serif Body) and text size presets rerenders cleanly.
+
+### Standalone image preview acceptance
+
+Use a separately signed, sandbox-enabled build for these checks.
+
+1. Open a document with a small local image, a wide local image, a caption, and inline image alt text. Resize the window. Check that the small image stays at its natural size while it fits and the wide image follows the column without distortion.
+2. Open the wide image. Check **Fit to Window**, **Actual Size**, **Zoom In**, and **Zoom Out**. Scroll both ways at actual size. With macOS Keyboard Navigation enabled, Tab to an image and press Space. Press Escape and check that focus returns to the image.
+3. Open a remote image and check its caption and preview. Check the fallback cards for an HTTP error and invalid image data.
+4. Open a project document that links to an image in a sibling folder. Check the access error. Click **Grant Folder Access…**, select the sibling folder, and open the loaded image in the preview.

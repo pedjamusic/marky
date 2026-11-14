@@ -305,7 +305,10 @@ final class MarkyUITests: XCTestCase {
 
         let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
         XCTAssertTrue(reader.staticTexts["Inline Image alternative stays in this paragraph."].waitForExistence(timeout: 5))
-        XCTAssertTrue(reader.images["Local illustration"].waitForExistence(timeout: 5))
+        let illustration = reader.buttons["Local illustration"]
+        XCTAssertTrue(illustration.waitForExistence(timeout: 5))
+        XCTAssertEqual(illustration.frame.width, 160, accuracy: 1)
+        XCTAssertEqual(illustration.frame.height, 18, accuracy: 1)
         XCTAssertTrue(reader.staticTexts["Local caption"].exists)
         XCTAssertTrue(reader.buttons["Missing local image"].waitForExistence(timeout: 5))
 
@@ -313,5 +316,66 @@ final class MarkyUITests: XCTestCase {
         attachment.name = "CoreReaderImages"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    @MainActor
+    func testStandaloneImagePreviewFitsZoomsAndDismisses() throws {
+        let app = try makeSeededApp(additionalDocuments: [
+            "README.md": """
+            ![Small illustration](small.svg)
+
+            ![Wide illustration](wide.svg)
+            """,
+            "small.svg": """
+            <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220">
+                <rect width="220" height="220" fill="green"/>
+            </svg>
+            """,
+            "wide.svg": """
+            <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="400">
+                <rect width="1600" height="400" fill="blue"/>
+            </svg>
+            """
+        ])
+        app.launch()
+        defer { app.terminate() }
+
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        let small = reader.buttons["Small illustration"]
+        XCTAssertTrue(small.waitForExistence(timeout: 5))
+        XCTAssertEqual(small.frame.width, 220, accuracy: 1)
+        XCTAssertEqual(small.frame.height, 220, accuracy: 1)
+
+        let wide = reader.buttons["Wide illustration"]
+        XCTAssertTrue(wide.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(wide.frame.width, small.frame.width)
+        XCTAssertLessThan(wide.frame.width, 1600)
+        XCTAssertEqual(wide.frame.width, wide.frame.height * 4, accuracy: 2)
+
+        wide.click()
+        let sheet = app.sheets.firstMatch
+        let preview = sheet.images["Wide illustration"]
+        let scrollView = sheet.scrollViews["image-preview-scroll-view"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        let fitWidth = preview.frame.width
+        XCTAssertEqual(fitWidth, scrollView.frame.width, accuracy: 2)
+
+        sheet.buttons["Actual Size"].click()
+        XCTAssertEqual(preview.frame.width, 1600, accuracy: 1)
+        sheet.buttons["Zoom In"].click()
+        XCTAssertEqual(preview.frame.width, 2000, accuracy: 1)
+        sheet.buttons["Zoom Out"].click()
+        XCTAssertEqual(preview.frame.width, 1600, accuracy: 1)
+        sheet.buttons["Fit to Window"].click()
+        XCTAssertEqual(preview.frame.width, fitWidth, accuracy: 1)
+
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(sheet.waitForNonExistence(timeout: 5))
+        small.click()
+        let smallPreview = sheet.images["Small illustration"]
+        XCTAssertTrue(smallPreview.waitForExistence(timeout: 5))
+        XCTAssertEqual(smallPreview.frame.width, 220, accuracy: 1)
+        sheet.buttons["Close"].click()
+        XCTAssertTrue(sheet.waitForNonExistence(timeout: 5))
     }
 }
