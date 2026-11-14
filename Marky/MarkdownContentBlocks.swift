@@ -303,6 +303,100 @@ enum MarkdownContentBlocks {
 
     @MainActor
     static func render(
+        coreDocument document: CoreMarkdownDocument,
+        mode: MarkdownTypographyMode,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
+        isDarkMode: Bool
+    ) -> [MarkdownRenderedBlock] {
+        let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
+        return document.blocks.enumerated().map { blockIndex, block in
+            @MainActor
+            func inline(row: Int = 0, column: Int = 0, heading: Int? = nil, header: Bool = false) -> AttributedString {
+                AttributedString(MarkdownRenderer.renderInline(
+                    from: document.inlineRuns(inBlock: blockIndex, row: row, column: column),
+                    mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode,
+                    headingLevel: heading, isTableHeader: header
+                ))
+            }
+
+            let kind: MarkdownRenderedBlock.Kind
+            switch block {
+            case .heading(let level, _):
+                kind = .heading(level: level, text: inline(heading: level))
+            case .paragraph:
+                kind = .paragraph(inline())
+            case .list(let items):
+                kind = .list(items.enumerated().map { index, item in
+                    let marker = switch item.marker {
+                    case .bullet: "•"
+                    case .ordered(let source): source
+                    case .task(let checked): checked ? typography.checkboxCheckedSymbol : typography.checkboxUncheckedSymbol
+                    }
+                    return MarkdownListItem(id: index, nestingLevel: item.depth, marker: marker, body: inline(row: index))
+                })
+            case .quote(let lines):
+                let runs = quotePresentationRuns(from: document.inlineRuns(inBlock: blockIndex), lines: lines)
+                kind = .quote(AttributedString(MarkdownRenderer.renderInline(
+                    from: runs, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
+                )))
+            case .code(let code):
+                kind = .code(code)
+            case .table(let table):
+                @MainActor
+                func cells(row: Int) -> [MarkdownTableCell] {
+                    table.alignments.enumerated().map { column, alignment in
+                        MarkdownTableCell(id: column, content: inline(row: row, column: column, header: row == 0),
+                                          alignment: alignment)
+                    }
+                }
+                let rows = table.rows.indices.map { MarkdownTableRow(id: $0, cells: cells(row: $0 + 1)) }
+                kind = .table(.init(headers: cells(row: 0), rows: rows))
+            case .thematicBreak:
+                kind = .thematicBreak
+            case .image(let alt, let destination, let title):
+                kind = .image(alt: alt, url: destination, title: title)
+            }
+            return MarkdownRenderedBlock(id: blockIndex, kind: kind)
+        }
+    }
+
+    nonisolated private static let nestedQuoteIndicator = "▎ "
+
+    private static func quotePresentationRuns(
+        from runs: [CoreMarkdownDocument.InlineRun], lines: [CoreMarkdownDocument.QuoteLine]
+    ) -> [CoreMarkdownDocument.InlineRun] {
+        guard lines.contains(where: { $0.depth > 1 }) else { return runs }
+
+        // Source offsets identify actual quote lines even when an inline entity contains a newline.
+        var indicators: [Int: String] = [:]
+        var lineStart = 0
+        for line in lines {
+            if line.depth > 1 {
+                indicators[lineStart] = String(repeating: nestedQuoteIndicator, count: line.depth - 1)
+            }
+            lineStart += line.source.utf8.count + 1
+        }
+        var presented: [CoreMarkdownDocument.InlineRun] = []
+        func appendIndicator(at offset: Int, after lineBreak: CoreMarkdownDocument.InlineRun? = nil) {
+            if let indicator = indicators[offset] {
+                let intent = lineBreak?.intent.subtracting(.lineBreak) ?? []
+                presented.append(.init(text: indicator, intent: intent, linkDestination: lineBreak?.linkDestination,
+                                       sourceEnd: offset))
+            }
+        }
+        presented.reserveCapacity(runs.count + indicators.count)
+        appendIndicator(at: 0)
+        for run in runs {
+            presented.append(run)
+            if run.intent.contains(.lineBreak) {
+                appendIndicator(at: run.sourceEnd, after: run)
+            }
+        }
+        return presented
+    }
+
+    @MainActor
+    static func render(
         preparedBlocks: [MarkdownPreparedBlock],
         mode: MarkdownTypographyMode,
         textSizePreset: MarkdownReaderTextSizePreset = .default,
@@ -413,7 +507,7 @@ enum MarkdownContentBlocks {
                     text = String(text.dropFirst()).trimmingCharacters(in: .whitespaces)
                 }
                 if quoteLevel > 1 {
-                    let nestedIndicator = String(repeating: "▎ ", count: quoteLevel - 1)
+                    let nestedIndicator = String(repeating: nestedQuoteIndicator, count: quoteLevel - 1)
                     return nestedIndicator + text
                 }
                 return text

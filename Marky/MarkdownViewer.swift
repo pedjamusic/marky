@@ -774,15 +774,26 @@ final class MarkdownDoc: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String?
 
-    private var preparedBlocks: [MarkdownPreparedBlock] = []
-    private let prepareDocument: @Sendable (URL) async throws -> [MarkdownPreparedBlock]
+    private enum PreparedDocument: Sendable {
+        case swift([MarkdownPreparedBlock])
+        #if DEBUG
+        case core(CoreMarkdownDocument)
+        #endif
+    }
+
+    private var preparedDocument: PreparedDocument?
+    private let prepareDocument: @Sendable (URL) async throws -> PreparedDocument
     private var loadGeneration: UInt64 = 0
     private var mode: MarkdownTypographyMode = .allSystem
     private var textSizePreset: MarkdownReaderTextSizePreset = .default
     private var isDarkMode = false
 
     init(prepareDocument: (@Sendable (URL) async throws -> [MarkdownPreparedBlock])? = nil) {
-        self.prepareDocument = prepareDocument ?? Self.loadPreparedBlocks
+        if let prepareDocument {
+            self.prepareDocument = { .swift(try await prepareDocument($0)) }
+        } else {
+            self.prepareDocument = Self.loadDocument
+        }
     }
 
     func load(
@@ -800,13 +811,13 @@ final class MarkdownDoc: ObservableObject {
         isLoading = true
         error = nil
         blocks = []
-        preparedBlocks = []
+        preparedDocument = nil
 
         do {
             let prepared = try await prepareDocument(url)
             try Task.checkCancellation()
             guard generation == loadGeneration else { return }
-            preparedBlocks = prepared
+            preparedDocument = prepared
             rerenderFromPreparedBlocks(mode: self.mode, textSizePreset: self.textSizePreset, isDarkMode: self.isDarkMode)
             isLoading = false
         } catch is CancellationError {
@@ -828,20 +839,37 @@ final class MarkdownDoc: ObservableObject {
         self.mode = mode
         self.textSizePreset = textSizePreset
         self.isDarkMode = isDarkMode
-        guard !preparedBlocks.isEmpty else { return }
+        guard let preparedDocument else { return }
         #if os(macOS)
-        blocks = MarkdownContentBlocks.render(
-            preparedBlocks: preparedBlocks,
-            mode: mode,
-            textSizePreset: textSizePreset,
-            isDarkMode: isDarkMode
-        )
+        switch preparedDocument {
+        case .swift(let blocks):
+            self.blocks = MarkdownContentBlocks.render(
+                preparedBlocks: blocks, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
+            )
+        #if DEBUG
+        case .core(let document):
+            blocks = MarkdownContentBlocks.render(
+                coreDocument: document, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
+            )
+        #endif
+        }
         #else
         blocks = []
         #endif
     }
 
-    private nonisolated static func loadPreparedBlocks(from url: URL) async throws -> [MarkdownPreparedBlock] {
+    @concurrent
+    private static func loadDocument(from url: URL) async throws -> PreparedDocument {
+        let text = try readDocument(from: url)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--core-reader-test") {
+            return .core(try await CoreMarkdownParser.parse(text))
+        }
+        #endif
+        return .swift(MarkdownContentBlocks.prepare(from: text))
+    }
+
+    private nonisolated static func readDocument(from url: URL) throws -> String {
         let needsAccess = url.startAccessingSecurityScopedResource()
         defer {
             if needsAccess {
@@ -854,7 +882,7 @@ final class MarkdownDoc: ObservableObject {
         guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16) else {
             throw MarkdownDocumentLoadError.unsupportedTextEncoding
         }
-        return MarkdownContentBlocks.prepare(from: text)
+        return text
     }
 }
 

@@ -4,6 +4,128 @@ import Testing
 
 @MainActor
 struct CoreMarkdownParserTests {
+    @Test("Core blocks feed the native reader with its typography, markers and image metadata")
+    func nativeBlocks() async throws {
+        let source = """
+        ## **Heading**
+
+        Paragraph with ![image alt](inline.png) and [link](#heading).
+
+        - Parent
+          03) Child
+            continuation
+        - [ ] Todo
+        - [x] Done
+
+        > **Outer
+        >> inner**
+        >
+        >>> [Deep](#heading)
+
+        ~~~swift
+        # Literal **code**
+        ~~~
+
+            indented code
+
+        ---
+
+        ![Local alt](<art/my image.png> "Local caption")
+        ![Remote alt](HTTPS://example.org/image.png)
+        """
+        let mode = MarkdownTypographyMode.systemHeadingsSerifBody
+        let size = MarkdownReaderTextSizePreset.slightlyBigger
+        let blocks = try await renderBlocks(source, mode: mode, size: size)
+        try #require(blocks.count == 9)
+        #expect(blocks.map(\.id) == Array(0..<9))
+        guard case .heading(let level, let heading) = blocks[0].kind,
+              case .paragraph(let paragraph) = blocks[1].kind,
+              case .list(let list) = blocks[2].kind,
+              case .quote(let quote) = blocks[3].kind,
+              case .code(let fenced) = blocks[4].kind,
+              case .code(let indented) = blocks[5].kind,
+              case .thematicBreak = blocks[6].kind,
+              case .image(let localAlt, let localDestination, let localTitle) = blocks[7].kind,
+              case .image(let remoteAlt, let remoteDestination, let remoteTitle) = blocks[8].kind
+        else {
+            Issue.record("Expected heading, paragraph, list, quote, two code blocks, rule and two images")
+            return
+        }
+        let typography = MarkdownTypography(mode: mode, textSizePreset: size)
+        #expect(level == 2)
+        #expect(String(heading.characters) == "Heading")
+        #expect(font(in: heading)?.pointSize == typography.headingFont(for: level).pointSize)
+        #expect(String(paragraph.characters) == "Paragraph with image alt and link.")
+        #expect(paragraph.runs.compactMap(\.link).map(\.absoluteString) == ["#heading"])
+        #expect(font(in: paragraph)?.fontName == typography.bodyFont().fontName)
+        #expect(list.map(\.id) == [0, 1, 2, 3])
+        #expect(list.map(\.nestingLevel) == [0, 1, 0, 0])
+        #expect(list.map(\.marker) == ["•", "03)", "☐", "☑"])
+        #expect(list.map { String($0.body.characters) } == ["Parent", "Child\ncontinuation", "Todo", "Done"])
+        #expect(String(quote.characters) == "Outer\n▎ inner\n\n▎ ▎ Deep")
+        #expect(quote.runs.compactMap(\.link).map(\.absoluteString) == ["#heading"])
+        let inner = try #require(quote.range(of: "▎ inner"))
+        let innerFont = try #require(font(in: AttributedString(quote[inner])))
+        #expect(NSFontManager.shared.traits(of: innerFont).contains(.boldFontMask))
+        #expect(fenced == "# Literal **code**")
+        #expect(indented == "indented code")
+        #expect(localAlt == "Local alt")
+        #expect(localDestination == "art/my image.png")
+        #expect(localTitle == "Local caption")
+        #expect(remoteAlt == "Remote alt")
+        #expect(MarkdownImageView.remoteURL(from: remoteDestination)?.absoluteString == "https://example.org/image.png")
+        #expect(remoteTitle == nil)
+    }
+
+    @Test("The core table renders column alignments, styled cells and padded short rows")
+    func nativeTable() async throws {
+        let blocks = try await renderBlocks("""
+        | Leading | Center | Trailing |
+        | :--- | :---: | ---: |
+        | `x|y` | [**Link**](#table) | Right | Discarded |
+        | Short |
+        """)
+        try #require(blocks.count == 1)
+        guard case .table(let table) = blocks[0].kind else {
+            Issue.record("Expected the native table")
+            return
+        }
+        #expect(table.headers.map(\.alignment) == [.left, .center, .right])
+        #expect(table.headers.map { String($0.content.characters) } == ["Leading", "Center", "Trailing"])
+        #expect(table.rows.map(\.id) == [0, 1])
+        #expect(table.rows.map { $0.cells.map(\.alignment) } == [[.left, .center, .right], [.left, .center, .right]])
+        #expect(table.rows.map { $0.cells.map { String($0.content.characters) } } == [["x|y", "Link", "Right"], ["Short", "", ""]])
+        let header = try #require(table.headers.first)
+        let headerFont = try #require(font(in: header.content))
+        #expect(NSFontManager.shared.traits(of: headerFont).contains(.boldFontMask))
+        try #require(table.rows.first?.cells.count == 3)
+        #expect(font(in: table.rows[0].cells[0].content)?.isFixedPitch == true)
+        #expect(table.rows[0].cells[1].content.runs.first?.link?.absoluteString == "#table")
+    }
+
+    @Test("Nested quote indicators follow source lines, including empty nested lines")
+    func nestedQuoteSourceLines() async throws {
+        let blocks = try await renderBlocks("> 音🎵&#10;text\n>>\n>>> Child")
+        guard case .quote(let quote) = try #require(blocks.first).kind else {
+            Issue.record("Expected the native quote")
+            return
+        }
+        #expect(String(quote.characters) == "音🎵\ntext\n▎ \n▎ ▎ Child")
+    }
+
+    private func renderBlocks(
+        _ source: String, mode: MarkdownTypographyMode = .allSystem, size: MarkdownReaderTextSizePreset = .default
+    ) async throws -> [MarkdownRenderedBlock] {
+        let document = try await CoreMarkdownParser.parse(source)
+        return MarkdownContentBlocks.render(coreDocument: document, mode: mode, textSizePreset: size, isDarkMode: true)
+    }
+
+    private func font(in text: AttributedString) -> NSFont? {
+        let attributed = NSAttributedString(text)
+        guard attributed.length > 0 else { return nil }
+        return attributed.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+    }
+
     @Test("Empty core input returns no blocks")
     func emptyInput() async throws {
         let document = try await CoreMarkdownParser.parse("")

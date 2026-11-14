@@ -34,6 +34,7 @@ nonisolated struct CoreMarkdownDocument: Sendable {
         let text: String
         let intent: InlinePresentationIntent
         let linkDestination: String?
+        let sourceEnd: Int
     }
 
     fileprivate struct InlineLocation: Hashable, Sendable {
@@ -280,7 +281,8 @@ nonisolated enum CoreMarkdownParser {
             if run.flags & MarkyInlineFlags(MARKY_INLINE_CODE) != 0 { intent.insert(.code) }
             if run.flags & MarkyInlineFlags(MARKY_INLINE_LINE_BREAK) != 0 { intent.insert(.lineBreak) }
             let destination = run.link_destination.data == nil ? nil : try copyText(run.link_destination)
-            runs.append(.init(text: try copyText(run.text), intent: intent, linkDestination: destination))
+            runs.append(.init(text: try copyText(run.text), intent: intent, linkDestination: destination,
+                              sourceEnd: run.source_end))
         }
         runsByLocation[location] = runs
     }

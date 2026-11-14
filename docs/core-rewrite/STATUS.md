@@ -14,7 +14,8 @@ Updated: 2026-11-14. This is the authoritative live ledger. [README](README.md) 
 - **T10.S2 is accepted and delivered.** User **PASS** ("pass"), 2026-11-13, accepts the portable reference-link candidate (E82–E83). It landed on `main` as `2ce989e` (E84). [Verification](#t10s2-mac-run)
 - **T10.S3 and T10 are accepted and delivered.** User **PASS** ("pass"), 2026-11-14, accepts E85 (E86). The core landed on `main` as `7957825` (E87). It exposes inline image alt text through the C document API. All 92 shared fixtures match. [Verification](#t10s3-mac-run)
 - **T11.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-14, accepts E88 (E89). [PR #5](https://github.com/pedjamusic/marky/pull/5) landed on `main` as `b63488e` (E90). The Swift adapter copies core inline text and renders it with the reader's AppKit typography. [Verification](#t11s1-mac-run)
-- T11.S2 follows with native block, table, and image presentation. Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
+- **T11.S2 is accepted.** User **PASS** ("pass."), 2026-11-14, accepts E91 (E92). The signed Debug candidate maps the core's headings, paragraphs, lists, quotes, code, rules, tables, and images to the existing macOS reader. [Verification](#t11s2-mac-run)
+- Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
 
@@ -33,7 +34,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2, E76 records user PASS, and E77 records integration. |
 | T10 | [04](phases/04-inline-semantics.md) | done | T10.S1 done; T10.S2 done; T10.S3 done | E78–E81 record S1 verification, user PASS, and integration. E82–E84 record the same steps for S2. E85–E87 verify S3 and the full portable semantic corpus and record user PASS and integration. |
-| T11 | [05](phases/05-mac-document-integration.md) | in_progress | T11.S1 done; T11.S2 queued; T11.S3 queued | E88 verifies native inline text, styles, links, and lifetime. E89 records user PASS and E90 records integration. |
+| T11 | [05](phases/05-mac-document-integration.md) | in_progress | T11.S1 done; T11.S2 done; T11.S3 queued | E88–E90 record the verified, accepted, and integrated native inline text. E91–E92 record verification and user PASS for native block mapping. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T13 | [06](phases/06-project-rules.md) | queued | T13.S1 queued; T13.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -69,11 +70,11 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T03 | T03 | T19 | open | E21 supplies S1 scaffold evidence; E24 supplies S2 presets/procedures and local Mac checks. Linux/GCC and Windows/MSVC x64/v143 Debug/Release clean configure/build/smoke, intentional nonzero failure and ordinary recovery are **not executed**; exact environments/commands/imports remain owed via B03. T19.S1 receipt also requires final clean-candidate macOS/Apple Clang, Windows/MSVC and Linux/GCC builds/tests and runtime-dependency inspection. |
 | OWE-T04 | T04 | T05, T06, T07, T08, T09, T10, T12 | open | E37 supplies the Swift value adapter and test-only native paragraph proof. T05 receipt closed with typed base blocks, Swift adapter comparison, and partial-build cleanup through the C API (E40, E43, E47–E49). T06 receipt closed with list and quote ownership, adapter, and interruption checks (E51–E52, E54–E55). T07 receipt closed with the equivalent table and image checks (E57–E58, E60–E61). T08 receipt closed with the core-only lexical and prepared-source checks (E63, E66, E69–E70). T09 receipt closed with E75's owned inline tokens and prepared-source checks. T10 receipt closed with document-level syntax and lifetime evidence in E85–E86. T12 records accepted production selection. |
 | OWE-T05 | T05 | T08, T09, T10 | closed | T08 receipt closed with the literal, escape, and entity interactions (E63, E66, E69–E70). T09 receipt closed with E75's protected code, escapes, and nested styles. T10 receipt closed with the complete corpus in E85–E86. |
-| OWE-T06 | T06 | T11 | open | E52 and E55 accept semantic list and quote coverage. T11.S2 closes with native list markers, indentation, quote presentation, and relevant UI evidence. |
-| OWE-T07 | T07 | T10, T11 | open | E57–E58 supply the accepted table structure. E60–E61 supply the accepted image metadata. T10 receipt closed with the formatted-cell evidence in E85–E86. T11.S2 owes native table and image presentation and image access checks. |
+| OWE-T06 | T06 | T11 | closed | E52 and E55 accept semantic list and quote coverage. E91–E92 close the receipt with accepted native list markers, indentation, and quote presentation. |
+| OWE-T07 | T07 | T10, T11 | closed | E57–E58 and E60–E61 supply the accepted table structure and image metadata. E85–E86 close the T10 receipt with formatted-cell evidence. E91–E92 close the T11 receipt with native table and image presentation and image access checks. |
 | OWE-T08 | T08 | T09, T10 | closed | E69 supplies the accepted final data, provenance, and literal and escape fixture evidence (E70). T09 receipt closed with the passing combined-style fixtures using final checked-in data (E75). T10 receipt closed with the combined-style fixtures using final checked-in data in E85–E86. |
-| OWE-T09 | T09 | T11, T12 | open | E75 supplies the combined-style corpus. E88 verifies the T11.S1 attributed text and Unicode projection, including combining marks at delimiter boundaries. T12 checks production parity on the corpus. |
-| OWE-T10 | T10 | T11, T12 | open | E85 supplies the C run views and the full portable corpus. E88 verifies native link destinations and inline alt text. T11.S2 verifies image presentation and inline alt display in blocks. T12 retains complete production parity. |
+| OWE-T09 | T09 | T11, T12 | open | E75 supplies the combined-style corpus. E88–E89 close the T11 receipt with accepted attributed text and Unicode projection, including combining marks at delimiter boundaries. T12 checks production parity on the corpus. |
+| OWE-T10 | T10 | T11, T12 | open | E85 supplies the C run views and the full portable corpus. E88–E89 and E91–E92 close the T11 receipt with accepted native link destinations, inline alt text, and standalone image presentation. T12 retains complete production parity. |
 | OWE-T11 | T11 | T12 | planned | T12 comparison and signed candidate evidence covering delivered mappings, lifetimes, and known differences. |
 | OWE-T12 | T12 | T17, T18 | planned | T17 fixed-baseline performance evidence; T18 removal inventory verification. |
 | OWE-T13 | T13 | T16 | planned | Native enumeration and complete/partial/failure cases satisfy metadata/tree fixtures. |
@@ -184,6 +185,8 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E88 | T11.S1 native attributed text from the core | Uncommitted on `codex/t11-s1-native-text` from `24560ec1d5fda7b5587ae1128d37738f792a6984`. The three-file patch at `/tmp/MarkyT11S1.2xgK4d/T11.S1.patch` excludes this ledger. SHA-256 `ac17cdf37a01ea930ce9db98bbcaaeda5ca1eb57a50af8037a4c20ea5d1baf86`. | [Mac verification](#t11s1-mac-run). Xcode passed 121 unit tests and eight UI tests, with no failures, skips, or recorded runtime warnings. Debug and Release CTest each passed 3/3, including the 92 shared fixtures. | E89 records acceptance. T11.S2 owns native block, table, and image presentation. |
 | E89 | T11.S1 acceptance | User **PASS** ("pass"), 2026-11-14, accepts E88 as published at `598952eb7a7328749e55172fae5b4c6fbbe54020` in [PR #5](https://github.com/pedjamusic/marky/pull/5). | The PR code and test diff matched the E88 SHA-256. CodeRabbit passed with no actionable findings and no open review threads. | PASS authorizes integration through the requested PR. |
 | E90 | T11.S1 integration | [PR #5](https://github.com/pedjamusic/marky/pull/5) was squash-merged as `b63488effe9a8a21985bf529bf81fed61fc549f9`, 2026-11-14. | The merge command matched the accepted head. Local `main` fast-forwarded and its tree matched the reviewed branch. | T11.S1 delivered. T11.S2 is next when selected. Windows/MSVC and Linux/GCC execution remains under B03/OWE-T03. |
+| E91 | T11.S2 native block, table, and image mapping | Uncommitted on `codex/t11-s2-native-blocks` from `708f9e0519c812bbe47f43def27315b9d48824ed`. The five-file implementation and test patch at `/tmp/MarkyT11S2.eKsWRF/T11.S2.patch` excludes this ledger. SHA-256 `df5c2777988300224971aa2154b4a09bd8a21edd008ca24fff5f2ba1ba0167f5`. | [Mac verification below](#t11s2-mac-run). All 124 unit tests and nine UI tests passed. Independent Debug and Release CTest each passed 3/3, including the 92 shared fixtures. The separately signed app exercised sandbox image access and HTTP success and failure. | User PASS pending. T11.S3 owns core load lifecycle regressions. T12 owns complete parity, including quote edge cases, and production cutover. |
+| E92 | T11.S2 acceptance | User **PASS** ("pass."), 2026-11-14, accepts E91. The user confirmed that the local image in the grant fixture displayed and requested a separate session prompt for natural-size images and zoom. | The implementation and test diff matched the E91 SHA-256. The signed Debug candidate and final test results were rechecked. Local and remote `main` matched `708f9e0` before integration. | PASS authorizes the candidate commit, fast-forward to local `main`, push of `main`, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -456,6 +459,31 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,a
 - The [macOS core presets](../../core/README.md#macos) passed in fresh Debug and Release build directories with the macOS 27.2 SDK. The in-session review checked the diff against the T11.S1 exit and repository coding standards.
 - Review the candidate diff or rerun the command with `-only-testing:MarkyTests/CoreMarkdownParserTests` in place of the two test selectors. The production reader still follows its Swift parser route. T11.S2 owns block presentation and T12 owns cutover parity. Windows and Linux were outside this run.
 
+### T11.S2 Mac run
+
+macOS 27.2.1 (26B131) arm64, Xcode 27.2 (27B52), macOS SDK 27.2, Apple Clang 21.0.0, and CMake/CTest 4.4.5. The test route feeds the copied core document into the existing SwiftUI reader views. The table uses the existing column sizing and scrolling. The native image view retains URL resolution, decoding, fallback presentation, and the original folder URL for security-scoped access. The Debug-only argument is absent from the Release binary.
+
+From the repository root, set `T11S2_BUILD` to a fresh directory.
+
+```sh
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+	-configuration Debug -derivedDataPath "$T11S2_BUILD/DerivedData" \
+	-resultBundlePath "$T11S2_BUILD/Candidate-tests.xcresult" -parallel-testing-enabled NO \
+	-only-testing:MarkyTests -only-testing:MarkyUITests/MarkyUITests test
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+	-configuration Debug -derivedDataPath "$T11S2_BUILD/CandidateData" build
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+	-configuration Release -derivedDataPath "$T11S2_BUILD/ReleaseData" build
+```
+
+- All 124 unit tests and nine UI tests passed in `/tmp/MarkyT11S2.eKsWRF/Candidate-tests.xcresult`. The opt-in performance tests were outside the run. The build had no Swift source warnings. Xcode emitted simulator and AppIntents tooling notices, and the font-registration error test emitted code 103. Screenshots from the prior full run show the same table wrapping, final column after scrolling, and local image fallback.
+- The independent [macOS core presets](../../core/README.md#macos) passed in fresh Debug and Release build directories. The portable corpus and C API did not change.
+- The signed 0.2.4 (5) app for manual review is `/tmp/MarkyT11S2.eKsWRF/CandidateData/Build/Products/Debug/Marky.app`. It passes `codesign --verify --deep --strict` and has app sandbox, user-selected read-only access, and outgoing network entitlements. It was built separately from the Xcode test host. Launcher SHA-256 `6baa701821ed4ab1b0509d17363a9ebc7b9be40ae6952ce274878445dcdd5d13`. Debug executable library SHA-256 `488e0ebd71b154132f12386040632243830205d4eabf1eba6f0e4957f27d024e`.
+- A signed build immediately preceding the quote-marker styling correction was opened outside XCTest. A loopback HTTP 200 displayed the PNG and caption. A 404 displayed the fallback card. An existing image outside the project scope was denied, then loaded after picking its sibling folder in the native grant panel. The same build opened an 833-line mixed document derived from the showcase. The scoped loader unit tests cover balanced access on success, read failure, and cancellation.
+- The nested quote indicator inherits styling from a line break inside an emphasized span or link. Multiline code spans and image descriptions can absorb the source line break, leaving no separate run at which to insert the nested indicator. Include these combinations, complete native corpus parity, and dense-document acceptance in T12. B03 still tracks Windows and Linux execution.
+
+To review, launch the signed Debug candidate with `open -n -a "$T11S2_BUILD/CandidateData/Build/Products/Debug/Marky.app" --env MARKY_TEST_DEFAULTS_SUITE=Marky.T11S2Review --args --core-reader-test`. Open the repository folder in the app and select [MARKDOWN_SHOWCASE.md](../MARKDOWN_SHOWCASE.md) under `docs`. Check nested list and quote markers, literal code, rules, wrapped table rows and horizontal scrolling, and the standalone mascot image and inline alt text. For the grant flow, open only the showcase file and use **Grant Folder Access…** on the mascot to pick the image's containing folder. E92 records the user PASS.
+
 ## Git authorization and integration
 
 This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
@@ -673,6 +701,13 @@ This is independent of technical completion and user acceptance. Record the actu
 | Create local branch and implement T11.S1 | User requested implementation and replied **"Create the branch and implement"**, 2026-11-14. | Created `codex/t11-s1-native-text` from clean `main/24560ec` before editing. E88 identifies the candidate. |
 | Commit and publish the T11.S1 branch for GitHub review | User requested a GitHub pull request and fixes for review findings, 2026-11-14. | Committed `598952e`, pushed `codex/t11-s1-native-text`, and opened [PR #5](https://github.com/pedjamusic/marky/pull/5). |
 | Merge through GitHub and sync local `main` | User **PASS** ("pass") accepts E88 under repository policy, 2026-11-14. | E89 records authorization and E90 records execution. |
+
+### T11.S2 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Create local branch and implement T11.S2 | User selected T11.S2 and replied **"Create the branch and implement"**, 2026-11-14. | Created `codex/t11-s2-native-blocks` from clean `main/708f9e0` before editing. E91 identifies the candidate. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass.") accepts E91 under repository policy, 2026-11-14. | E92 records authorization. |
 
 ## Contract amendments
 

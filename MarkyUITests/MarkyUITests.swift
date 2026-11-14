@@ -6,7 +6,10 @@ final class MarkyUITests: XCTestCase {
     }
 
     @MainActor
-    private func makeSeededApp(additionalDocuments: [String: String] = [:]) throws -> XCUIApplication {
+    private func makeSeededApp(
+        additionalDocuments: [String: String] = [:],
+        coreReader: Bool = false
+    ) throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["MARKY_UI_TEST_SEED"] = "1"
         app.launchEnvironment["MARKY_UI_TEST_FIXTURE_ID"] = UUID().uuidString
@@ -24,6 +27,9 @@ final class MarkyUITests: XCTestCase {
             "-settings.markdownTypographyMode", "allSystem",
             "-settings.markdownReaderTextSizePreset", "default"
         ]
+        if coreReader {
+            app.launchArguments.append("--core-reader-test")
+        }
         return app
     }
 
@@ -102,7 +108,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testNestedListChildIsVisiblyIndented() throws {
-        let app = try makeSeededApp()
+        let app = try makeSeededApp(coreReader: true)
         app.launch()
         defer { app.terminate() }
         let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
@@ -152,7 +158,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testTableGeometryAndRowWrapping() throws {
-        let app = try makeSeededApp()
+        let app = try makeSeededApp(coreReader: true)
         app.launch()
         defer { app.terminate() }
 
@@ -224,7 +230,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testTableHorizontalScrolling() throws {
-        let app = try makeSeededApp()
+        let app = try makeSeededApp(coreReader: true)
         app.launch()
         defer { app.terminate() }
 
@@ -272,6 +278,39 @@ final class MarkyUITests: XCTestCase {
         // Capture screenshot attachment for supervisor visual validation
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "TableHorizontalScrolling"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testCoreReaderDisplaysLocalImageAndMissingFileFallback() throws {
+        let app = try makeSeededApp(additionalDocuments: [
+            "README.md": """
+            # Image Blocks
+
+            Inline ![Image alternative](inline.png) stays in this paragraph.
+
+            ![Local illustration](<art/local art.svg> "Local caption")
+
+            ![Missing local image](missing.png)
+            """,
+            "art/local art.svg": """
+            <svg xmlns="http://www.w3.org/2000/svg" width="160" height="18">
+                <rect width="160" height="18" fill="green"/>
+            </svg>
+            """
+        ], coreReader: true)
+        app.launch()
+        defer { app.terminate() }
+
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        XCTAssertTrue(reader.staticTexts["Inline Image alternative stays in this paragraph."].waitForExistence(timeout: 5))
+        XCTAssertTrue(reader.images["Local illustration"].waitForExistence(timeout: 5))
+        XCTAssertTrue(reader.staticTexts["Local caption"].exists)
+        XCTAssertTrue(reader.buttons["Missing local image"].waitForExistence(timeout: 5))
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "CoreReaderImages"
         attachment.lifetime = .keepAlways
         add(attachment)
     }
