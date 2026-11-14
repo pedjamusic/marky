@@ -19,7 +19,6 @@ enum MarkdownRenderer {
         isTableHeader: Bool = false,
         referenceLinks: [String: URL] = [:]
     ) -> NSAttributedString {
-        let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
         let resolvedText = substituteReferenceLinks(in: text, referenceLinks: referenceLinks)
 
         var options = AttributedString.MarkdownParsingOptions()
@@ -33,36 +32,9 @@ enum MarkdownRenderer {
             parsed = AttributedString(resolvedText)
         }
 
-        let baseFont: NSFont
-        let tracking: CGFloat
-        let lineHeightMultiple: CGFloat
-
-        if let level = headingLevel {
-            baseFont = typography.headingFont(for: level)
-            tracking = typography.headingTracking
-            lineHeightMultiple = typography.headingLineHeight(for: level)
-        } else if isTableHeader {
-            let base = typography.bodyFont()
-            baseFont = NSFontManager.shared.convert(base, toHaveTrait: .boldFontMask)
-            tracking = typography.bodyTracking
-            lineHeightMultiple = typography.bodyLineHeightMultiple
-        } else {
-            baseFont = typography.bodyFont()
-            tracking = typography.bodyTracking
-            lineHeightMultiple = typography.bodyLineHeightMultiple
-        }
-
-        let result = NSMutableAttributedString(string: String(parsed.characters))
-        let baseParagraph = NSMutableParagraphStyle()
-        baseParagraph.lineHeightMultiple = lineHeightMultiple
-        baseParagraph.paragraphSpacing = 0
-
-        result.addAttributes([
-            .font: baseFont,
-            .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: baseParagraph,
-            .kern: tracking
-        ], range: NSRange(location: 0, length: result.length))
+        let style = InlineStyle(mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode,
+                                headingLevel: headingLevel, isTableHeader: isTableHeader)
+        let result = style.attributedText(String(parsed.characters))
 
         var utf16Offset = 0
         for run in parsed.runs {
@@ -71,25 +43,9 @@ enum MarkdownRenderer {
             let runRange = NSRange(location: utf16Offset, length: runLength)
             utf16Offset += runLength
 
-            guard runLength > 0 else { continue }
-
-            if let intent = run.inlinePresentationIntent, !intent.isEmpty {
-                applyPresentationIntent(
-                    intent,
-                    to: result,
-                    range: runRange,
-                    baseFont: baseFont,
-                    typography: typography,
-                    isDarkMode: isDarkMode
-                )
-            }
-
-            if let url = run.link {
-                result.addAttributes([
-                    .link: url,
-                    .underlineStyle: typography.linkUnderlineStyle.rawValue,
-                    .foregroundColor: typography.linkColor
-                ], range: runRange)
+            style.apply(run.inlinePresentationIntent ?? [], to: result, range: runRange)
+            if let link = run.link {
+                style.applyLink(link, to: result, range: runRange)
             }
         }
 
@@ -141,22 +97,108 @@ enum MarkdownRenderer {
                     let subRange = NSRange(location: foundRange.location + subOffset, length: subLength)
                     subOffset += subLength
 
-                    guard subLength > 0 else { continue }
-                    if let intent = subRun.inlinePresentationIntent, !intent.isEmpty {
-                        applyPresentationIntent(
-                            intent,
-                            to: result,
-                            range: subRange,
-                            baseFont: baseFont,
-                            typography: typography,
-                            isDarkMode: isDarkMode
-                        )
-                    }
+                    style.apply(subRun.inlinePresentationIntent ?? [], to: result, range: subRange)
                 }
             }
         }
 
         return result
+    }
+
+    static func renderInline(
+        from runs: [CoreMarkdownDocument.InlineRun],
+        mode: MarkdownTypographyMode = .allSystem,
+        textSizePreset: MarkdownReaderTextSizePreset = .default,
+        isDarkMode: Bool = false,
+        headingLevel: Int? = nil,
+        isTableHeader: Bool = false
+    ) -> NSAttributedString {
+        let style = InlineStyle(mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode,
+                                headingLevel: headingLevel, isTableHeader: isTableHeader)
+        let text = runs.map(\.text).joined()
+        let result = style.attributedText(text)
+        var characters = text.makeIterator()
+        var nextCharacterLength = characters.next()?.utf16.count ?? 0
+        var runEnd = 0
+        var characterEnd = 0
+        for run in runs {
+            runEnd += run.text.utf16.count
+            let start = characterEnd
+            // The reader's character view assigns a split grapheme to the run containing its end.
+            while nextCharacterLength > 0, nextCharacterLength <= runEnd - characterEnd {
+                characterEnd += nextCharacterLength
+                nextCharacterLength = characters.next()?.utf16.count ?? 0
+            }
+            let range = NSRange(location: start, length: characterEnd - start)
+            if let destination = run.linkDestination, !destination.isEmpty, let link = URL(string: destination) {
+                style.applyLink(link, to: result, range: range)
+            }
+            // The reader's formatted link labels use the code foreground where the label contains code.
+            style.apply(run.intent, to: result, range: range)
+        }
+        return result
+    }
+
+    private struct InlineStyle {
+        let typography: MarkdownTypography
+        let isDarkMode: Bool
+        let baseFont: NSFont
+        let tracking: CGFloat
+        let lineHeightMultiple: CGFloat
+
+        init(
+            mode: MarkdownTypographyMode,
+            textSizePreset: MarkdownReaderTextSizePreset,
+            isDarkMode: Bool,
+            headingLevel: Int?,
+            isTableHeader: Bool
+        ) {
+            let typography = MarkdownTypography(mode: mode, textSizePreset: textSizePreset)
+            self.typography = typography
+            self.isDarkMode = isDarkMode
+            if let level = headingLevel {
+                baseFont = typography.headingFont(for: level)
+                tracking = typography.headingTracking
+                lineHeightMultiple = typography.headingLineHeight(for: level)
+            } else {
+                let body = typography.bodyFont()
+                baseFont = isTableHeader ? NSFontManager.shared.convert(body, toHaveTrait: .boldFontMask) : body
+                tracking = typography.bodyTracking
+                lineHeightMultiple = typography.bodyLineHeightMultiple
+            }
+        }
+
+        func attributedText(_ text: String) -> NSMutableAttributedString {
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineHeightMultiple = lineHeightMultiple
+            paragraph.paragraphSpacing = 0
+            return NSMutableAttributedString(string: text, attributes: [
+                .font: baseFont,
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: paragraph,
+                .kern: tracking
+            ])
+        }
+
+        func apply(
+            _ intent: InlinePresentationIntent,
+            to result: NSMutableAttributedString,
+            range: NSRange
+        ) {
+            guard range.length > 0, !intent.isEmpty else { return }
+            MarkdownRenderer.applyPresentationIntent(
+                intent, to: result, range: range, baseFont: baseFont, typography: typography, isDarkMode: isDarkMode
+            )
+        }
+
+        func applyLink(_ link: URL, to result: NSMutableAttributedString, range: NSRange) {
+            guard range.length > 0 else { return }
+            result.addAttributes([
+                .link: link,
+                .underlineStyle: typography.linkUnderlineStyle.rawValue,
+                .foregroundColor: typography.linkColor
+            ], range: range)
+        }
     }
 
     private static func applyPresentationIntent(
