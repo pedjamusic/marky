@@ -822,7 +822,8 @@ const MarkyDocument::Table* table_at(const MarkyDocument* document, size_t block
 }
 
 bool resolve_document_inline(std::vector<MarkyDocument::Block>& blocks,
-                             const marky::ReferenceLinks& references, const MarkyCancellationToken* token) {
+                             const marky::ReferenceLinks& references, const MarkyCancellationToken* token,
+                             std::string_view nested_quote_prefix) {
     const auto resolve = [&](std::string_view source, MarkyDocument::InlineRuns& runs) {
         if (cancellation_requested(token)) {
             return false;
@@ -863,6 +864,14 @@ bool resolve_document_inline(std::vector<MarkyDocument::Block>& blocks,
                 }
                 if (&line != &lines.front()) {
                     source.push_back('\n');
+                }
+                if (!nested_quote_prefix.empty()) {
+                    for (size_t depth = 1; depth < line.depth; ++depth) {
+                        if (cancellation_requested(token)) {
+                            return false;
+                        }
+                        source.append(nested_quote_prefix);
+                    }
                 }
                 source.append(line.source);
             }
@@ -950,12 +959,20 @@ void marky_cancellation_token_release(MarkyCancellationToken* token) {
 
 MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_count,
                                               const MarkyCancellationToken* token,
-                                              MarkyDocument** out_document) try {
+                                              MarkyDocument** out_document) {
+    return marky_document_create_with_quote_prefix(utf8, byte_count, token, {}, out_document);
+}
+
+MarkyStatus marky_document_create_with_quote_prefix(const char* utf8, size_t byte_count,
+                                                    const MarkyCancellationToken* token,
+                                                    MarkyUtf8View nested_quote_prefix,
+                                                    MarkyDocument** out_document) try {
     if (out_document == nullptr) {
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     *out_document = nullptr;
-    if (utf8 == nullptr && byte_count != 0) {
+    if ((utf8 == nullptr && byte_count != 0) ||
+        (nested_quote_prefix.data == nullptr && nested_quote_prefix.byte_count != 0)) {
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     if (cancellation_requested(token)) {
@@ -963,9 +980,14 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
     }
 
     const auto input = byte_count == 0 ? std::string_view("") : std::string_view(utf8, byte_count);
+    const auto prefix = nested_quote_prefix.byte_count == 0 ? std::string_view("") :
+        std::string_view(nested_quote_prefix.data, nested_quote_prefix.byte_count);
+    if (prefix.find_first_of("\r\n") != prefix.npos) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
     marky::ReferenceLinks references;
     auto blocks = parse_blocks(input, token, references);
-    if (!blocks || !resolve_document_inline(*blocks, references, token)) {
+    if (!blocks || !resolve_document_inline(*blocks, references, token, prefix)) {
         return MARKY_STATUS_CANCELLED;
     }
 #ifdef MARKY_CORE_TEST_CHECKPOINTS

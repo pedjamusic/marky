@@ -1020,7 +1020,7 @@ private struct MarkdownDocumentBlocks: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(blocks) { block in
                 switch block.kind {
                 case .heading(let level, let rendered):

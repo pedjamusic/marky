@@ -38,6 +38,47 @@ struct MarkdownCompatibilityTests {
         }
     }
 
+    @Test("Both readers render the shared corpus with identical native text and attributes")
+    func nativeCorpusParity() async throws {
+        for fixture in try loadCorpus().fixtures {
+            let coreDocument = try await CoreMarkdownParser.parse(fixture.input)
+            let swift = MarkdownContentBlocks.render(from: fixture.input, mode: .allSystem, isDarkMode: false)
+            let core = MarkdownContentBlocks.render(coreDocument: coreDocument, mode: .allSystem, isDarkMode: false)
+            #expect(core.count == swift.count, "Fixture \(fixture.id)")
+            for (expectedBlock, actualBlock) in zip(swift, core) {
+                let context = "Fixture \(fixture.id), block \(expectedBlock.id)"
+                let expected = nativeProjection(expectedBlock)
+                let actual = nativeProjection(actualBlock)
+                #expect(try json(actual.metadata) == json(expected.metadata), "\(context)")
+                #expect(actual.text.count == expected.text.count, "\(context)")
+                for (expectedText, actualText) in zip(expected.text, actual.text) {
+                    #expect(actualText.string.utf8.elementsEqual(expectedText.string.utf8), "\(context)")
+                    #expect(actualText.isEqual(to: expectedText), "\(context)")
+                }
+            }
+        }
+    }
+
+    private func nativeProjection(_ block: MarkdownRenderedBlock) -> (metadata: [String], text: [NSAttributedString]) {
+        switch block.kind {
+        case .heading(let level, let text): return (["heading", String(level)], [NSAttributedString(text)])
+        case .paragraph(let text): return (["paragraph"], [NSAttributedString(text)])
+        case .quote(let text): return (["quote"], [NSAttributedString(text)])
+        case .code(let text): return (["code", text], [])
+        case .list(let items):
+            return (["list"] + items.flatMap { [String($0.nestingLevel), $0.marker] },
+                    items.map { NSAttributedString($0.body) })
+        case .table(let table):
+            let rows = [table.headers] + table.rows.map(\.cells)
+            let cells = rows.flatMap { $0 }
+            return (["table"] + rows.map { String($0.count) } + cells.map { $0.alignment.rawValue },
+                    cells.map { NSAttributedString($0.content) })
+        case .image(let alt, let url, let title):
+            return (["image", alt, url] + (title.map { [$0] } ?? []), [])
+        case .thematicBreak: return (["thematicBreak"], [])
+        }
+    }
+
     @Test("Core base blocks match the shared corpus and Swift preparation")
     func coreBaseBlocks() async throws {
         let ids: Set = [

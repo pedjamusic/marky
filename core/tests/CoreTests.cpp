@@ -332,6 +332,38 @@ void check_quote_accessor_arguments(const auto& check) {
           "non-quote, out-of-range and NULL documents must report zero lines");
 }
 
+void check_quote_prefix(const auto& check) {
+    constexpr std::string_view input = "> `a\n>>> b`";
+    MarkyDocument* raw_document = nullptr;
+    const auto status = [&] {
+        std::string prefix = "nested ";
+        return marky_document_create_with_quote_prefix(
+            input.data(), input.size(), nullptr, {prefix.data(), prefix.size()}, &raw_document);
+    }();
+    const std::unique_ptr<MarkyDocument, decltype(&marky_document_release)>
+        document(raw_document, marky_document_release);
+    const MarkyInlineLocation location{0, 0, 0};
+    MarkyInlineRunView run{};
+    MarkyQuoteLineView line{};
+    check(status == MARKY_STATUS_OK &&
+              marky_document_inline_run_count(document.get(), location) == 1 &&
+              marky_document_inline_run_at(document.get(), location, 0, &run) == MARKY_STATUS_OK &&
+              run.flags == MARKY_INLINE_CODE && run.source_begin == 0 && run.source_end == 19 &&
+              run.text.data != nullptr && std::string_view(run.text.data, run.text.byte_count) == "a nested nested b" &&
+              marky_document_quote_line_at(document.get(), 0, 1, &line) == MARKY_STATUS_OK &&
+              line.depth == 3 && line.source.data != nullptr &&
+              std::string_view(line.source.data, line.source.byte_count) == "b`",
+          "nested prefixes join inline code while quote line source retains its original depth and bytes");
+
+    for (const MarkyUtf8View prefix : {MarkyUtf8View{nullptr, 1}, MarkyUtf8View{"\n", 1}}) {
+        auto* rejected = document.get();
+        check(marky_document_create_with_quote_prefix(
+                  input.data(), input.size(), nullptr, prefix, &rejected) == MARKY_STATUS_INVALID_ARGUMENT &&
+                  rejected == nullptr,
+              "invalid quote prefix clears the output");
+    }
+}
+
 struct ExpectedColumn {
     MarkyTableAlignment alignment;
     std::string_view header;
@@ -1591,6 +1623,7 @@ int main() {
     check_list_accessor_arguments(check);
     check_list_boundaries(check);
     check_quote_blocks(check);
+    check_quote_prefix(check);
     check_quote_accessor_arguments(check);
     check_table_blocks(check);
     check_table_accessor_arguments(check);
