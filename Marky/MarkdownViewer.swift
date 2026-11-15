@@ -774,6 +774,20 @@ final class MarkdownDoc: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String?
 
+    enum Parser: CaseIterable, Sendable {
+        case swift
+        #if DEBUG
+        case core
+        #endif
+
+        static var readerDefault: Self {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--core-reader-test") { return .core }
+            #endif
+            return .swift
+        }
+    }
+
     private enum PreparedDocument: Sendable {
         case swift([MarkdownPreparedBlock])
         #if DEBUG
@@ -782,18 +796,19 @@ final class MarkdownDoc: ObservableObject {
     }
 
     private var preparedDocument: PreparedDocument?
-    private let prepareDocument: @Sendable (URL) async throws -> PreparedDocument
+    private let parser: Parser
+    private let readText: @Sendable (URL) async throws -> String
     private var loadGeneration: UInt64 = 0
     private var mode: MarkdownTypographyMode = .allSystem
     private var textSizePreset: MarkdownReaderTextSizePreset = .default
     private var isDarkMode = false
 
-    init(prepareDocument: (@Sendable (URL) async throws -> [MarkdownPreparedBlock])? = nil) {
-        if let prepareDocument {
-            self.prepareDocument = { .swift(try await prepareDocument($0)) }
-        } else {
-            self.prepareDocument = Self.loadDocument
-        }
+    init(
+        parser: Parser = .readerDefault,
+        readText: @escaping @Sendable (URL) async throws -> String = MarkdownDoc.readDocument
+    ) {
+        self.parser = parser
+        self.readText = readText
     }
 
     func load(
@@ -814,7 +829,7 @@ final class MarkdownDoc: ObservableObject {
         preparedDocument = nil
 
         do {
-            let prepared = try await prepareDocument(url)
+            let prepared = try await Self.prepareDocument(from: url, using: parser, readText: readText)
             try Task.checkCancellation()
             guard generation == loadGeneration else { return }
             preparedDocument = prepared
@@ -859,17 +874,26 @@ final class MarkdownDoc: ObservableObject {
     }
 
     @concurrent
-    private static func loadDocument(from url: URL) async throws -> PreparedDocument {
-        let text = try readDocument(from: url)
+    private static func prepareDocument(
+        from url: URL,
+        using parser: Parser,
+        readText: @Sendable (URL) async throws -> String
+    ) async throws -> PreparedDocument {
+        let text = try await readText(url)
+        try Task.checkCancellation()
+        switch parser {
+        case .swift:
+            return .swift(MarkdownContentBlocks.prepare(from: text))
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--core-reader-test") {
+        case .core:
             return .core(try await CoreMarkdownParser.parse(text))
-        }
         #endif
-        return .swift(MarkdownContentBlocks.prepare(from: text))
+        }
     }
 
-    private nonisolated static func readDocument(from url: URL) throws -> String {
+    @concurrent
+    private static func readDocument(from url: URL) async throws -> String {
+        try Task.checkCancellation()
         let needsAccess = url.startAccessingSecurityScopedResource()
         defer {
             if needsAccess {

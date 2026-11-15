@@ -132,10 +132,11 @@ struct MarkdownRegressionTests {
         }
     }
 
-    @Test("Settings changed during a suspended load are used without rereading")
-    func settingsDuringLoad() async throws {
+    @Test("Settings changed during and after a suspended load are used without rereading",
+          arguments: MarkdownDoc.Parser.allCases)
+    func settingsDuringLoad(parser: MarkdownDoc.Parser) async throws {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
         let task = Task { await doc.load(from: URL(fileURLWithPath: "/document")) }
         await loader.waitForRequests(1)
         doc.rerenderFromPreparedBlocks(mode: .systemHeadingsSerifBody, textSizePreset: .slightlyBigger, isDarkMode: true)
@@ -153,13 +154,27 @@ struct MarkdownRegressionTests {
         let code = (attributed.string as NSString).range(of: "literal")
         let background = try #require(attributed.attribute(.backgroundColor, at: code.location, effectiveRange: nil) as? NSColor)
         #expect(background == typography.codeBackgroundColor(isDarkMode: true))
+
+        doc.rerenderFromPreparedBlocks(mode: .allSystem, textSizePreset: .slightlySmaller, isDarkMode: false)
+        guard case .paragraph(let restyled) = doc.blocks.first?.kind else {
+            Issue.record("Expected cached prose after changing settings")
+            return
+        }
+        let restyledText = NSAttributedString(restyled)
+        let restyledTypography = MarkdownTypography(mode: .allSystem, textSizePreset: .slightlySmaller)
+        let restyledFont = try #require(restyledText.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(restyledText.string == attributed.string)
+        #expect(restyledFont.familyName == restyledTypography.bodyFont().familyName)
+        #expect(abs(restyledFont.pointSize - restyledTypography.bodyFont().pointSize) < 0.01)
+        let restyledBackground = restyledText.attribute(.backgroundColor, at: code.location, effectiveRange: nil) as? NSColor
+        #expect(restyledBackground == restyledTypography.codeBackgroundColor(isDarkMode: false))
         #expect(await loader.requestCount == 1)
     }
 
-    @Test("An already-cancelled late call cannot invalidate an active load")
-    func alreadyCancelledLateCall() async {
+    @Test("An already-cancelled late call cannot invalidate an active load", arguments: MarkdownDoc.Parser.allCases)
+    func alreadyCancelledLateCall(parser: MarkdownDoc.Parser) async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
         let active = Task { await doc.load(from: URL(fileURLWithPath: "/active")) }
         await loader.waitForRequests(1)
         let late = Task {
@@ -178,10 +193,10 @@ struct MarkdownRegressionTests {
         }
     }
 
-    @Test("An ordinary loader failure after cancellation stays silent")
-    func cancelledOrdinaryFailure() async {
+    @Test("An ordinary loader failure after cancellation stays silent", arguments: MarkdownDoc.Parser.allCases)
+    func cancelledOrdinaryFailure(parser: MarkdownDoc.Parser) async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
         let task = Task { await doc.load(from: URL(fileURLWithPath: "/cancelled")) }
         await loader.waitForRequests(1)
         task.cancel()
@@ -192,10 +207,10 @@ struct MarkdownRegressionTests {
         #expect(doc.error == nil)
     }
 
-    @Test("Superseded and cancelled document loads cannot publish stale content")
-    func documentLifetime() async {
+    @Test("Superseded and cancelled document loads cannot publish stale content", arguments: MarkdownDoc.Parser.allCases)
+    func documentLifetime(parser: MarkdownDoc.Parser) async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc { url in try await loader.load(url) }
+        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
         let first = Task { await doc.load(from: URL(fileURLWithPath: "/first")) }
         await loader.waitForRequests(1)
         let second = Task { await doc.load(from: URL(fileURLWithPath: "/second")) }
@@ -215,6 +230,42 @@ struct MarkdownRegressionTests {
         await loader.finish(2, text: "cancelled")
         await cancelled.value
         #expect(doc.blocks.isEmpty)
+        #expect(!doc.isLoading)
+        #expect(doc.error == nil)
+    }
+
+    @Test("Both reader parsers decode UTF-8 and UTF-16 and recover after a file read failure",
+          arguments: MarkdownDoc.Parser.allCases)
+    func documentFileLoading(parser: MarkdownDoc.Parser) async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let utf8 = directory.appending(path: "utf8.md")
+        let utf16 = directory.appending(path: "utf16.md")
+        let source = "🎵 **Café**"
+        try Data(source.utf8).write(to: utf8)
+        try #require(source.data(using: .utf16)).write(to: utf16)
+
+        let doc = MarkdownDoc(parser: parser)
+        await doc.load(from: utf8)
+        guard case .paragraph(let first) = doc.blocks.first?.kind else {
+            Issue.record("Expected the UTF-8 file to render")
+            return
+        }
+        #expect(String(first.characters) == "🎵 Café")
+
+        await doc.load(from: directory.appending(path: "missing.md"))
+        #expect(doc.blocks.isEmpty)
+        #expect(!doc.isLoading)
+        #expect(doc.error != nil)
+
+        await doc.load(from: utf16)
+        guard case .paragraph(let recovered) = doc.blocks.first?.kind else {
+            Issue.record("Expected the UTF-16 file to render after a read failure")
+            return
+        }
+        #expect(recovered == first)
         #expect(!doc.isLoading)
         #expect(doc.error == nil)
     }
@@ -1069,11 +1120,11 @@ struct MarkdownRegressionTests {
 }
 
 private actor SuspendedMarkdownLoader {
-    private var pending: [CheckedContinuation<[MarkdownPreparedBlock], Error>] = []
+    private var pending: [CheckedContinuation<String, Error>] = []
     private var waiter: (count: Int, continuation: CheckedContinuation<Void, Never>)?
     var requestCount: Int { pending.count }
 
-    func load(_ url: URL) async throws -> [MarkdownPreparedBlock] {
+    func load(_ url: URL) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             pending.append(continuation)
             if let waiter, pending.count >= waiter.count {
@@ -1093,6 +1144,6 @@ private actor SuspendedMarkdownLoader {
     }
 
     func finish(_ index: Int, text: String) {
-        pending[index].resume(returning: MarkdownContentBlocks.prepare(from: text))
+        pending[index].resume(returning: text)
     }
 }
