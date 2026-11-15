@@ -15,7 +15,7 @@ Updated: 2026-11-15. This is the authoritative live ledger. [README](README.md) 
 - **T10.S3 and T10 are accepted and delivered.** User **PASS** ("pass"), 2026-11-14, accepts E85 (E86). The core landed on `main` as `7957825` (E87). It exposes inline image alt text through the C document API. All 92 shared fixtures match. [Verification](#t10s3-mac-run)
 - **T11.S1 is accepted and delivered.** User **PASS** ("pass"), 2026-11-14, accepts E88 (E89). [PR #5](https://github.com/pedjamusic/marky/pull/5) landed on `main` as `b63488e` (E90). The Swift adapter copies core inline text and renders it with the reader's AppKit typography. [Verification](#t11s1-mac-run)
 - **T11.S2 is accepted and delivered.** User **PASS** ("pass."), 2026-11-14, accepts E91 (E92). The native block mapping landed on `main` as `35cf000` (E93). The standalone image sizing and zoom follow-up landed as `9a173d7`. [Verification](#t11s2-mac-run)
-- **T11.S3 and T11 are accepted.** User **PASS** ("pass"), 2026-11-15, accepts E94 (E95). T12.S1 is next and receives the native comparison cases and known differences in OWE-T11. [Verification and manual steps](#t11s3-mac-run)
+- **T11.S3 and T11 are accepted and delivered.** User **PASS** ("pass"), 2026-11-15, accepts E94 (E95). The accepted candidate landed on `main` as `d04f4ab` (E96). T12.S1 is next and receives the native comparison cases and known differences in OWE-T11. [Verification and manual steps](#t11s3-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -35,7 +35,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T08 | [04](phases/04-inline-semantics.md) | done | T08.S1 done; T08.S2 done; T08.S3 done | E63–E68 cover the accepted literal span and lexer slices. E69 verifies the final offline entity tables and Unicode label keys. E70 records user PASS and E71 records integration. |
 | T09 | [04](phases/04-inline-semantics.md) | done | T09.S1 done; T09.S2 done. | E72–E74 record T09.S1 verification, PASS, and integration. E75 verifies T09.S2, E76 records user PASS, and E77 records integration. |
 | T10 | [04](phases/04-inline-semantics.md) | done | T10.S1 done; T10.S2 done; T10.S3 done | E78–E81 record S1 verification, user PASS, and integration. E82–E84 record the same steps for S2. E85–E87 verify S3 and the full portable semantic corpus and record user PASS and integration. |
-| T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 record verification, user PASS, and integration for native text and blocks. E94–E95 record asynchronous loading and cached settings rerender verification and user PASS. |
+| T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | queued | T12.S1 queued; T12.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T13 | [06](phases/06-project-rules.md) | queued | T13.S1 queued; T13.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -191,6 +191,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E93 | T11.S2 integration | Accepted candidate and PASS record landed as `35cf0004818d2a229cb8d3a0e4c5459d75ea6b42`, 2026-11-14. | The staged code and test diff matched E91. Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted revision before deletion of the merged local task branch. This ledger update uses the same main-push authorization. | T11.S2 delivered. T11.S3 remains queued. |
 | E94 | T11.S3 asynchronous core loading | Uncommitted on `codex/t11-s3-async-core-loading` from `9a173d78a4cc4cf85ee6173c32c3973a1167111e`. The two-file source and test patch at `/tmp/MarkyT11S3.1e5lEH/T11.S3.patch` excludes this ledger. SHA-256 `9a6c42ccf4547c500bbca92070e661383c6d11bddfbccc56e9b1bfd2b6a46288`. | [Mac verification below](#t11s3-mac-run). Xcode passed 125 unit tests and 10 UI tests. Independent Debug and Release CTest each passed 3/3, including the 92 shared fixtures. | User PASS pending. T12.S1 owns full parity and comparable document performance. Windows/MSVC and Linux/GCC execution remains with B03/OWE-T03. |
 | E95 | T11.S3 and T11 acceptance | User **PASS** ("pass"), 2026-11-15, accepts E94. | Rechecked the E94 patch and signed Debug executable hashes, signature, and final test results. Local and remote `main` matched `9a173d7` before integration. | PASS authorizes the candidate commit, fast-forward to local `main`, push of `main`, and merged-branch cleanup. |
+| E96 | T11.S3 and T11 integration | Accepted candidate and PASS record landed as `d04f4ab7f612240c0d189ff543ccba744174b721`, 2026-11-15. | The staged source and test patch matched E94. Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted commit before deletion of the local task branch. This ledger-only handoff uses the same main-push authorization. | T11 delivered. T12.S1 parity and baseline comparison are next. |
 
 ### T06.S1 Mac run
 
@@ -746,7 +747,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | Operation | Authorization | Executed / evidence |
 | --- | --- | --- |
 | Create local branch and implement T11.S3 | User selected T11.S3 and replied **"Create the branch and implement"**, 2026-11-15. | Created `codex/t11-s3-async-core-loading` from clean `main/9a173d7` before editing. E94 identifies the uncommitted candidate. |
-| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E94 under repository policy, 2026-11-15. | E95 records authorization. |
+| Commit, merge, push and merged-branch cleanup | User **PASS** ("pass") accepts E94 under repository policy, 2026-11-15. | E95 records authorization and E96 records execution. |
 
 ## Contract amendments
 
