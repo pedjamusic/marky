@@ -92,6 +92,6 @@ open -n -a /tmp/MarkyT12S1Fix.EE0vdu/signed/Build/Products/Debug/Marky.app \
 2. Open `/tmp/MarkyT12S1Fix.EE0vdu/fixtures/project` and select `LARGE.md`. Scroll several sections, return to the top, and switch to `README.md` with the outline keyboard selection.
 3. Open the showcase and check narrow-window wrapping, link hover and the standalone image preview. Reopen the signed app in the same review suite to exercise folder grant restoration. If using VoiceOver, check the large document's heading navigation.
 
-Candidate review is pending. The preparation-only comparison still needs disposition under the 20% gate. The end-to-end model render, model load, and native viewport show comparable work and meet the gate on the fixed fixture.
+User PASS accepted the readout and layout candidate, which landed on main through [PR #6](https://github.com/pedjamusic/marky/pull/6). The preparation-only comparison still needs disposition under the 20% gate. The end-to-end model render, model load, and native viewport show comparable work and meet the gate on the fixed fixture.
 
-The production default remains Swift. The Debug parser argument selects the core for review. T12.S2 is pending T12.S1 acceptance and disposition of the preparation memory comparison.
+The production default remains Swift. The Debug parser argument selects the core for review. T12.S2 is queued behind disposition of the preparation memory comparison.
