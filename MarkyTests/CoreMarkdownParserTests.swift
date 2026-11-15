@@ -113,6 +113,28 @@ struct CoreMarkdownParserTests {
         #expect(String(quote.characters) == "音🎵\ntext\n▎ \n▎ ▎ Child")
     }
 
+    @Test("Nested quote indicators retain native inline styles and text",
+          arguments: [
+            "> `a\n>> nested`",
+            "> ` a\n>>`",
+            "> ![a\n>> nested](image.png)",
+            "> ![a&#10;b\n>>> 音🎵](image.png)",
+            "> [a\n>> nested](https://example.invalid)",
+            "> *a\n>> nested*",
+            "> outer  \n>> nested"
+          ])
+    func nestedQuoteInlineParity(source: String) async throws {
+        let swift = MarkdownContentBlocks.render(from: source, mode: .allSystem, isDarkMode: true)
+        let core = try await renderBlocks(source)
+        guard case .quote(let expected) = try #require(swift.first).kind,
+              case .quote(let actual) = try #require(core.first).kind else {
+            Issue.record("Expected a native quote from both readers")
+            return
+        }
+        #expect(Array(String(actual.characters).utf8) == Array(String(expected.characters).utf8))
+        #expect(NSAttributedString(actual).isEqual(to: NSAttributedString(expected)))
+    }
+
     private func renderBlocks(
         _ source: String, mode: MarkdownTypographyMode = .allSystem, size: MarkdownReaderTextSizePreset = .default
     ) async throws -> [MarkdownRenderedBlock] {

@@ -34,7 +34,6 @@ nonisolated struct CoreMarkdownDocument: Sendable {
         let text: String
         let intent: InlinePresentationIntent
         let linkDestination: String?
-        let sourceEnd: Int
     }
 
     fileprivate struct InlineLocation: Hashable, Sendable {
@@ -99,10 +98,17 @@ nonisolated enum CoreMarkdownParser {
 
     private static func copyDocument(from source: String, token: CancellationToken) throws -> CoreMarkdownDocument {
         var input = source
+        let quotePrefix = MarkdownContentBlocks.nestedQuoteIndicator
+        let quotePrefixLength = quotePrefix.utf8.count
         var result: OpaquePointer?
-        let status = input.withUTF8 { bytes in
-            bytes.withMemoryRebound(to: CChar.self) { chars in
-                marky_document_create_cancellable(chars.baseAddress, chars.count, token.handle, &result)
+        let status = quotePrefix.withCString { prefix in
+            input.withUTF8 { bytes in
+                bytes.withMemoryRebound(to: CChar.self) { chars in
+                    marky_document_create_with_quote_prefix(
+                        chars.baseAddress, chars.count, token.handle,
+                        MarkyUtf8View(data: prefix, byte_count: quotePrefixLength), &result
+                    )
+                }
             }
         }
         guard let result else { throw failure(for: status) }
@@ -281,8 +287,7 @@ nonisolated enum CoreMarkdownParser {
             if run.flags & MarkyInlineFlags(MARKY_INLINE_CODE) != 0 { intent.insert(.code) }
             if run.flags & MarkyInlineFlags(MARKY_INLINE_LINE_BREAK) != 0 { intent.insert(.lineBreak) }
             let destination = run.link_destination.data == nil ? nil : try copyText(run.link_destination)
-            runs.append(.init(text: try copyText(run.text), intent: intent, linkDestination: destination,
-                              sourceEnd: run.source_end))
+            runs.append(.init(text: try copyText(run.text), intent: intent, linkDestination: destination))
         }
         runsByLocation[location] = runs
     }

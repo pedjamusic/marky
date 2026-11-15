@@ -155,6 +155,19 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
                                               const MarkyCancellationToken* token,
                                               MarkyDocument** out_document);
 
+/*
+ * Uses the same ownership and cancellation rules as marky_document_create_cancellable.
+ * A reader can supply a caller-validated UTF-8 prefix with no CR or LF to
+ * reproduce nested quote markers that participate in inline parsing. The
+ * parser repeats the prefix depth - 1 times at the start of each nested quote
+ * line. Quote line views still expose the original prepared source and depth.
+ * An empty prefix gives the ordinary portable quote representation.
+ */
+MarkyStatus marky_document_create_with_quote_prefix(const char* utf8, size_t byte_count,
+                                                    const MarkyCancellationToken* token,
+                                                    MarkyUtf8View nested_quote_prefix,
+                                                    MarkyDocument** out_document);
+
 /* Returns the semantic block count, or zero for a NULL document. */
 size_t marky_document_block_count(const MarkyDocument* document);
 
@@ -260,7 +273,8 @@ MarkyStatus marky_document_image_at(const MarkyDocument* document, size_t block_
  * UTF-8 until document release. Optional fields use a NULL data pointer when
  * absent and a non-NULL pointer when present, including empty strings.
  * Source ranges are half-open byte offsets in the prepared region. For a
- * quote, the source is its prepared lines joined with LF. An image alt run
+ * quote, the source is its prepared lines joined with LF, including any
+ * prefix supplied at creation. An image alt run
  * spans the whole image expression.
  * An image alt run may also carry a link if the image is inside a link label.
  */

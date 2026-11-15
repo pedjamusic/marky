@@ -1,0 +1,4651 @@
+{
+  "schema": 1,
+  "measured_date": "2026-11-15",
+  "base_revision": "f5e5b73fe9671e12f8999ec8999c6ecabf900612",
+  "branch": "codex/t12-s1-reader-parity",
+  "fixture": {
+    "schema": 1,
+    "id": "marky-t02-s2-v1",
+    "files": 5703,
+    "bytes": 908579,
+    "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+    "large_document_bytes": 704577,
+    "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+    "visible_markdown_files": 5002,
+    "visible_directories_including_root": 601,
+    "empty_directories": 100,
+    "sections": 512,
+    "prepared_blocks": 3585
+  },
+  "environment": {
+    "model": "Mac16,12",
+    "processor": "Apple M4, 10 cores",
+    "ram_bytes": 17179869184,
+    "macos": "27.2.1 (26B131)",
+    "xcode": "27.2 (27B52)",
+    "sdk": "27.2",
+    "swift": "6.4.2",
+    "power": "AC"
+  },
+  "identity": {
+    "source_and_test_patch_sha256": "c5e30855bcf300edece91a1091947d1e87e4bda9990fa527fc7c47f3a77fd0ef",
+    "comparison_app_executable_sha256": "5692190aa3ac41684fa5da825eb6144a1cc65906f8331061d70b977ce2b0d753",
+    "eager_app_executable_sha256": "10d7478e832119440032b865d00c711daf3c42811e96fce156e845e39b901c31",
+    "signed_debug_dylib_sha256": "6f90fff799acf837bd6ca3e3cd5233db8e30bf8a21f95c49d99662b9d4a47946",
+    "corpus_sha256": "c66388eb8fb862dab8bf83c8f6c4d738dc978b6cf8ba09f5afbce21dd96eadb4"
+  },
+  "parity": {
+    "before": [
+      {
+        "categories": {},
+        "coreBlockCount": 0,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-001",
+        "swiftBlockCount": 0
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 0,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-002",
+        "swiftBlockCount": 0
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-003",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-004",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 6,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-005",
+        "swiftBlockCount": 6
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-006",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 5,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-007",
+        "swiftBlockCount": 5
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-008",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-009",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-010",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-011",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-012",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-013",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-014",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-015",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-016",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-017",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-018",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-019",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-020",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-021",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-022",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-023",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-024",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-025",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-026",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-027",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-028",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-029",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-030",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-031",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-032",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-033",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-034",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-035",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-036",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-037",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-038",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-039",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-040",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-041",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-042",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-043",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-044",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-045",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-046",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-047",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-048",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-049",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-050",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-051",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-052",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-053",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-054",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-055",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-056",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-057",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-058",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-059",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-060",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 4,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-061",
+        "swiftBlockCount": 4
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-062",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-063",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-064",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-065",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-066",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-067",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-068",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-069",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-070",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-071",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-072",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-073",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-074",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-075",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-076",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-077",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-078",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-079",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-080",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-081",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-082",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-083",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-084",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-085",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-086",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-087",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-088",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-089",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-090",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-091",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-092",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-link",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-emphasis",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {
+          "background": 1,
+          "font": 1,
+          "foreground": 1,
+          "paragraph": 1,
+          "text": 1,
+          "tracking": 1
+        },
+        "coreBlockCount": 1,
+        "differingFields": 6,
+        "examples": [
+          {
+            "core": "0:8 sRGB IEC61966-2.1 colorspace hdrm(1) 0.9 0.9 0.93 1",
+            "field": "0.background",
+            "swift": "0:10 sRGB IEC61966-2.1 colorspace hdrm(1) 0.9 0.9 0.93 1"
+          },
+          {
+            "core": "0:8 .AppleSystemUIFontMonospaced-Regular/14.4",
+            "field": "0.font",
+            "swift": "0:10 .AppleSystemUIFontMonospaced-Regular/14.4"
+          },
+          {
+            "core": "0:8 Catalog color: System labelColor",
+            "field": "0.foreground",
+            "swift": "0:10 Catalog color: System labelColor"
+          },
+          {
+            "core": "0:8 1.47/0.0",
+            "field": "0.paragraph",
+            "swift": "0:10 1.47/0.0"
+          },
+          {
+            "core": "a nested",
+            "field": "0.text",
+            "swift": "a ▎ nested"
+          },
+          {
+            "core": "0:8 0.12",
+            "field": "0.tracking",
+            "swift": "0:10 0.12"
+          }
+        ],
+        "id": "quote-code",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {
+          "font": 1,
+          "foreground": 1,
+          "paragraph": 1,
+          "text": 1,
+          "tracking": 1
+        },
+        "coreBlockCount": 1,
+        "differingFields": 5,
+        "examples": [
+          {
+            "core": "0:8 .AppleSystemUIFont/16.0",
+            "field": "0.font",
+            "swift": "0:10 .AppleSystemUIFont/16.0"
+          },
+          {
+            "core": "0:8 Catalog color: System labelColor",
+            "field": "0.foreground",
+            "swift": "0:10 Catalog color: System labelColor"
+          },
+          {
+            "core": "0:8 1.47/0.0",
+            "field": "0.paragraph",
+            "swift": "0:10 1.47/0.0"
+          },
+          {
+            "core": "a\nnested",
+            "field": "0.text",
+            "swift": "a\n▎ nested"
+          },
+          {
+            "core": "0:8 0.12",
+            "field": "0.tracking",
+            "swift": "0:10 0.12"
+          }
+        ],
+        "id": "quote-image",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-hard-break",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-entity-newline",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "unicode-left-style",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "unicode-right-style",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 71,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MARKDOWN_SHOWCASE.md",
+        "swiftBlockCount": 71
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3585,
+        "differingFields": 0,
+        "examples": [],
+        "id": "LARGE.md",
+        "swiftBlockCount": 3585
+      }
+    ],
+    "candidate": [
+      {
+        "categories": {},
+        "coreBlockCount": 0,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-001",
+        "swiftBlockCount": 0
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 0,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-002",
+        "swiftBlockCount": 0
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-003",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-004",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 6,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-005",
+        "swiftBlockCount": 6
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-006",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 5,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-007",
+        "swiftBlockCount": 5
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-008",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-009",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-010",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-011",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-012",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-013",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-014",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-015",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-016",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-017",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-018",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-019",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-020",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-021",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-022",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-023",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-024",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-025",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-026",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-027",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-028",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-029",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-030",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-031",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-032",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-033",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-034",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-035",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-036",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-037",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-038",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-039",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-040",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-041",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-042",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-043",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-044",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-045",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-046",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-047",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-048",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-049",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-050",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-051",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-052",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-053",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-054",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-055",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-056",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-057",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-058",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-059",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-060",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 4,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-061",
+        "swiftBlockCount": 4
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-062",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-063",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-064",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-065",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-066",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-067",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-068",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-069",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-070",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-071",
+        "swiftBlockCount": 3
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-072",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-073",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-074",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-075",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-076",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-077",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-078",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-079",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-080",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-081",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-082",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-083",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-084",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-085",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-086",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-087",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-088",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-089",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-090",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-091",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 2,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MD-092",
+        "swiftBlockCount": 2
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-link",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-emphasis",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-code",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-image",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-hard-break",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "quote-entity-newline",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "unicode-left-style",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 1,
+        "differingFields": 0,
+        "examples": [],
+        "id": "unicode-right-style",
+        "swiftBlockCount": 1
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 71,
+        "differingFields": 0,
+        "examples": [],
+        "id": "MARKDOWN_SHOWCASE.md",
+        "swiftBlockCount": 71
+      },
+      {
+        "categories": {},
+        "coreBlockCount": 3585,
+        "differingFields": 0,
+        "examples": [],
+        "id": "LARGE.md",
+        "swiftBlockCount": 3585
+      }
+    ]
+  },
+  "model": {
+    "before": {
+      "fixture": {
+        "schema": 1,
+        "id": "marky-t02-s2-v1",
+        "files": 5703,
+        "bytes": 908579,
+        "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+        "large_document_bytes": 704577,
+        "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+        "visible_markdown_files": 5002,
+        "visible_directories_including_root": 601,
+        "empty_directories": 100,
+        "sections": 512,
+        "prepared_blocks": 3585
+      },
+      "samples": [
+        {
+          "blocks": 3585,
+          "elapsed_ms": 124.92491666489514,
+          "peak_footprint_bytes": 11796936,
+          "peak_rss_bytes": 17268736,
+          "processing_ms": 123.36545833386481,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.654250001825858,
+          "peak_footprint_bytes": 20398560,
+          "peak_rss_bytes": 25804800,
+          "processing_ms": 20.308333332650363,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.856958333752118,
+          "peak_footprint_bytes": 20447736,
+          "peak_rss_bytes": 25837568,
+          "processing_ms": 20.520791666058358,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 104.72041666434961,
+          "peak_footprint_bytes": 9830856,
+          "peak_rss_bytes": 15302656,
+          "processing_ms": 104.38254166729166,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 104.36150000168709,
+          "peak_footprint_bytes": 9830856,
+          "peak_rss_bytes": 15302656,
+          "processing_ms": 104.01733333492302,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.401833335199626,
+          "peak_footprint_bytes": 20365792,
+          "peak_rss_bytes": 25772032,
+          "processing_ms": 20.066291668626945,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.17925000109244,
+          "peak_footprint_bytes": 20464120,
+          "peak_rss_bytes": 25853952,
+          "processing_ms": 19.82766666696989,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 103.78062500240048,
+          "peak_footprint_bytes": 9830856,
+          "peak_rss_bytes": 15302656,
+          "processing_ms": 103.43070833550883,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 103.95312499895226,
+          "peak_footprint_bytes": 9830856,
+          "peak_rss_bytes": 15302656,
+          "processing_ms": 103.60679166842601,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.974291666789213,
+          "peak_footprint_bytes": 20431352,
+          "peak_rss_bytes": 25821184,
+          "processing_ms": 20.641625000280328,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 20.397041666001314,
+          "peak_footprint_bytes": 20447712,
+          "peak_rss_bytes": 25853952,
+          "processing_ms": 20.06779166549677,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 109.00029166441527,
+          "peak_footprint_bytes": 9830856,
+          "peak_rss_bytes": 15302656,
+          "processing_ms": 108.63133333259611,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 903.3928333337826,
+          "peak_footprint_bytes": 84214408,
+          "peak_rss_bytes": 97058816,
+          "processing_ms": 903.0535416677594,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 479.25783333266736,
+          "peak_footprint_bytes": 92193416,
+          "peak_rss_bytes": 104923136,
+          "processing_ms": 478.8560833330848,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 486.7732499988051,
+          "peak_footprint_bytes": 92258928,
+          "peak_rss_bytes": 105005056,
+          "processing_ms": 486.45158333238214,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 897.073874999478,
+          "peak_footprint_bytes": 84296328,
+          "peak_rss_bytes": 97140736,
+          "processing_ms": 896.7115000014019,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 926.7593749973457,
+          "peak_footprint_bytes": 84329072,
+          "peak_rss_bytes": 97189888,
+          "processing_ms": 926.4107083363342,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 500.2674166680663,
+          "peak_footprint_bytes": 92258928,
+          "peak_rss_bytes": 105005056,
+          "processing_ms": 499.89999999888823,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 580.5807916694903,
+          "peak_footprint_bytes": 91931248,
+          "peak_rss_bytes": 104677376,
+          "processing_ms": 580.2296666661277,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 922.1210416653776,
+          "peak_footprint_bytes": 84361840,
+          "peak_rss_bytes": 97222656,
+          "processing_ms": 921.7537916665606,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 908.1279166675813,
+          "peak_footprint_bytes": 84312688,
+          "peak_rss_bytes": 97173504,
+          "processing_ms": 907.7862499980256,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 485.62770833450486,
+          "peak_footprint_bytes": 92226184,
+          "peak_rss_bytes": 104955904,
+          "processing_ms": 485.27791666492703,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 490.45187500087195,
+          "peak_footprint_bytes": 92226160,
+          "peak_rss_bytes": 104972288,
+          "processing_ms": 490.1061666678288,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 898.29433333216,
+          "peak_footprint_bytes": 84296304,
+          "peak_rss_bytes": 97157120,
+          "processing_ms": 897.9300833343586,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 893.5492083328427,
+          "peak_footprint_bytes": 84443760,
+          "peak_rss_bytes": 97370112,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 498.65016666808515,
+          "peak_footprint_bytes": 91357832,
+          "peak_rss_bytes": 104153088,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 483.00054166611517,
+          "peak_footprint_bytes": 91931272,
+          "peak_rss_bytes": 104726528,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 909.1416666669829,
+          "peak_footprint_bytes": 84591240,
+          "peak_rss_bytes": 97501184,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 909.2413750004198,
+          "peak_footprint_bytes": 84460168,
+          "peak_rss_bytes": 97370112,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 506.5912916652451,
+          "peak_footprint_bytes": 91587184,
+          "peak_rss_bytes": 104398848,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 506.68733333441196,
+          "peak_footprint_bytes": 92111472,
+          "peak_rss_bytes": 104923136,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 946.7406250005297,
+          "peak_footprint_bytes": 84509296,
+          "peak_rss_bytes": 97435648,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 958.5824999994657,
+          "peak_footprint_bytes": 84574832,
+          "peak_rss_bytes": 97501184,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 493.24345833520056,
+          "peak_footprint_bytes": 91685488,
+          "peak_rss_bytes": 104497152,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 494.7661666665226,
+          "peak_footprint_bytes": 90980976,
+          "peak_rss_bytes": 103792640,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 925.2280833316036,
+          "peak_footprint_bytes": 84607600,
+          "peak_rss_bytes": 97533952,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 100.31883333431324,
+          "elapsed_ms": 106.72370833344758,
+          "peak_footprint_bytes": 10453472,
+          "peak_rss_bytes": 16416768,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.2840833330992609,
+          "elapsed_ms": 6.674166666925885,
+          "peak_footprint_bytes": 8962552,
+          "peak_rss_bytes": 14778368,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.2482083327777218,
+          "elapsed_ms": 6.64804166808608,
+          "peak_footprint_bytes": 8995320,
+          "peak_rss_bytes": 14811136,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 100.92850000000908,
+          "elapsed_ms": 107.34783333100495,
+          "peak_footprint_bytes": 10535416,
+          "peak_rss_bytes": 16482304,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 99.53379166472587,
+          "elapsed_ms": 105.53624999738531,
+          "peak_footprint_bytes": 10502648,
+          "peak_rss_bytes": 16449536,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.44333333426038735,
+          "elapsed_ms": 5.714166669349652,
+          "peak_footprint_bytes": 7635448,
+          "peak_rss_bytes": 13451264,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.31062500056577846,
+          "elapsed_ms": 5.644708333420567,
+          "peak_footprint_bytes": 8176120,
+          "peak_rss_bytes": 13991936,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 108.95566666658851,
+          "elapsed_ms": 115.38133333306178,
+          "peak_footprint_bytes": 10453496,
+          "peak_rss_bytes": 16400384,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 126.09591666478082,
+          "elapsed_ms": 132.61737499851733,
+          "peak_footprint_bytes": 10977832,
+          "peak_rss_bytes": 16891904,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.4987499996786937,
+          "elapsed_ms": 6.96224999774131,
+          "peak_footprint_bytes": 8897016,
+          "peak_rss_bytes": 14712832,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.7163333320931997,
+          "elapsed_ms": 7.233666667161742,
+          "peak_footprint_bytes": 8323576,
+          "peak_rss_bytes": 14139392,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 110.91279166794266,
+          "elapsed_ms": 117.34333333515679,
+          "peak_footprint_bytes": 10453520,
+          "peak_rss_bytes": 16384000,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        }
+      ],
+      "summary": {
+        "prepare": {
+          "swift": {
+            "time_key": "processing_ms",
+            "median_ms": 104.01733333492302,
+            "range_ms": [
+              103.43070833550883,
+              108.63133333259611
+            ],
+            "max_peak_footprint_bytes": 9830856,
+            "max_peak_rss_bytes": 15302656,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "processing_ms",
+            "median_ms": 20.06779166549677,
+            "range_ms": [
+              19.82766666696989,
+              20.641625000280328
+            ],
+            "max_peak_footprint_bytes": 20464120,
+            "max_peak_rss_bytes": 25853952,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "render": {
+          "swift": {
+            "time_key": "processing_ms",
+            "median_ms": 907.7862499980256,
+            "range_ms": [
+              896.7115000014019,
+              926.4107083363342
+            ],
+            "max_peak_footprint_bytes": 84361840,
+            "max_peak_rss_bytes": 97222656,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "processing_ms",
+            "median_ms": 490.1061666678288,
+            "range_ms": [
+              485.27791666492703,
+              580.2296666661277
+            ],
+            "max_peak_footprint_bytes": 92258928,
+            "max_peak_rss_bytes": 105005056,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "document": {
+          "swift": {
+            "time_key": "elapsed_ms",
+            "median_ms": 925.2280833316036,
+            "range_ms": [
+              909.1416666669829,
+              958.5824999994657
+            ],
+            "max_peak_footprint_bytes": 84607600,
+            "max_peak_rss_bytes": 97533952,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "elapsed_ms",
+            "median_ms": 494.7661666665226,
+            "range_ms": [
+              483.00054166611517,
+              506.68733333441196
+            ],
+            "max_peak_footprint_bytes": 92111472,
+            "max_peak_rss_bytes": 104923136,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "cancel-document": {
+          "swift": {
+            "time_key": "cancel_to_completion_ms",
+            "median_ms": 108.95566666658851,
+            "range_ms": [
+              99.53379166472587,
+              126.09591666478082
+            ],
+            "max_peak_footprint_bytes": 10977832,
+            "max_peak_rss_bytes": 16891904,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "cancel_to_completion_ms",
+            "median_ms": 0.44333333426038735,
+            "range_ms": [
+              0.2482083327777218,
+              0.7163333320931997
+            ],
+            "max_peak_footprint_bytes": 8995320,
+            "max_peak_rss_bytes": 14811136,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "candidate": {
+      "fixture": {
+        "schema": 1,
+        "id": "marky-t02-s2-v1",
+        "files": 5703,
+        "bytes": 908579,
+        "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+        "large_document_bytes": 704577,
+        "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+        "visible_markdown_files": 5002,
+        "visible_directories_including_root": 601,
+        "empty_directories": 100,
+        "sections": 512,
+        "prepared_blocks": 3585
+      },
+      "samples": [
+        {
+          "blocks": 3585,
+          "elapsed_ms": 118.33629166721948,
+          "peak_footprint_bytes": 9978312,
+          "peak_rss_bytes": 15466496,
+          "processing_ms": 117.50170833329321,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.13112500187708,
+          "peak_footprint_bytes": 20300280,
+          "peak_rss_bytes": 25722880,
+          "processing_ms": 18.793625000398606,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.576208331272937,
+          "peak_footprint_bytes": 20349408,
+          "peak_rss_bytes": 25788416,
+          "processing_ms": 19.25387500159559,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 101.98650000165799,
+          "peak_footprint_bytes": 9929160,
+          "peak_rss_bytes": 15417344,
+          "processing_ms": 101.66329166531796,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 100.8901249988412,
+          "peak_footprint_bytes": 9929160,
+          "peak_rss_bytes": 15417344,
+          "processing_ms": 100.55408333573723,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.630958333436865,
+          "peak_footprint_bytes": 20251104,
+          "peak_rss_bytes": 25690112,
+          "processing_ms": 19.291208333015675,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.03541666615638,
+          "peak_footprint_bytes": 20365816,
+          "peak_rss_bytes": 25788416,
+          "processing_ms": 18.699875003221678,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 100.69558333270834,
+          "peak_footprint_bytes": 9929160,
+          "peak_rss_bytes": 15417344,
+          "processing_ms": 100.37933333296678,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 100.976208330394,
+          "peak_footprint_bytes": 9929160,
+          "peak_rss_bytes": 15417344,
+          "processing_ms": 100.65208333253395,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.54370833482244,
+          "peak_footprint_bytes": 20349408,
+          "peak_rss_bytes": 25788416,
+          "processing_ms": 19.194374999642605,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 19.51362500039977,
+          "peak_footprint_bytes": 20300256,
+          "peak_rss_bytes": 25739264,
+          "processing_ms": 19.18212500095251,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 101.12179166753776,
+          "peak_footprint_bytes": 9929160,
+          "peak_rss_bytes": 15417344,
+          "processing_ms": 100.76066666442784,
+          "scenario": "prepare",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 883.385333334445,
+          "peak_footprint_bytes": 84312712,
+          "peak_rss_bytes": 97157120,
+          "processing_ms": 883.0587499978719,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 480.26224999921396,
+          "peak_footprint_bytes": 91538056,
+          "peak_rss_bytes": 104300544,
+          "processing_ms": 479.9327500004438,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 475.64575000069453,
+          "peak_footprint_bytes": 91816536,
+          "peak_rss_bytes": 104611840,
+          "processing_ms": 475.3125833303784,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 878.3164583364851,
+          "peak_footprint_bytes": 84263536,
+          "peak_rss_bytes": 97124352,
+          "processing_ms": 877.983458332892,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 880.4284999969241,
+          "peak_footprint_bytes": 84214384,
+          "peak_rss_bytes": 97075200,
+          "processing_ms": 880.0963749999937,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 480.54658333421685,
+          "peak_footprint_bytes": 91832944,
+          "peak_rss_bytes": 104611840,
+          "processing_ms": 480.19820833360427,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 485.74325000299723,
+          "peak_footprint_bytes": 91751000,
+          "peak_rss_bytes": 104546304,
+          "processing_ms": 485.41758333158214,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 894.9710416673042,
+          "peak_footprint_bytes": 84263560,
+          "peak_rss_bytes": 97107968,
+          "processing_ms": 894.6241666671995,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 893.5676666660584,
+          "peak_footprint_bytes": 84230792,
+          "peak_rss_bytes": 97075200,
+          "processing_ms": 893.2366666667804,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 483.78500000035274,
+          "peak_footprint_bytes": 91161224,
+          "peak_rss_bytes": 103923712,
+          "processing_ms": 483.4543750002922,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 472.27554166966,
+          "peak_footprint_bytes": 91849328,
+          "peak_rss_bytes": 104628224,
+          "processing_ms": 471.95737500078394,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 890.1225833324133,
+          "peak_footprint_bytes": 84247176,
+          "peak_rss_bytes": 97091584,
+          "processing_ms": 889.7878749994561,
+          "scenario": "render",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 897.0820416689094,
+          "peak_footprint_bytes": 84361816,
+          "peak_rss_bytes": 97304576,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 470.9590833299444,
+          "peak_footprint_bytes": 91538056,
+          "peak_rss_bytes": 104366080,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 483.12754166545346,
+          "peak_footprint_bytes": 91603568,
+          "peak_rss_bytes": 104448000,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 890.1211249976768,
+          "peak_footprint_bytes": 84312664,
+          "peak_rss_bytes": 97255424,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 893.6596666680998,
+          "peak_footprint_bytes": 84312664,
+          "peak_rss_bytes": 97255424,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 475.4851249999774,
+          "peak_footprint_bytes": 91488880,
+          "peak_rss_bytes": 104333312,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 480.41716666557477,
+          "peak_footprint_bytes": 91603568,
+          "peak_rss_bytes": 104448000,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 886.5007499989588,
+          "peak_footprint_bytes": 84296280,
+          "peak_rss_bytes": 97239040,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 895.9836249996442,
+          "peak_footprint_bytes": 84329072,
+          "peak_rss_bytes": 97255424,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 474.6715833316557,
+          "peak_footprint_bytes": 91587160,
+          "peak_rss_bytes": 104448000,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 478.4849583338655,
+          "peak_footprint_bytes": 91800200,
+          "peak_rss_bytes": 104628224,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "blocks": 3585,
+          "elapsed_ms": 899.7406666676397,
+          "peak_footprint_bytes": 84312688,
+          "peak_rss_bytes": 97239040,
+          "scenario": "document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 97.91395833235583,
+          "elapsed_ms": 104.32608333212556,
+          "peak_footprint_bytes": 10469856,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.26987500314135104,
+          "elapsed_ms": 6.580083332664799,
+          "peak_footprint_bytes": 8995296,
+          "peak_rss_bytes": 14860288,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 0,
+          "warmup": true,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.2616666679386981,
+          "elapsed_ms": 6.6514166646811645,
+          "peak_footprint_bytes": 8962528,
+          "peak_rss_bytes": 14827520,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 98.76345833254163,
+          "elapsed_ms": 105.14808333391557,
+          "peak_footprint_bytes": 10486264,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 1,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 97.38183333320194,
+          "elapsed_ms": 103.76633333362406,
+          "peak_footprint_bytes": 10486264,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.264416667050682,
+          "elapsed_ms": 6.6520000000309665,
+          "peak_footprint_bytes": 8978912,
+          "peak_rss_bytes": 14843904,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 2,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.23662500097998418,
+          "elapsed_ms": 5.655083332385402,
+          "peak_footprint_bytes": 8159736,
+          "peak_rss_bytes": 14008320,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 96.55508333526086,
+          "elapsed_ms": 102.9377916638623,
+          "peak_footprint_bytes": 10486264,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 3,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 96.6225416668749,
+          "elapsed_ms": 103.00370833283523,
+          "peak_footprint_bytes": 10486264,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "swift"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.2789999998640269,
+          "elapsed_ms": 6.665333330602152,
+          "peak_footprint_bytes": 8995296,
+          "peak_rss_bytes": 14860288,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 4,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 0.24775000201771036,
+          "elapsed_ms": 6.624083333008457,
+          "peak_footprint_bytes": 9060832,
+          "peak_rss_bytes": 14925824,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "core"
+        },
+        {
+          "cancel_requested_before_completion": true,
+          "cancel_to_completion_ms": 98.50099999675876,
+          "elapsed_ms": 104.87862499940093,
+          "peak_footprint_bytes": 10486264,
+          "peak_rss_bytes": 16433152,
+          "published_blocks": 0,
+          "scenario": "cancel-document",
+          "thermal_state": 0,
+          "run": 5,
+          "warmup": false,
+          "parser": "swift"
+        }
+      ],
+      "summary": {
+        "prepare": {
+          "swift": {
+            "time_key": "processing_ms",
+            "median_ms": 100.65208333253395,
+            "range_ms": [
+              100.37933333296678,
+              101.66329166531796
+            ],
+            "max_peak_footprint_bytes": 9929160,
+            "max_peak_rss_bytes": 15417344,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "processing_ms",
+            "median_ms": 19.194374999642605,
+            "range_ms": [
+              18.699875003221678,
+              19.291208333015675
+            ],
+            "max_peak_footprint_bytes": 20365816,
+            "max_peak_rss_bytes": 25788416,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "render": {
+          "swift": {
+            "time_key": "processing_ms",
+            "median_ms": 889.7878749994561,
+            "range_ms": [
+              877.983458332892,
+              894.6241666671995
+            ],
+            "max_peak_footprint_bytes": 84263560,
+            "max_peak_rss_bytes": 97124352,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "processing_ms",
+            "median_ms": 480.19820833360427,
+            "range_ms": [
+              471.95737500078394,
+              485.41758333158214
+            ],
+            "max_peak_footprint_bytes": 91849328,
+            "max_peak_rss_bytes": 104628224,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "document": {
+          "swift": {
+            "time_key": "elapsed_ms",
+            "median_ms": 893.6596666680998,
+            "range_ms": [
+              886.5007499989588,
+              899.7406666676397
+            ],
+            "max_peak_footprint_bytes": 84329072,
+            "max_peak_rss_bytes": 97255424,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "elapsed_ms",
+            "median_ms": 478.4849583338655,
+            "range_ms": [
+              474.6715833316557,
+              483.12754166545346
+            ],
+            "max_peak_footprint_bytes": 91800200,
+            "max_peak_rss_bytes": 104628224,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "cancel-document": {
+          "swift": {
+            "time_key": "cancel_to_completion_ms",
+            "median_ms": 97.38183333320194,
+            "range_ms": [
+              96.55508333526086,
+              98.76345833254163
+            ],
+            "max_peak_footprint_bytes": 10486264,
+            "max_peak_rss_bytes": 16433152,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "core": {
+            "time_key": "cancel_to_completion_ms",
+            "median_ms": 0.2616666679386981,
+            "range_ms": [
+              0.23662500097998418,
+              0.2789999998640269
+            ],
+            "max_peak_footprint_bytes": 9060832,
+            "max_peak_rss_bytes": 14925824,
+            "thermal_states": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  },
+  "native": {
+    "t02_source_current_os": {
+      "fixture": {
+        "schema": 1,
+        "id": "marky-t02-s2-v1",
+        "files": 5703,
+        "bytes": 908579,
+        "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+        "large_document_bytes": 704577,
+        "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+        "visible_markdown_files": 5002,
+        "visible_directories_including_root": 601,
+        "empty_directories": 100,
+        "sections": 512,
+        "prepared_blocks": 3585
+      },
+      "samples": [
+        {
+          "click_to_reader_ms": 10480.120874999557,
+          "driver_peak_footprint_bytes": 105382752,
+          "last_absent_capture_ms": 9794.381041665474,
+          "observations": 23,
+          "process_id": 81680,
+          "run": 0,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 10258.94316666745,
+          "warmup": true,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3705639064
+        },
+        {
+          "click_to_reader_ms": 10131.297958330833,
+          "driver_peak_footprint_bytes": 105382752,
+          "last_absent_capture_ms": 9352.140166665777,
+          "observations": 22,
+          "process_id": 81770,
+          "run": 1,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 9850.767333333351,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3686043824
+        },
+        {
+          "click_to_reader_ms": 10107.319500002632,
+          "driver_peak_footprint_bytes": 105399136,
+          "last_absent_capture_ms": 9328.863416667446,
+          "observations": 22,
+          "process_id": 81839,
+          "run": 2,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 9828.45675000135,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3682766976
+        },
+        {
+          "click_to_reader_ms": 10110.405541665386,
+          "driver_peak_footprint_bytes": 105415520,
+          "last_absent_capture_ms": 9320.99449999805,
+          "observations": 22,
+          "process_id": 81881,
+          "run": 3,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 9832.7790000003,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3688960176
+        },
+        {
+          "click_to_reader_ms": 10491.131333335943,
+          "driver_peak_footprint_bytes": 107119480,
+          "last_absent_capture_ms": 9733.91141666798,
+          "observations": 23,
+          "process_id": 81924,
+          "run": 4,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 10232.76045833336,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3684438192
+        },
+        {
+          "click_to_reader_ms": 10458.000499998889,
+          "driver_peak_footprint_bytes": 106922848,
+          "last_absent_capture_ms": 9698.525208332285,
+          "observations": 23,
+          "process_id": 81966,
+          "run": 5,
+          "thermal_state": 0,
+          "visible": true,
+          "visible_capture_started_ms": 10205.978875001165,
+          "warmup": false,
+          "window_height": 833,
+          "window_width": 1252,
+          "peak_footprint_bytes": 3679129728
+        }
+      ],
+      "summary": {
+        "median_click_to_reader_ms": 10131.297958330833,
+        "max_peak_footprint_bytes": 3688960176
+      },
+      "memory_observer": [
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 3705639064,
+          "process_id": 81680,
+          "successful_reads": 289
+        },
+        {
+          "last_error": 3,
+          "peak_footprint_bytes": 3686043824,
+          "process_id": 81770,
+          "successful_reads": 275
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 3682766976,
+          "process_id": 81839,
+          "successful_reads": 275
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 3688960176,
+          "process_id": 81881,
+          "successful_reads": 274
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 3684438192,
+          "process_id": 81924,
+          "successful_reads": 281
+        },
+        {
+          "last_error": 0,
+          "peak_footprint_bytes": 3679129728,
+          "process_id": 81966,
+          "successful_reads": 280
+        }
+      ]
+    },
+    "initial_eager": {
+      "swift": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 12481.419541665673,
+            "driver_peak_footprint_bytes": 116114272,
+            "last_absent_capture_ms": 11710.340166664537,
+            "observations": 27,
+            "process_id": 80520,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 12211.354374998336,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3812921640
+          },
+          {
+            "click_to_reader_ms": 11798.728166668297,
+            "driver_peak_footprint_bytes": 105251680,
+            "last_absent_capture_ms": 11116.190208336775,
+            "observations": 26,
+            "process_id": 80807,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11563.23066666664,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3806925072
+          },
+          {
+            "click_to_reader_ms": 11761.079583335231,
+            "driver_peak_footprint_bytes": 105349984,
+            "last_absent_capture_ms": 11026.729416666058,
+            "observations": 26,
+            "process_id": 80851,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11516.491708334797,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3801043192
+          },
+          {
+            "click_to_reader_ms": 11790.781125000649,
+            "driver_peak_footprint_bytes": 105284448,
+            "last_absent_capture_ms": 11030.300250000437,
+            "observations": 26,
+            "process_id": 80988,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11546.986041666969,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3802861840
+          },
+          {
+            "click_to_reader_ms": 11809.102791663463,
+            "driver_peak_footprint_bytes": 107168608,
+            "last_absent_capture_ms": 11063.558791665855,
+            "observations": 26,
+            "process_id": 81034,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11553.243666665367,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3805008120
+          },
+          {
+            "click_to_reader_ms": 11775.346624999656,
+            "driver_peak_footprint_bytes": 105366368,
+            "last_absent_capture_ms": 11047.318916665972,
+            "observations": 26,
+            "process_id": 81172,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11542.458249998163,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3807842576
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 11790.781125000649,
+          "max_peak_footprint_bytes": 3807842576
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3812921640,
+            "process_id": 80520,
+            "successful_reads": 323
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3852603640,
+            "process_id": 80637,
+            "successful_reads": 303
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3845476624,
+            "process_id": 80702,
+            "successful_reads": 311
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3806925072,
+            "process_id": 80807,
+            "successful_reads": 305
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3801043192,
+            "process_id": 80851,
+            "successful_reads": 303
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3835646224,
+            "process_id": 80897,
+            "successful_reads": 298
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3813364008,
+            "process_id": 80940,
+            "successful_reads": 298
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3802861840,
+            "process_id": 80988,
+            "successful_reads": 305
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3805008120,
+            "process_id": 81034,
+            "successful_reads": 306
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3837989136,
+            "process_id": 81078,
+            "successful_reads": 308
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3844067600,
+            "process_id": 81118,
+            "successful_reads": 306
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3807842576,
+            "process_id": 81172,
+            "successful_reads": 304
+          }
+        ]
+      },
+      "core": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 11643.986625000252,
+            "driver_peak_footprint_bytes": 107283296,
+            "last_absent_capture_ms": 10915.542291666497,
+            "observations": 25,
+            "process_id": 80637,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11402.413833333412,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3852603640
+          },
+          {
+            "click_to_reader_ms": 11944.708083334262,
+            "driver_peak_footprint_bytes": 107463544,
+            "last_absent_capture_ms": 11138.478916665917,
+            "observations": 26,
+            "process_id": 80702,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11682.723375000933,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3845476624
+          },
+          {
+            "click_to_reader_ms": 11305.35941666676,
+            "driver_peak_footprint_bytes": 105317216,
+            "last_absent_capture_ms": 10615.589083332452,
+            "observations": 25,
+            "process_id": 80897,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11083.545249999588,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3835646224
+          },
+          {
+            "click_to_reader_ms": 11397.108125001978,
+            "driver_peak_footprint_bytes": 106660704,
+            "last_absent_capture_ms": 10651.927583334327,
+            "observations": 25,
+            "process_id": 80940,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11138.752958333498,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3813364008
+          },
+          {
+            "click_to_reader_ms": 11901.845333333767,
+            "driver_peak_footprint_bytes": 107905888,
+            "last_absent_capture_ms": 11178.776000000653,
+            "observations": 26,
+            "process_id": 81078,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11670.974666667462,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3837989136
+          },
+          {
+            "click_to_reader_ms": 11807.427041669143,
+            "driver_peak_footprint_bytes": 106972000,
+            "last_absent_capture_ms": 11035.431166666967,
+            "observations": 26,
+            "process_id": 81118,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11526.841458333365,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3844067600
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 11807.427041669143,
+          "max_peak_footprint_bytes": 3845476624
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3812921640,
+            "process_id": 80520,
+            "successful_reads": 323
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3852603640,
+            "process_id": 80637,
+            "successful_reads": 303
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3845476624,
+            "process_id": 80702,
+            "successful_reads": 311
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3806925072,
+            "process_id": 80807,
+            "successful_reads": 305
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3801043192,
+            "process_id": 80851,
+            "successful_reads": 303
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3835646224,
+            "process_id": 80897,
+            "successful_reads": 298
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3813364008,
+            "process_id": 80940,
+            "successful_reads": 298
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3802861840,
+            "process_id": 80988,
+            "successful_reads": 305
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3805008120,
+            "process_id": 81034,
+            "successful_reads": 306
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3837989136,
+            "process_id": 81078,
+            "successful_reads": 308
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3844067600,
+            "process_id": 81118,
+            "successful_reads": 306
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3807842576,
+            "process_id": 81172,
+            "successful_reads": 304
+          }
+        ]
+      }
+    },
+    "lazy_stack_only": {
+      "swift": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 1399.1952083342767,
+            "driver_peak_footprint_bytes": 105169784,
+            "last_absent_capture_ms": 699.8818749998463,
+            "observations": 3,
+            "process_id": 83782,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1151.8394166669168,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 154256536
+          },
+          {
+            "click_to_reader_ms": 1387.0635833336564,
+            "driver_peak_footprint_bytes": 105169760,
+            "last_absent_capture_ms": 702.3389583337121,
+            "observations": 3,
+            "process_id": 83824,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1155.620583336713,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 156058776
+          },
+          {
+            "click_to_reader_ms": 1401.64625000034,
+            "driver_peak_footprint_bytes": 105399136,
+            "last_absent_capture_ms": 728.8530416662979,
+            "observations": 3,
+            "process_id": 83839,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1177.8897083349875,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 156583064
+          },
+          {
+            "click_to_reader_ms": 1550.2213333347754,
+            "driver_peak_footprint_bytes": 113820512,
+            "last_absent_capture_ms": 776.1443750023318,
+            "observations": 3,
+            "process_id": 84085,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1292.4032083355996,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 153093272
+          },
+          {
+            "click_to_reader_ms": 1544.3700833347975,
+            "driver_peak_footprint_bytes": 115262304,
+            "last_absent_capture_ms": 774.3640833359677,
+            "observations": 3,
+            "process_id": 84119,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1281.489083336055,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 156288152
+          },
+          {
+            "click_to_reader_ms": 1414.3500833342841,
+            "driver_peak_footprint_bytes": 107037560,
+            "last_absent_capture_ms": 717.2262499989301,
+            "observations": 3,
+            "process_id": 84218,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1181.144124999264,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 154469528
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 1414.3500833342841,
+          "max_peak_footprint_bytes": 156583064
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 154256536,
+            "process_id": 83782,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162104496,
+            "process_id": 83801,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162546840,
+            "process_id": 83812,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 3,
+            "peak_footprint_bytes": 156058776,
+            "process_id": 83824,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 156583064,
+            "process_id": 83839,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162464944,
+            "process_id": 83917,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162694320,
+            "process_id": 83989,
+            "successful_reads": 105
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 153093272,
+            "process_id": 84085,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 156288152,
+            "process_id": 84119,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 3,
+            "peak_footprint_bytes": 162563176,
+            "process_id": 84161,
+            "successful_reads": 108
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162268336,
+            "process_id": 84191,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 154469528,
+            "process_id": 84218,
+            "successful_reads": 115
+          }
+        ]
+      },
+      "core": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 948.2264583348297,
+            "driver_peak_footprint_bytes": 105087840,
+            "last_absent_capture_ms": 258.34454166761134,
+            "observations": 2,
+            "process_id": 83801,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 694.990208332456,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162104496
+          },
+          {
+            "click_to_reader_ms": 963.8341666650376,
+            "driver_peak_footprint_bytes": 105022280,
+            "last_absent_capture_ms": 266.81191666648374,
+            "observations": 2,
+            "process_id": 83812,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 709.5585416645918,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162546840
+          },
+          {
+            "click_to_reader_ms": 963.7745833351801,
+            "driver_peak_footprint_bytes": 105136992,
+            "last_absent_capture_ms": 266.79695833445294,
+            "observations": 2,
+            "process_id": 83917,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 720.4050833352085,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162464944
+          },
+          {
+            "click_to_reader_ms": 982.3198333324399,
+            "driver_peak_footprint_bytes": 112018272,
+            "last_absent_capture_ms": 254.24866666799062,
+            "observations": 2,
+            "process_id": 83989,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 729.3983333329379,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162694320
+          },
+          {
+            "click_to_reader_ms": 1063.3660833336762,
+            "driver_peak_footprint_bytes": 115000160,
+            "last_absent_capture_ms": 254.20725000003586,
+            "observations": 2,
+            "process_id": 84161,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 809.1140416654525,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162563176
+          },
+          {
+            "click_to_reader_ms": 1218.0070416652597,
+            "driver_peak_footprint_bytes": 113492832,
+            "last_absent_capture_ms": 261.4194999987376,
+            "observations": 2,
+            "process_id": 84191,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 952.7065833317465,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 162268336
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 982.3198333324399,
+          "max_peak_footprint_bytes": 162694320
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 154256536,
+            "process_id": 83782,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162104496,
+            "process_id": 83801,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162546840,
+            "process_id": 83812,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 3,
+            "peak_footprint_bytes": 156058776,
+            "process_id": 83824,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 156583064,
+            "process_id": 83839,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162464944,
+            "process_id": 83917,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162694320,
+            "process_id": 83989,
+            "successful_reads": 105
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 153093272,
+            "process_id": 84085,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 156288152,
+            "process_id": 84119,
+            "successful_reads": 118
+          },
+          {
+            "last_error": 3,
+            "peak_footprint_bytes": 162563176,
+            "process_id": 84161,
+            "successful_reads": 108
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 162268336,
+            "process_id": 84191,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 154469528,
+            "process_id": 84218,
+            "successful_reads": 115
+          }
+        ]
+      }
+    },
+    "final_interleaved": {
+      "eager-core": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 11396.306791666575,
+            "driver_peak_footprint_bytes": 105333600,
+            "last_absent_capture_ms": 10652.665083336615,
+            "observations": 25,
+            "process_id": 86719,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11154.582250001113,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3823620344
+          },
+          {
+            "click_to_reader_ms": 11396.444583333505,
+            "driver_peak_footprint_bytes": 105317216,
+            "last_absent_capture_ms": 10666.86104166729,
+            "observations": 25,
+            "process_id": 86817,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11148.724000002403,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3823931664
+          },
+          {
+            "click_to_reader_ms": 11514.172208331729,
+            "driver_peak_footprint_bytes": 105333600,
+            "last_absent_capture_ms": 10773.163958332589,
+            "observations": 25,
+            "process_id": 86865,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11256.73145833207,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3827732776
+          },
+          {
+            "click_to_reader_ms": 11466.694874998211,
+            "driver_peak_footprint_bytes": 107168608,
+            "last_absent_capture_ms": 10734.31470833384,
+            "observations": 25,
+            "process_id": 86936,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11213.417374998244,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3821572368
+          },
+          {
+            "click_to_reader_ms": 11488.85104166402,
+            "driver_peak_footprint_bytes": 107283296,
+            "last_absent_capture_ms": 10740.45766666677,
+            "observations": 25,
+            "process_id": 87036,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11219.080124999891,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3815837968
+          },
+          {
+            "click_to_reader_ms": 11394.242166665208,
+            "driver_peak_footprint_bytes": 105284448,
+            "last_absent_capture_ms": 10676.726999998209,
+            "observations": 25,
+            "process_id": 87102,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 11146.063374999358,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 3814494456
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 11466.694874998211,
+          "max_peak_footprint_bytes": 3827732776
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3823620344,
+            "process_id": 86719,
+            "successful_reads": 301
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3823931664,
+            "process_id": 86817,
+            "successful_reads": 300
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3827732776,
+            "process_id": 86865,
+            "successful_reads": 303
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3821572368,
+            "process_id": 86936,
+            "successful_reads": 300
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3815837968,
+            "process_id": 87036,
+            "successful_reads": 302
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 3814494456,
+            "process_id": 87102,
+            "successful_reads": 301
+          }
+        ]
+      },
+      "lazy-swift": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 1393.658166663954,
+            "driver_peak_footprint_bytes": 105169760,
+            "last_absent_capture_ms": 704.8538749986619,
+            "observations": 3,
+            "process_id": 86765,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1157.668833329808,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 153142424
+          },
+          {
+            "click_to_reader_ms": 1361.9487916657818,
+            "driver_peak_footprint_bytes": 105218912,
+            "last_absent_capture_ms": 695.7098750026489,
+            "observations": 3,
+            "process_id": 86791,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1132.2790833328327,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 152585320
+          },
+          {
+            "click_to_reader_ms": 1430.2079166664043,
+            "driver_peak_footprint_bytes": 105448288,
+            "last_absent_capture_ms": 720.4968750011176,
+            "observations": 3,
+            "process_id": 86923,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1179.7246249989257,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 151635120
+          },
+          {
+            "click_to_reader_ms": 1405.8588333355146,
+            "driver_peak_footprint_bytes": 105202528,
+            "last_absent_capture_ms": 710.0916666677222,
+            "observations": 3,
+            "process_id": 86984,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1154.4123333369498,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 151684248
+          },
+          {
+            "click_to_reader_ms": 1410.2029583336844,
+            "driver_peak_footprint_bytes": 105268064,
+            "last_absent_capture_ms": 703.4347916669503,
+            "observations": 3,
+            "process_id": 87008,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1157.8972916686325,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 152061080
+          },
+          {
+            "click_to_reader_ms": 1399.2594166666095,
+            "driver_peak_footprint_bytes": 105169760,
+            "last_absent_capture_ms": 699.9984166650393,
+            "observations": 3,
+            "process_id": 87146,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 1150.8157916650816,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 152355968
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 1405.8588333355146,
+          "max_peak_footprint_bytes": 152585320
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 153142424,
+            "process_id": 86765,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 159089768,
+            "process_id": 86778,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152585320,
+            "process_id": 86791,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160400560,
+            "process_id": 86804,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160023728,
+            "process_id": 86854,
+            "successful_reads": 105
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 151635120,
+            "process_id": 86923,
+            "successful_reads": 116
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 151684248,
+            "process_id": 86984,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160482456,
+            "process_id": 86997,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152061080,
+            "process_id": 87008,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 159941808,
+            "process_id": 87024,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160351384,
+            "process_id": 87084,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152355968,
+            "process_id": 87146,
+            "successful_reads": 113
+          }
+        ]
+      },
+      "lazy-core": {
+        "fixture": {
+          "schema": 1,
+          "id": "marky-t02-s2-v1",
+          "files": 5703,
+          "bytes": 908579,
+          "tree_sha256": "adf17448611256cc3c63a33c9d00ff9833aa84678e0b0163dbd90b936eb98e67",
+          "large_document_bytes": 704577,
+          "large_document_sha256": "6d62af6f1566dbf10aeba6b32e8728c255a418c223a8da392f936ce91b504b9a",
+          "visible_markdown_files": 5002,
+          "visible_directories_including_root": 601,
+          "empty_directories": 100,
+          "sections": 512,
+          "prepared_blocks": 3585
+        },
+        "samples": [
+          {
+            "click_to_reader_ms": 943.0851666656963,
+            "driver_peak_footprint_bytes": 105136968,
+            "last_absent_capture_ms": 263.110208332364,
+            "observations": 2,
+            "process_id": 86778,
+            "run": 0,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 702.2328333332553,
+            "warmup": true,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 159089768
+          },
+          {
+            "click_to_reader_ms": 958.1831249997776,
+            "driver_peak_footprint_bytes": 105136992,
+            "last_absent_capture_ms": 266.7992916649382,
+            "observations": 2,
+            "process_id": 86804,
+            "run": 1,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 701.0163749982894,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 160400560
+          },
+          {
+            "click_to_reader_ms": 948.5127083316911,
+            "driver_peak_footprint_bytes": 105153376,
+            "last_absent_capture_ms": 260.6377500014787,
+            "observations": 2,
+            "process_id": 86854,
+            "run": 2,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 705.2562916651368,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 160023728
+          },
+          {
+            "click_to_reader_ms": 941.0178750003979,
+            "driver_peak_footprint_bytes": 105202552,
+            "last_absent_capture_ms": 253.2622500002617,
+            "observations": 2,
+            "process_id": 86997,
+            "run": 3,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 697.410625001794,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 160482456
+          },
+          {
+            "click_to_reader_ms": 941.0259166688775,
+            "driver_peak_footprint_bytes": 105218912,
+            "last_absent_capture_ms": 256.9471250026254,
+            "observations": 2,
+            "process_id": 87024,
+            "run": 4,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 706.5629583339614,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 159941808
+          },
+          {
+            "click_to_reader_ms": 935.564916664589,
+            "driver_peak_footprint_bytes": 105169760,
+            "last_absent_capture_ms": 261.2778749971767,
+            "observations": 2,
+            "process_id": 87084,
+            "run": 5,
+            "thermal_state": 0,
+            "visible": true,
+            "visible_capture_started_ms": 680.6932083309221,
+            "warmup": false,
+            "window_height": 833,
+            "window_width": 1252,
+            "peak_footprint_bytes": 160351384
+          }
+        ],
+        "summary": {
+          "median_click_to_reader_ms": 941.0259166688775,
+          "max_peak_footprint_bytes": 160482456
+        },
+        "memory_observer": [
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 153142424,
+            "process_id": 86765,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 159089768,
+            "process_id": 86778,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152585320,
+            "process_id": 86791,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160400560,
+            "process_id": 86804,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160023728,
+            "process_id": 86854,
+            "successful_reads": 105
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 151635120,
+            "process_id": 86923,
+            "successful_reads": 116
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 151684248,
+            "process_id": 86984,
+            "successful_reads": 113
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160482456,
+            "process_id": 86997,
+            "successful_reads": 103
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152061080,
+            "process_id": 87008,
+            "successful_reads": 112
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 159941808,
+            "process_id": 87024,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 160351384,
+            "process_id": 87084,
+            "successful_reads": 104
+          },
+          {
+            "last_error": 0,
+            "peak_footprint_bytes": 152355968,
+            "process_id": 87146,
+            "successful_reads": 113
+          }
+        ]
+      }
+    }
+  }
+}

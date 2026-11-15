@@ -27,6 +27,10 @@
 - **Final automated results**: 104 unit tests passed (107 runs including parameters), recorded in `/tmp/MarkyMarkdownReview/Logs/Test/Test-Marky-2026.11.06_02-25-03-+0100.xcresult`. All seven UI tests passed in the preceding combined run (`Test-Marky-2026.11.06_02-23-06-+0100.xcresult`); that run's two unit-fixture failures were corrected and covered by the final unit run. The horizontal-scroll test verifies the complete target cell enters the viewport. The user reported manual validation **pass** on 2026-11-06.
 - **Scope limits**: This native presentation does not claim full CommonMark/GFM conformance. Standalone images render as images; images embedded within paragraph text currently display their alt text. Arbitrary HTML is not executed.
 
+### T12.S1 native reader candidate
+
+The reader lays out document blocks as they approach the viewport. The fixed large-document test finds accessible headings, scrolls between sections, and returns to the smaller document through keyboard selection in both readers. The core comparison covers quote indicators inside multiline inline code and image descriptions. [Results, limits and signed review steps](core-rewrite/T12-S1-READER-COMPARISON.md)
+
 ## Manual Acceptance
 
 The user reported **pass** on 2026-11-06 for the reviewed Markdown reader changes. The following checklist records the acceptance scope:

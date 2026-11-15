@@ -334,11 +334,8 @@ enum MarkdownContentBlocks {
                     }
                     return MarkdownListItem(id: index, nestingLevel: item.depth, marker: marker, body: inline(row: index))
                 })
-            case .quote(let lines):
-                let runs = quotePresentationRuns(from: document.inlineRuns(inBlock: blockIndex), lines: lines)
-                kind = .quote(AttributedString(MarkdownRenderer.renderInline(
-                    from: runs, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
-                )))
+            case .quote:
+                kind = .quote(inline())
             case .code(let code):
                 kind = .code(code)
             case .table(let table):
@@ -360,40 +357,7 @@ enum MarkdownContentBlocks {
         }
     }
 
-    nonisolated private static let nestedQuoteIndicator = "▎ "
-
-    private static func quotePresentationRuns(
-        from runs: [CoreMarkdownDocument.InlineRun], lines: [CoreMarkdownDocument.QuoteLine]
-    ) -> [CoreMarkdownDocument.InlineRun] {
-        guard lines.contains(where: { $0.depth > 1 }) else { return runs }
-
-        // Source offsets identify actual quote lines even when an inline entity contains a newline.
-        var indicators: [Int: String] = [:]
-        var lineStart = 0
-        for line in lines {
-            if line.depth > 1 {
-                indicators[lineStart] = String(repeating: nestedQuoteIndicator, count: line.depth - 1)
-            }
-            lineStart += line.source.utf8.count + 1
-        }
-        var presented: [CoreMarkdownDocument.InlineRun] = []
-        func appendIndicator(at offset: Int, after lineBreak: CoreMarkdownDocument.InlineRun? = nil) {
-            if let indicator = indicators[offset] {
-                let intent = lineBreak?.intent.subtracting(.lineBreak) ?? []
-                presented.append(.init(text: indicator, intent: intent, linkDestination: lineBreak?.linkDestination,
-                                       sourceEnd: offset))
-            }
-        }
-        presented.reserveCapacity(runs.count + indicators.count)
-        appendIndicator(at: 0)
-        for run in runs {
-            presented.append(run)
-            if run.intent.contains(.lineBreak) {
-                appendIndicator(at: run.sourceEnd, after: run)
-            }
-        }
-        return presented
-    }
+    nonisolated static let nestedQuoteIndicator = "▎ "
 
     @MainActor
     static func render(
