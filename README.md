@@ -61,7 +61,7 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS' 
 
 ## Standalone C++ core build
 
-The independent C++20 static-library scaffold and dependency-free CTest harness live in [core/](core/README.md). The Mac app continues to use its existing Swift implementation. CMake/CTest 3.21+ presets provide Debug/Release configurations for macOS/Apple Clang, Windows/MSVC and Linux/GCC. From the repository root on macOS:
+The C++20 static library and its dependency-free tests live in [core/](core/README.md). CMake/CTest 3.21+ presets provide Debug and Release configurations for macOS with Apple Clang, Windows with MSVC, and Linux with GCC. Run these commands from the repository root on macOS.
 
 ```bash
 cd core
@@ -72,7 +72,7 @@ ctest --preset macos-appleclang-debug
 
 Repeat with `macos-appleclang-release`. See the [core procedures](core/README.md) for platform prerequisites, Windows/Linux commands, deliberate failure/recovery checks, and manual CMake 3.20+ builds. [T03.S2 evidence](docs/core-rewrite/T03-S2-PLATFORM-BUILDS.md) distinguishes executed Mac smoke tests from unexecuted Windows/Linux configurations.
 
-The Marky Xcode target links the [local static Swift package](core/README.md#xcode-integration) from the same C++ sources. The reader still uses its Swift implementation.
+The macOS reader parses Markdown through the same C++ core. Xcode links it as a [local static Swift package](core/README.md#xcode-integration), and SwiftUI and AppKit render the result.
 
 ## Repository Layout
 
@@ -86,7 +86,7 @@ The Marky Xcode target links the [local static Swift package](core/README.md#xco
 ## Notes
 
 - This repository follows a solo workflow with versioned changelog entries (no `Unreleased` section).
-- Current app version: `0.2.3` (`CURRENT_PROJECT_VERSION = 4`).
+- The Xcode project sets the current app version to `0.2.4` (`CURRENT_PROJECT_VERSION = 5`).
 - Folder loading preserves the current project if another location cannot be read. Single-file access preserves favorites for other files in the same project.
 - Detailed validation and manual acceptance steps are recorded in [the code-quality verification notes](docs/CODE_QUALITY_VERIFICATION.md).
 

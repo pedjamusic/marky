@@ -111,35 +111,27 @@ final class LargeInputPerformanceTests: XCTestCase {
 
     @MainActor
     func testDenseDocumentNavigation() throws {
-        let path = try fixturePath()
-        for parser in ["Swift", "core"] {
-            XCTContext.runActivity(named: "Dense reader with the \(parser) parser") { _ in
-                let app = seededApp(path: path)
-                if parser == "core" {
-                    app.launchArguments.append("--core-reader-test")
-                }
-                app.launch()
-                defer { app.terminate() }
+        let app = seededApp(path: try fixturePath())
+        app.launch()
+        defer { app.terminate() }
 
-                let outline = app.outlines["files-outline"]
-                let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
-                let ready = reader.staticTexts["Ready Fixture"]
-                XCTAssertTrue(ready.waitForExistence(timeout: 10))
-                outline.staticTexts["LARGE.md"].click()
-                let first = reader.staticTexts["Section 0000"].firstMatch
-                XCTAssertTrue(first.waitForExistence(timeout: 10))
+        let outline = app.outlines["files-outline"]
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        let ready = reader.staticTexts["Ready Fixture"]
+        XCTAssertTrue(ready.waitForExistence(timeout: 10))
+        outline.staticTexts["LARGE.md"].click()
+        let first = reader.staticTexts["Section 0000"].firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
 
-                let second = reader.staticTexts["Section 0001"].firstMatch
-                reader.scroll(byDeltaX: 0, deltaY: -600)
-                XCTAssertTrue(second.waitForExistence(timeout: 5))
-                XCTAssertTrue(reader.frame.intersects(second.frame))
-                reader.scroll(byDeltaX: 0, deltaY: 600)
-                XCTAssertTrue(first.waitForExistence(timeout: 5))
-                XCTAssertTrue(reader.frame.intersects(first.frame))
+        let second = reader.staticTexts["Section 0001"].firstMatch
+        reader.scroll(byDeltaX: 0, deltaY: -600)
+        XCTAssertTrue(second.waitForExistence(timeout: 5))
+        XCTAssertTrue(reader.frame.intersects(second.frame))
+        reader.scroll(byDeltaX: 0, deltaY: 600)
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertTrue(reader.frame.intersects(first.frame))
 
-                app.typeKey(.downArrow, modifierFlags: [])
-                XCTAssertTrue(ready.waitForExistence(timeout: 5))
-            }
-        }
+        app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(ready.waitForExistence(timeout: 5))
     }
 }

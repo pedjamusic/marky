@@ -759,11 +759,14 @@ enum MarkdownRenderer {
 
 private enum MarkdownDocumentLoadError: LocalizedError {
     case unsupportedTextEncoding
+    case parseFailed
 
     var errorDescription: String? {
         switch self {
         case .unsupportedTextEncoding:
             return String(localized: "Unable to decode file as UTF-8/UTF-16 text")
+        case .parseFailed:
+            return String(localized: "Unable to read this Markdown document")
         }
     }
 }
@@ -774,29 +777,7 @@ final class MarkdownDoc: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String?
 
-    enum Parser: CaseIterable, Sendable {
-        case swift
-        #if DEBUG
-        case core
-        #endif
-
-        static var readerDefault: Self {
-            #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--core-reader-test") { return .core }
-            #endif
-            return .swift
-        }
-    }
-
-    private enum PreparedDocument: Sendable {
-        case swift([MarkdownPreparedBlock])
-        #if DEBUG
-        case core(CoreMarkdownDocument)
-        #endif
-    }
-
-    private var preparedDocument: PreparedDocument?
-    private let parser: Parser
+    private var preparedDocument: CoreMarkdownDocument?
     private let readText: @Sendable (URL) async throws -> String
     private var loadGeneration: UInt64 = 0
     private var mode: MarkdownTypographyMode = .allSystem
@@ -804,10 +785,8 @@ final class MarkdownDoc: ObservableObject {
     private var isDarkMode = false
 
     init(
-        parser: Parser = .readerDefault,
         readText: @escaping @Sendable (URL) async throws -> String = MarkdownDoc.readDocument
     ) {
-        self.parser = parser
         self.readText = readText
     }
 
@@ -829,7 +808,7 @@ final class MarkdownDoc: ObservableObject {
         preparedDocument = nil
 
         do {
-            let prepared = try await Self.prepareDocument(from: url, using: parser, readText: readText)
+            let prepared = try await Self.prepareDocument(from: url, readText: readText)
             try Task.checkCancellation()
             guard generation == loadGeneration else { return }
             preparedDocument = prepared
@@ -842,7 +821,9 @@ final class MarkdownDoc: ObservableObject {
             guard generation == loadGeneration else { return }
             isLoading = false
             guard !Task.isCancelled else { return }
-            self.error = error.localizedDescription
+            self.error = error is CoreMarkdownParser.ParseError
+                ? MarkdownDocumentLoadError.parseFailed.localizedDescription
+                : error.localizedDescription
         }
     }
 
@@ -856,18 +837,9 @@ final class MarkdownDoc: ObservableObject {
         self.isDarkMode = isDarkMode
         guard let preparedDocument else { return }
         #if os(macOS)
-        switch preparedDocument {
-        case .swift(let blocks):
-            self.blocks = MarkdownContentBlocks.render(
-                preparedBlocks: blocks, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
-            )
-        #if DEBUG
-        case .core(let document):
-            blocks = MarkdownContentBlocks.render(
-                coreDocument: document, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
-            )
-        #endif
-        }
+        blocks = MarkdownContentBlocks.render(
+            coreDocument: preparedDocument, mode: mode, textSizePreset: textSizePreset, isDarkMode: isDarkMode
+        )
         #else
         blocks = []
         #endif
@@ -876,19 +848,10 @@ final class MarkdownDoc: ObservableObject {
     @concurrent
     private static func prepareDocument(
         from url: URL,
-        using parser: Parser,
         readText: @Sendable (URL) async throws -> String
-    ) async throws -> PreparedDocument {
+    ) async throws -> CoreMarkdownDocument {
         let text = try await readText(url)
-        try Task.checkCancellation()
-        switch parser {
-        case .swift:
-            return .swift(MarkdownContentBlocks.prepare(from: text))
-        #if DEBUG
-        case .core:
-            return .core(try await CoreMarkdownParser.parse(text))
-        #endif
-        }
+        return try await CoreMarkdownParser.parse(text)
     }
 
     @concurrent

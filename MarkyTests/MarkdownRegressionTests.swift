@@ -132,11 +132,10 @@ struct MarkdownRegressionTests {
         }
     }
 
-    @Test("Settings changed during and after a suspended load are used without rereading",
-          arguments: MarkdownDoc.Parser.allCases)
-    func settingsDuringLoad(parser: MarkdownDoc.Parser) async throws {
+    @Test("Settings changed during and after a suspended load are used without rereading")
+    func settingsDuringLoad() async throws {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
+        let doc = MarkdownDoc { url in try await loader.load(url) }
         let task = Task { await doc.load(from: URL(fileURLWithPath: "/document")) }
         await loader.waitForRequests(1)
         doc.rerenderFromPreparedBlocks(mode: .systemHeadingsSerifBody, textSizePreset: .slightlyBigger, isDarkMode: true)
@@ -171,10 +170,10 @@ struct MarkdownRegressionTests {
         #expect(await loader.requestCount == 1)
     }
 
-    @Test("An already-cancelled late call cannot invalidate an active load", arguments: MarkdownDoc.Parser.allCases)
-    func alreadyCancelledLateCall(parser: MarkdownDoc.Parser) async {
+    @Test("An already-cancelled late call cannot invalidate an active load")
+    func alreadyCancelledLateCall() async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
+        let doc = MarkdownDoc { url in try await loader.load(url) }
         let active = Task { await doc.load(from: URL(fileURLWithPath: "/active")) }
         await loader.waitForRequests(1)
         let late = Task {
@@ -193,10 +192,10 @@ struct MarkdownRegressionTests {
         }
     }
 
-    @Test("An ordinary loader failure after cancellation stays silent", arguments: MarkdownDoc.Parser.allCases)
-    func cancelledOrdinaryFailure(parser: MarkdownDoc.Parser) async {
+    @Test("An ordinary loader failure after cancellation stays silent")
+    func cancelledOrdinaryFailure() async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
+        let doc = MarkdownDoc { url in try await loader.load(url) }
         let task = Task { await doc.load(from: URL(fileURLWithPath: "/cancelled")) }
         await loader.waitForRequests(1)
         task.cancel()
@@ -207,10 +206,10 @@ struct MarkdownRegressionTests {
         #expect(doc.error == nil)
     }
 
-    @Test("Superseded and cancelled document loads cannot publish stale content", arguments: MarkdownDoc.Parser.allCases)
-    func documentLifetime(parser: MarkdownDoc.Parser) async {
+    @Test("Superseded and cancelled document loads cannot publish stale content")
+    func documentLifetime() async {
         let loader = SuspendedMarkdownLoader()
-        let doc = MarkdownDoc(parser: parser) { url in try await loader.load(url) }
+        let doc = MarkdownDoc { url in try await loader.load(url) }
         let first = Task { await doc.load(from: URL(fileURLWithPath: "/first")) }
         await loader.waitForRequests(1)
         let second = Task { await doc.load(from: URL(fileURLWithPath: "/second")) }
@@ -234,9 +233,8 @@ struct MarkdownRegressionTests {
         #expect(doc.error == nil)
     }
 
-    @Test("Both reader parsers decode UTF-8 and UTF-16 and recover after a file read failure",
-          arguments: MarkdownDoc.Parser.allCases)
-    func documentFileLoading(parser: MarkdownDoc.Parser) async throws {
+    @Test("The reader decodes UTF-8 and UTF-16 and recovers after a file read failure")
+    func documentFileLoading() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -247,7 +245,7 @@ struct MarkdownRegressionTests {
         try Data(source.utf8).write(to: utf8)
         try #require(source.data(using: .utf16)).write(to: utf16)
 
-        let doc = MarkdownDoc(parser: parser)
+        let doc = MarkdownDoc()
         await doc.load(from: utf8)
         guard case .paragraph(let first) = doc.blocks.first?.kind else {
             Issue.record("Expected the UTF-8 file to render")

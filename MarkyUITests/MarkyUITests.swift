@@ -7,8 +7,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     private func makeSeededApp(
-        additionalDocuments: [String: String] = [:],
-        coreReader: Bool = false
+        additionalDocuments: [String: String] = [:]
     ) throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["MARKY_UI_TEST_SEED"] = "1"
@@ -27,9 +26,6 @@ final class MarkyUITests: XCTestCase {
             "-settings.markdownTypographyMode", "allSystem",
             "-settings.markdownReaderTextSizePreset", "default"
         ]
-        if coreReader {
-            app.launchArguments.append("--core-reader-test")
-        }
         return app
     }
 
@@ -108,7 +104,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testNestedListChildIsVisiblyIndented() throws {
-        let app = try makeSeededApp(coreReader: true)
+        let app = try makeSeededApp()
         app.launch()
         defer { app.terminate() }
         let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
@@ -158,7 +154,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testTableGeometryAndRowWrapping() throws {
-        let app = try makeSeededApp(coreReader: true)
+        let app = try makeSeededApp()
         app.launch()
         defer { app.terminate() }
 
@@ -230,7 +226,7 @@ final class MarkyUITests: XCTestCase {
 
     @MainActor
     func testTableHorizontalScrolling() throws {
-        let app = try makeSeededApp(coreReader: true)
+        let app = try makeSeededApp()
         app.launch()
         defer { app.terminate() }
 
@@ -283,7 +279,7 @@ final class MarkyUITests: XCTestCase {
     }
 
     @MainActor
-    func testCoreReaderDisplaysLocalImageAndMissingFileFallback() throws {
+    func testReaderDisplaysLocalImageAndMissingFileFallback() throws {
         let app = try makeSeededApp(additionalDocuments: [
             "README.md": """
             # Image Blocks
@@ -299,7 +295,7 @@ final class MarkyUITests: XCTestCase {
                 <rect width="160" height="18" fill="green"/>
             </svg>
             """
-        ], coreReader: true)
+        ])
         app.launch()
         defer { app.terminate() }
 
@@ -313,7 +309,7 @@ final class MarkyUITests: XCTestCase {
         XCTAssertTrue(reader.buttons["Missing local image"].waitForExistence(timeout: 5))
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "CoreReaderImages"
+        attachment.name = "ReaderImages"
         attachment.lifetime = .keepAlways
         add(attachment)
     }

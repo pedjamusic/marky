@@ -3,10 +3,10 @@ import Foundation
 import Testing
 @testable import Marky
 
-/// A projection of the current production path, not a second Markdown parser.
+/// Compares native core rendering with the fixtures and the legacy Swift reader.
 @MainActor
 struct MarkdownCompatibilityTests {
-    @Test("Shared fixtures agree with production preparation and inline semantics")
+    @Test("Shared fixtures agree with legacy Swift preparation and inline semantics")
     func productionCorpus() throws {
         let corpus = try loadCorpus()
         for fixture in corpus.fixtures {
@@ -21,7 +21,7 @@ struct MarkdownCompatibilityTests {
             )
             let visible = rendered.flatMap(visibleText)
             let expected = fixture.blocks.flatMap(expectedVisibleText)
-            #expect(try encoded(visible) == encoded(expected), "Production display text: \(fixture.id)")
+            #expect(try encoded(visible) == encoded(expected), "Legacy Swift display text: \(fixture.id)")
 
             if let legacy = fixture.legacyRuns {
                 let actual = runs(MarkdownRenderer.render(from: fixture.input))

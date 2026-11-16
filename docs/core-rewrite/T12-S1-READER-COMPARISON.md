@@ -50,6 +50,18 @@ The first layout-only trial replaced the document block stack with a SwiftUI laz
 
 The original T02 native recording used macOS 27.0.1 and fair thermal state. The rebuilt original Swift source reached 3,518 MiB even before reader changes on today's nominal-thermal setup. This reproduces most of the higher eager footprint observed before the layout change. The OS, thermal state, and observation setup changed together. The interleaved eager control and candidate use the current setup and the same driver and observer.
 
+## Cutover performance decision
+
+On 2026-11-15, the user approved applying the existing 20% limit to median time and peak memory at the matched render, document-load, and first-viewport endpoints. The fixed T02 document passed all three comparisons.
+
+| Matched endpoint | Core median time vs. Swift | Core peak memory vs. Swift |
+| --- | ---: | ---: |
+| Native attributed rendering | −46.0% | +9.0% |
+| Full document load | −46.5% | +8.9% |
+| First visible viewport with lazy layout | −33.1% | +5.2% |
+
+Keep the preparation-only peak of 19.42 MiB for core and 9.47 MiB for Swift as a diagnostic. The core already parses and copies inline semantics at that point. Revisit the difference if larger documents or several open windows put pressure on memory. [Approval and scope](STATUS.md#t12-reader-cutover-performance-endpoints)
+
 ## Native accessibility and acceptance
 
 The opt-in dense-document test finds the first accessible heading, scrolls to a later section, scrolls back, and uses the outline keyboard selection to return to the small document. It passed with both parsers on the unchanged fixture. Earlier eager-layout diagnostics could answer shallow accessibility queries after first paint. The new test exercises actual navigation. VoiceOver and real file-grant restoration still require manual acceptance.
@@ -92,6 +104,4 @@ open -n -a /tmp/MarkyT12S1Fix.EE0vdu/signed/Build/Products/Debug/Marky.app \
 2. Open `/tmp/MarkyT12S1Fix.EE0vdu/fixtures/project` and select `LARGE.md`. Scroll several sections, return to the top, and switch to `README.md` with the outline keyboard selection.
 3. Open the showcase and check narrow-window wrapping, link hover and the standalone image preview. Reopen the signed app in the same review suite to exercise folder grant restoration. If using VoiceOver, check the large document's heading navigation.
 
-User PASS accepted the readout and layout candidate, which landed on main through [PR #6](https://github.com/pedjamusic/marky/pull/6). The preparation-only comparison still needs disposition under the 20% gate. The end-to-end model render, model load, and native viewport show comparable work and meet the gate on the fixed fixture.
-
-The production default remains Swift. The Debug parser argument selects the core for review. T12.S2 is queued behind disposition of the preparation memory comparison.
+User PASS accepted the comparison and layout candidate, which landed on main through [PR #6](https://github.com/pedjamusic/marky/pull/6). The approved comparison clears the performance prerequisite for T12.S2. T12.S2 covers the production switch and review of the exact signed cutover candidate.

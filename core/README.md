@@ -1,6 +1,6 @@
 # Marky core
 
-Standalone C++20 static library. The macOS reader still uses its existing Swift parser. The standalone build requires only the C++ toolchain and does not compile Swift, Xcode targets, or Apple frameworks.
+This C++20 static library parses Markdown for the macOS reader. The standalone build requires a C++ toolchain and CMake. It builds independently of Swift, Xcode targets, and Apple frameworks.
 
 ## Platform presets
 
@@ -142,4 +142,4 @@ To update the tables, select the new upstream inputs and update their SHA-256 va
 
 [Package.swift](Package.swift) supplies the local, static `MarkyCore` product used by the Marky app target. Build the Marky scheme normally in Xcode. The package has no external dependencies and uses C++20. When adding or removing a production source, update both explicit source lists in `Package.swift` and `CMakeLists.txt`. The CTest executable stays separate.
 
-SwiftPM exposes the C header from `include/`. The Swift proof adapter copies the typed blocks from this interface, with table rows exposing their padded width as a collection. `MarkyTests` runs the native paragraph proof and compares block kinds, heading levels, literal bytes, prepared source, list items, quote lines, table alignment and cell source, and image metadata against the shared fixtures.
+SwiftPM exposes the C header from `include/`. The Swift adapter copies typed blocks and inline runs into the reader's cached document. `MarkyTests` compares the core's native rendered output with the legacy Swift renderer on the shared Markdown fixtures.
