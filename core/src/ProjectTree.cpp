@@ -28,6 +28,11 @@ struct MarkyProjectTree {
     std::map<std::pair<size_t, std::string_view>, size_t> by_parent_and_name;
 };
 
+struct MarkyProjectQueryResult {
+    std::vector<size_t> file_indices;
+    std::vector<size_t> favorite_indices;
+};
+
 namespace {
 
 struct EntryDecision {
@@ -207,4 +212,84 @@ MarkyStatus marky_project_tree_find_path(const MarkyProjectTree* tree, const Mar
     }
     *out_index = parent;
     return MARKY_STATUS_OK;
+}
+
+MarkyStatus marky_project_tree_filter(const MarkyProjectTree* tree, MarkyProjectQuery query,
+                                      const MarkyCancellationToken* token,
+                                      MarkyProjectQueryResult** out_result) try {
+    if (out_result == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_result = nullptr;
+    if (marky::cancellation_requested(token)) {
+        return MARKY_STATUS_CANCELLED;
+    }
+    if (tree == nullptr || (query.favorites == nullptr && query.favorite_count != 0)) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    const size_t node_count = tree->nodes.size();
+    const bool empty_query = query.name_matches == nullptr;
+    if (query.name_match_count != (empty_query ? 0 : node_count)) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+
+    std::vector<uint8_t> visible;
+    if (!empty_query) {
+        visible.resize(node_count);
+        // Parents precede their children, so each retained folder can retain its own parent.
+        for (size_t index = node_count - 1; index > 0; --index) {
+            if (marky::cancellation_requested(token)) {
+                return MARKY_STATUS_CANCELLED;
+            }
+            if (visible[index] || query.name_matches[index]) {
+                visible[index] = true;
+                visible[tree->nodes[index].parent_index] = true;
+            }
+        }
+    }
+
+    auto result = std::make_unique<MarkyProjectQueryResult>();
+    for (size_t index = 1; index < node_count; ++index) {
+        if (marky::cancellation_requested(token)) {
+            return MARKY_STATUS_CANCELLED;
+        }
+        if (empty_query || visible[index]) {
+            result->file_indices.push_back(index);
+        }
+    }
+
+    for (size_t index = 0; index < query.favorite_count; ++index) {
+        if (marky::cancellation_requested(token)) {
+            return MARKY_STATUS_CANCELLED;
+        }
+        const auto favorite = query.favorites[index];
+        if (favorite.node_index >= node_count || tree->nodes[favorite.node_index].is_directory) {
+            return MARKY_STATUS_INVALID_ARGUMENT;
+        }
+        if (empty_query || query.name_matches[favorite.node_index] || favorite.matches_relative_path) {
+            result->favorite_indices.push_back(favorite.node_index);
+        }
+    }
+
+    if (marky::cancellation_requested(token)) {
+        return MARKY_STATUS_CANCELLED;
+    }
+    *out_result = result.release();
+    return MARKY_STATUS_OK;
+} catch (const std::bad_alloc&) {
+    return MARKY_STATUS_ALLOCATION_FAILURE;
+} catch (...) {
+    return MARKY_STATUS_INTERNAL_ERROR;
+}
+
+MarkyProjectQueryResultView marky_project_query_result_view(const MarkyProjectQueryResult* result) {
+    if (result == nullptr) {
+        return {};
+    }
+    return {result->file_indices.data(), result->file_indices.size(),
+            result->favorite_indices.data(), result->favorite_indices.size()};
+}
+
+void marky_project_query_result_release(MarkyProjectQueryResult* result) {
+    delete result;
 }

@@ -2,6 +2,7 @@
 #include "../src/InlineSyntax.h"
 #include "../src/ReferenceLabel.h"
 
+#include <algorithm>
 #include <array>
 #include <barrier>
 #include <cstddef>
@@ -82,6 +83,21 @@ void check_project_entry_eligibility(const auto& check) {
           "extension length limits reads to the supplied bytes");
 }
 
+void check_project_query_result(const auto& check, const MarkyProjectTree* tree,
+                                MarkyProjectQuery query, std::initializer_list<size_t> files,
+                                std::initializer_list<size_t> favorites, std::string_view label) {
+    MarkyProjectQueryResult* raw_result = nullptr;
+    const auto status = marky_project_tree_filter(tree, query, nullptr, &raw_result);
+    const std::unique_ptr<MarkyProjectQueryResult, decltype(&marky_project_query_result_release)>
+        result(raw_result, marky_project_query_result_release);
+    const auto view = marky_project_query_result_view(result.get());
+    check(status == MARKY_STATUS_OK && result &&
+              view.file_count == files.size() && view.favorite_count == favorites.size() &&
+              std::equal(files.begin(), files.end(), view.file_indices) &&
+              std::equal(favorites.begin(), favorites.end(), view.favorite_indices),
+          label);
+}
+
 void check_project_tree(const auto& check) {
     constexpr auto complete = MARKY_PROJECT_SCAN_COMPLETE;
     constexpr auto partial = MARKY_PROJECT_SCAN_PARTIAL;
@@ -139,6 +155,50 @@ void check_project_tree(const auto& check) {
     check_node(tree.get(), 3, 0, false, "readme", "README.md");
     check_node(tree.get(), 4, 2, false, {"z\0link", 6}, "z-link.md");
     check_node(tree.get(), 5, 2, false, "a-link", "a-link.MKD");
+
+    constexpr std::array<uint8_t, 6> name_matches = {false, false, false, false, true, false};
+    constexpr std::array<MarkyProjectFavoriteMatch, 3> favorites = {{{5, true}, {3, false}, {4, false}}};
+    check_project_query_result(check, tree.get(),
+                               {name_matches.data(), name_matches.size(), favorites.data(), favorites.size()},
+                               {1, 2, 4}, {5, 4},
+                               "document matches retain ancestors and favorites also match relative paths");
+
+    constexpr std::array<uint8_t, 6> folder_match = {false, false, true, false, false, false};
+    check_project_query_result(check, tree.get(), {folder_match.data(), folder_match.size(), nullptr, 0},
+                               {1, 2}, {}, "a matching folder keeps its ancestors and drops unmatched children");
+
+    constexpr std::array<uint8_t, 6> sibling_matches = {false, false, false, true, true, true};
+    check_project_query_result(check, tree.get(),
+                               {sibling_matches.data(), sibling_matches.size(), favorites.data(), favorites.size()},
+                               {1, 2, 3, 4, 5}, {5, 3, 4},
+                               "files and favorites keep their independent native orders");
+
+    constexpr std::array<uint8_t, 6> no_visible_matches = {true, false, false, false, false, false};
+    check_project_query_result(check, tree.get(),
+                               {no_visible_matches.data(), no_visible_matches.size(), nullptr, 0},
+                               {}, {}, "matching the project root shows no files");
+    check_project_query_result(check, tree.get(), {nullptr, 0, favorites.data(), favorites.size()},
+                               {1, 2, 3, 4, 5}, {5, 3, 4},
+                               "an empty query returns all files and supplied favorites");
+
+    const auto check_query_failure = [&](MarkyProjectQuery query, const MarkyCancellationToken* token,
+                                         MarkyStatus expected, std::string_view label) {
+        MarkyProjectQueryResult* result = nullptr;
+        check(marky_project_tree_filter(tree.get(), query, token, &result) == expected && result == nullptr, label);
+        marky_project_query_result_release(result);
+    };
+    check_query_failure({name_matches.data(), 1, nullptr, 0}, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                        "a nonempty query must provide a flag for every tree node");
+    check_query_failure({nullptr, 1, nullptr, 0}, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                        "a nonzero match count requires a flag buffer");
+    check_query_failure({nullptr, 0, nullptr, 1}, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                        "a nonzero favorite count requires a favorites buffer");
+    constexpr std::array<MarkyProjectFavoriteMatch, 2> folder_favorite = {{{4, false}, {2, true}}};
+    check_query_failure({nullptr, 0, folder_favorite.data(), folder_favorite.size()}, nullptr,
+                        MARKY_STATUS_INVALID_ARGUMENT, "a directory favorite prevents publishing a result");
+    constexpr MarkyProjectFavoriteMatch out_of_range_favorite = {6, false};
+    check_query_failure({nullptr, 0, &out_of_range_favorite, 1}, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                        "favorite indices must refer to the input tree");
 
     constexpr auto missing = MARKY_STATUS_PROJECT_NODE_NOT_FOUND;
     constexpr auto invalid = MARKY_STATUS_INVALID_ARGUMENT;
@@ -283,6 +343,7 @@ void check_project_tree(const auto& check) {
     marky_cancellation_token_request(token);
     check_failure(entries.data(), entries.size(), complete, token, MARKY_STATUS_CANCELLED,
                   "a cancelled assembly publishes no tree");
+    check_query_failure({}, token, MARKY_STATUS_CANCELLED, "a cancelled query publishes no result");
     marky_cancellation_token_release(token);
 
     constexpr size_t depth = 16'384;
@@ -303,6 +364,17 @@ void check_project_tree(const auto& check) {
     check_node(raw_tree, depth, depth - 1, false, identities.back(), "node");
     check_lookup(raw_tree, view(identities.back()), std::vector(depth, view("node")), depth,
                  "deep path lookup is iterative");
+    std::vector<uint8_t> leaf_match(depth + 1);
+    leaf_match.back() = true;
+    MarkyProjectQueryResult* raw_result = nullptr;
+    const auto filter_status = marky_project_tree_filter(
+        raw_tree, {leaf_match.data(), leaf_match.size(), nullptr, 0}, nullptr, &raw_result);
+    const std::unique_ptr<MarkyProjectQueryResult, decltype(&marky_project_query_result_release)>
+        result(raw_result, marky_project_query_result_release);
+    const auto filtered = marky_project_query_result_view(result.get());
+    check(filter_status == MARKY_STATUS_OK && filtered.file_count == depth &&
+              filtered.file_indices[0] == 1 && filtered.file_indices[depth - 1] == depth,
+          "a deep leaf match retains every ancestor");
     marky_project_tree_release(raw_tree);
 }
 

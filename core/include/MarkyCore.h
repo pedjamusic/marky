@@ -10,6 +10,7 @@ extern "C" {
 
 typedef struct MarkyDocument MarkyDocument;
 typedef struct MarkyProjectTree MarkyProjectTree;
+typedef struct MarkyProjectQueryResult MarkyProjectQueryResult;
 typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
 typedef uint32_t MarkyBlockKind;
@@ -181,6 +182,48 @@ MarkyStatus marky_project_tree_find_identity(const MarkyProjectTree* tree, Marky
                                             size_t* out_index);
 MarkyStatus marky_project_tree_find_path(const MarkyProjectTree* tree, const MarkyUtf8View* segments,
                                         size_t segment_count, size_t* out_index);
+
+typedef struct {
+    size_t node_index;
+    uint8_t matches_relative_path;
+} MarkyProjectFavoriteMatch;
+
+typedef struct {
+    const uint8_t* name_matches;
+    size_t name_match_count;
+    const MarkyProjectFavoriteMatch* favorites;
+    size_t favorite_count;
+} MarkyProjectQuery;
+
+typedef struct {
+    const size_t* file_indices;
+    size_t file_count;
+    const size_t* favorite_indices;
+    size_t favorite_count;
+} MarkyProjectQueryResultView;
+
+/*
+ * A NULL name_matches with zero count represents an empty normalized query.
+ * Otherwise supply one native name-match flag per tree node, including the
+ * root, whose flag is ignored. Nonzero flags mean match. The files result
+ * omits the root and retains direct matches and their ancestors in tree order.
+ *
+ * Pass visible-tree document favorites once each in native display order.
+ * A favorite matches a nonempty query when its name or relative path matches.
+ * An empty query returns all nonroot nodes and all supplied favorites.
+ * Result indices refer to the input tree. Its scan state and membership are
+ * unaffected by filtering.
+ *
+ * Inputs are borrowed until return. The optional cancellation token follows
+ * marky_document_create_cancellable. Failure leaves *out_result NULL.
+ */
+MarkyStatus marky_project_tree_filter(const MarkyProjectTree* tree, MarkyProjectQuery query,
+                                      const MarkyCancellationToken* token,
+                                      MarkyProjectQueryResult** out_result);
+
+/* Views borrow immutable result storage until release. NULL yields an empty view. */
+MarkyProjectQueryResultView marky_project_query_result_view(const MarkyProjectQueryResult* result);
+void marky_project_query_result_release(MarkyProjectQueryResult* result);
 
 typedef struct {
     size_t depth;

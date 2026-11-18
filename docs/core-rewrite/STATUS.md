@@ -21,6 +21,7 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 follows below.
 - **T13.S2 and T13 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the portable project tree candidate (E110–E111). The accepted core landed on `main` as `8543bc7` (E112). T14.S1 project indexing and T15.S1 favorite membership can follow when selected.
 - **T14.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). The core landed on `main` as `db44c7d` (E116). T14.S2 consumes this index for query filtering. T15.S1 is independently eligible after T13 and remains queued.
+- **T14.S2 and T14 are accepted.** User **PASS** ("pass"), 2026-11-18, accepts E118. E119 records acceptance of the [portable query filter](#t14s2-mac-run). T15.S1 remains queued.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -43,7 +44,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
-| T14 | [06](phases/06-project-rules.md) | in_progress | T14.S1 done; T14.S2 queued | E113–E116 record verification, acceptance, and integration. |
+| T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E119 record query verification, branch placement, and acceptance. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -85,7 +86,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T11 | T11 | T12 | closed | E88–E95 deliver `CoreMarkdownParserTests` for native mapping, lifetime and Swift/core comparisons, `MarkdownRegressionTests` for loading through both parsers, and the Debug reader route for native inspection. T12 receipt closed with E97–E98 parity and quote evidence and E102–E103 dense-document, load lifecycle, and signed candidate acceptance. |
 | OWE-T12 | T12 | T17, T18 | open | E102 supplies the [cutover evidence and Swift removal inventory](T12-S2-PRODUCTION-CUTOVER.md). E103 accepts the cutover. T17 records fixed-baseline performance and T18 verifies removal against the inventory. |
 | OWE-T13 | T13 | T16 | open | E106 and E109 supply accepted eligibility, tree and scan-state fixtures. Close with native enumeration and complete, single-file partial, failed and unknown cases, including preservation of favorites outside a partial view. |
-| OWE-T14 | T14 | T16 | planned | Native search/favorites/outline checks satisfy matching/order/filter/index fixtures. |
+| OWE-T14 | T14 | T16 | open | E113 and E117 deliver the index and query fixtures. T16.S2 verifies native matching, ordering, filtering, and outline behavior against the input contract. |
 | OWE-T15 | T15 | T16 | planned | Native persistence integration preserves availability, latest-store edits, and authorized alias cases. |
 | OWE-T16 | T16 | T17, T19 | planned | T17 resource/performance results on fixed large projects; T19 final signed native acceptance. |
 | OWE-T17 | T17 | T19 | planned | Required corrective findings resolved before T18 acceptance; final T19 execution/audit verifies fixes, sanitizer/resource/performance evidence. |
@@ -218,6 +219,9 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E114 | T14.S1 branch candidate | Uncommitted on `codex/t14-s1-project-index` from `1bf32e3f542affacbef0b5952ef0632b05fda955`. User replied “Approve the branch” on 2026-11-18. | The applied core patch matched E113 byte for byte. `git diff --check` passed. | E115 records user PASS. |
 | E115 | T14.S1 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts E114. | Rechecked the core patch byte for byte against E113. `git diff --check` passed. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 | E116 | T14.S1 integration | Accepted candidate and PASS record landed as `db44c7da81e3a58edf5b3c040a23006b41892120`, 2026-11-18. | The staged core patch matched E113. Local `main` fast-forwarded, and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the commit before deletion of the merged local branch. | T14.S1 is complete. T14.S2 and T15.S1 are queued. |
+| E117 | T14.S2 portable query filter | Isolated candidate from clean `main/5c732fc85a846dd44cb8f8c0dd18ad3edd41d256`. The core patch SHA-256 is `569c5d8a0df53332b19756ba4f4fe1f204e875870b66357b435c473117c240a8`. | [Mac verification](#t14s2-mac-run). Debug, Release, and ASan/UBSan each passed 3/3 CTest targets. The favorite path negative control failed as expected. Xcode passed 127 unit tests. | Local branch placement and user PASS are pending. T16.S2 owns native sidebar matching and ordering. Windows/MSVC and Linux/GCC execution remain open under B03. |
+| E118 | T14.S2 branch candidate | Uncommitted on `codex/t14-s2-project-query` from `5c732fc85a846dd44cb8f8c0dd18ad3edd41d256`. User approved local branch placement on 2026-11-18. | Compared the core sources, test fixture, and initial ledger byte for byte with the verified E117 snapshot. `git diff --check` passed. | User PASS is pending. |
+| E119 | T14.S2 and T14 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts E118. | The branch core files match E117 byte for byte. All three Release CTest targets and `git diff --check` passed on the branch. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 
 ### T06.S1 Mac run
 
@@ -595,6 +599,16 @@ Two isolated Release builds independently removed ancestor retention and upgrade
 Ran on arm64 macOS 27.2.1 (26B131) with Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). The baseline Release passed 3/3 CTest targets. The candidate passed 3/3 in Debug, Release, and ASan/UBSan using the [T13.S1 commands](#t13s1-mac-run). The public header passed strict C11 and the tree source passed strict C++20 syntax checks. The Release archive exported both lookup functions with C linkage. The focused Xcode command in the same section passed 127 tests in 136 executions after allowing Xcode to use its SwiftPM caches. Native project adoption and UI acceptance belong to T16.
 
 The source snapshot, patches, and result bundle are in `/tmp/MarkyT14S1.pMvqoX/`. To review this core-only slice, inspect the patch and the lookup and rebuild assertions in the project fixture. Repeat the Mac verification commands from the candidate source directory.
+
+### T14.S2 Mac run
+
+The [C interface](../../core/include/MarkyCore.h) takes native name-match flags keyed by tree index. Pass a separate relative-path match flag with each indexed favorite document, in native favorite order. An empty normalized query supplies no match buffer. The result owns two arrays of original tree indices. The files array omits the project root and keeps matching entries and their ancestors in tree order. The favorites array keeps the supplied order. Favorite membership and localized matching remain with their respective owners. T16.S2 consumes this input contract through OWE-T14.
+
+The [portable fixture](../../core/tests/CoreTests.cpp) covers a matching folder with unmatched children, a document with two ancestor folders, a favorite that matches only its relative path, distinct files and favorites order, the empty query, no matches, malformed input, and cancellation. It also filters a tree 16,384 levels deep. A Release negative control disabled favorite path matching and failed the corresponding fixture.
+
+Ran on arm64 macOS 27.2.1 (26B131) with Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). Debug, Release, and ASan/UBSan each passed all three CTest targets using the [T13.S1 commands](#t13s1-mac-run). The header passed strict C11 syntax checking and the implementation passed strict C++20 syntax checking. The Release archive exported all three new functions with C linkage. The focused Xcode command in the same section passed all 127 unit tests. Native sidebar integration and UI acceptance belong to T16.S2.
+
+The candidate, `T14.S2-project-query.patch`, and test results are in `/tmp/MarkyT14S2.39CSlW/`. Review the C interface and the expected index arrays in the portable fixture. E119 records acceptance of the branch candidate.
 
 ## Git authorization and integration
 
