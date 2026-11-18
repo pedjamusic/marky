@@ -64,3 +64,19 @@ MarkyProjectEntryDisposition marky_project_classify_entry(MarkyProjectEntryMetad
         return MARKY_PROJECT_ENTRY_SKIP;
     }
 }
+
+MarkyProjectFavoriteDisposition marky_project_favorite_membership(
+    MarkyProjectScanState scan_state, MarkyProjectFavoriteAvailability availability) {
+    if (scan_state != MARKY_PROJECT_SCAN_COMPLETE && scan_state != MARKY_PROJECT_SCAN_PARTIAL) {
+        return MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN;
+    }
+    switch (availability) {
+    case MARKY_PROJECT_FAVORITE_INDEXED_DOCUMENT:
+        return MARKY_PROJECT_FAVORITE_RETAIN_VISIBLE;
+    case MARKY_PROJECT_FAVORITE_AUTHORIZED_MISSING:
+        return scan_state == MARKY_PROJECT_SCAN_COMPLETE ? MARKY_PROJECT_FAVORITE_PRUNE
+                                                        : MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN;
+    default:
+        return MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN;
+    }
+}

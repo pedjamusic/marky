@@ -83,6 +83,43 @@ void check_project_entry_eligibility(const auto& check) {
           "extension length limits reads to the supplied bytes");
 }
 
+void check_project_favorite_membership(const auto& check) {
+    constexpr auto hidden = MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN;
+    constexpr auto visible = MARKY_PROJECT_FAVORITE_RETAIN_VISIBLE;
+    constexpr auto prune = MARKY_PROJECT_FAVORITE_PRUNE;
+    struct Fixture {
+        std::string_view label;
+        MarkyProjectFavoriteAvailability availability;
+        std::array<MarkyProjectFavoriteDisposition, 6> expected;
+    };
+    constexpr std::array<MarkyProjectScanState, 6> states = {
+        MARKY_PROJECT_SCAN_COMPLETE, MARKY_PROJECT_SCAN_PARTIAL,
+        MARKY_PROJECT_SCAN_UNKNOWN, MARKY_PROJECT_SCAN_FAILED, 99, UINT32_MAX
+    };
+    constexpr Fixture fixtures[] = {
+        {"indexed favorite visibility", MARKY_PROJECT_FAVORITE_INDEXED_DOCUMENT,
+         {visible, visible, hidden, hidden, hidden, hidden}},
+        {"excluded existing favorite retained", MARKY_PROJECT_FAVORITE_EXCLUDED_EXISTING,
+         {hidden, hidden, hidden, hidden, hidden, hidden}},
+        {"unavailable favorite retained", MARKY_PROJECT_FAVORITE_UNAVAILABLE,
+         {hidden, hidden, hidden, hidden, hidden, hidden}},
+        {"unknown favorite retained outside partial view", MARKY_PROJECT_FAVORITE_UNKNOWN,
+         {hidden, hidden, hidden, hidden, hidden, hidden}},
+        {"authorized absence pruned only after complete scan", MARKY_PROJECT_FAVORITE_AUTHORIZED_MISSING,
+         {prune, hidden, hidden, hidden, hidden, hidden}},
+        {"invalid availability retained", 99,
+         {hidden, hidden, hidden, hidden, hidden, hidden}},
+        {"maximum invalid availability retained", UINT32_MAX,
+         {hidden, hidden, hidden, hidden, hidden, hidden}},
+    };
+    for (const auto& fixture : fixtures) {
+        for (size_t index = 0; index < states.size(); ++index) {
+            check(marky_project_favorite_membership(states[index], fixture.availability)
+                      == fixture.expected[index], fixture.label);
+        }
+    }
+}
+
 void check_project_query_result(const auto& check, const MarkyProjectTree* tree,
                                 MarkyProjectQuery query, std::initializer_list<size_t> files,
                                 std::initializer_list<size_t> favorites, std::string_view label) {
@@ -1975,6 +2012,7 @@ int main() {
     };
 
     check_project_entry_eligibility(check);
+    check_project_favorite_membership(check);
     check_project_tree(check);
     check_owned_paragraph(check);
     check_empty_document(check, nullptr);

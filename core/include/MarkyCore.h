@@ -119,6 +119,39 @@ enum {
     MARKY_PROJECT_SCAN_FAILED = 3
 };
 
+typedef uint32_t MarkyProjectFavoriteAvailability;
+
+enum {
+    MARKY_PROJECT_FAVORITE_UNKNOWN = 0,
+    MARKY_PROJECT_FAVORITE_INDEXED_DOCUMENT = 1,
+    MARKY_PROJECT_FAVORITE_EXCLUDED_EXISTING = 2,
+    MARKY_PROJECT_FAVORITE_UNAVAILABLE = 3,
+    MARKY_PROJECT_FAVORITE_AUTHORIZED_MISSING = 4
+};
+
+typedef uint32_t MarkyProjectFavoriteDisposition;
+
+enum {
+    MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN = 0,
+    MARKY_PROJECT_FAVORITE_RETAIN_VISIBLE = 1,
+    MARKY_PROJECT_FAVORITE_PRUNE = 2
+};
+
+/*
+ * Decides membership for one saved favorite using native-supplied evidence.
+ * INDEXED_DOCUMENT means an eligible document in the current indexed view.
+ * EXCLUDED_EXISTING means an existing entry excluded from that view.
+ * AUTHORIZED_MISSING means a native probe under an authorized grant confirmed
+ * absence; absence from the index alone is insufficient evidence.
+ *
+ * Indexed documents are visible for COMPLETE and PARTIAL scans. Only COMPLETE
+ * plus AUTHORIZED_MISSING permits pruning. All other combinations retain the
+ * favorite hidden, including unknown enum values and UNKNOWN/FAILED scans
+ * without a usable indexed view. The call performs no I/O or persistence.
+ */
+MarkyProjectFavoriteDisposition marky_project_favorite_membership(
+    MarkyProjectScanState scan_state, MarkyProjectFavoriteAvailability availability);
+
 typedef struct {
     MarkyUtf8View identity;
     MarkyUtf8View name;
