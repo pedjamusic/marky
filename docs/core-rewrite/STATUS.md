@@ -18,7 +18,7 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T11.S3 and T11 are accepted and delivered.** User **PASS** ("pass"), 2026-11-15, accepts E94 (E95). The accepted candidate landed on `main` as `d04f4ab` (E96). T12.S1 received the native comparison cases and known differences in OWE-T11. [Verification and manual steps](#t11s3-mac-run)
 - **T12.S1 is complete.** User **PASS** ("then pass"), 2026-11-15, accepted the candidate of E98 after the full review (E99). [PR #6](https://github.com/pedjamusic/marky/pull/6) landed on `main` as `230ee8f` (E100). The approved performance comparison passes and resolves B08 (E101). [Comparison results](T12-S1-READER-COMPARISON.md)
 - **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
-- **T13.S1 is applied on `codex/t13-s1-project-entry-eligibility` from `main/17706bc`.** The portable classifier identifies Markdown documents, directories to scan, entries to skip, and links that need target metadata. User **PASS** ("pass"), 2026-11-18, accepts the branch candidate in E106. E107 records acceptance. T13.S2 tree assembly is next after integration.
+- **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 tree assembly is next when selected.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -40,7 +40,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T10 | [04](phases/04-inline-semantics.md) | done | T10.S1 done; T10.S2 done; T10.S3 done | E78–E81 record S1 verification, user PASS, and integration. E82–E84 record the same steps for S2. E85–E87 verify S3 and the full portable semantic corpus and record user PASS and integration. |
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
-| T13 | [06](phases/06-project-rules.md) | in_progress | T13.S1 done; T13.S2 queued | E106 verifies the branch candidate. E107 records user PASS. |
+| T13 | [06](phases/06-project-rules.md) | in_progress | T13.S1 done; T13.S2 queued | E106 verifies the branch candidate. E107 records user PASS. E108 records main integration. |
 | T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -207,6 +207,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E105 | T13.S1 portable project-entry classification | Verified snapshot from clean `main/17706bcb8185d5414422efa9ab4f2cebb9db757f`. Five-file core patch SHA-256 `bf3da92ae66d87a07850324e4b96e23a1a271a035ee8244242b34c8dba612e5b`, excluding this ledger. | [Verification below](#t13s1-mac-run). All three CTest targets passed in Debug, Release, and ASan/UBSan. The linked-directory negative control failed as expected. Xcode passed 127 unit tests in 136 executions. Native scanner integration belongs to T16. Windows/MSVC and Linux/GCC execution remain open under B03. | Pending. |
 | E106 | T13.S1 branch candidate | Uncommitted on `codex/t13-s1-project-entry-eligibility` from `17706bcb8185d5414422efa9ab4f2cebb9db757f`. Five-file core patch SHA-256 `c80ed2ef47c44bb72adbdfb8867c773d171073431b6059cfcebf1726b514209a`, excluding this ledger. | [Branch verification below](#t13s1-mac-run). The standards review changed the Kelvin-sign fixture to explicit UTF-8 bytes for compiler character-set independence. The spec review confirmed native metadata ownership and per-entry classification. Debug, Release, and ASan/UBSan CTest passed 3/3 each. Xcode passed 127 unit and 11 UI tests, with 3 opt-in performance tests skipped and no failures. Windows and Linux execution remain open under B03. | User PASS recorded in E107. |
 | E107 | T13.S1 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E106. | Verified all six branch files byte for byte against E106 before recording acceptance. The core sources, build inputs, and test fixtures match the tested candidate. | PASS authorizes commit, fast-forward merge to main, main push, and merged-branch cleanup. |
+| E108 | T13.S1 integration | Accepted candidate and PASS record committed as `2d919f75b9c277d096d528d0ad3664dff22660a1`, 2026-11-18. | The staged core files matched E106. Local main fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted commit before the merged local task branch was deleted. This ledger-only closeout uses the same main push authorization. | T13.S1 delivered. T13.S2 tree assembly is next when selected. |
 
 ### T06.S1 Mac run
 
@@ -586,7 +587,7 @@ This is independent of technical completion and user acceptance. Record the actu
 | --- | --- | --- |
 | Core eligibility and verification | User selected T13.S1, 2026-11-18 | Implemented and verified in an isolated source snapshot (E105). |
 | Create local task branch and apply candidate | User replied **“Approved”**, 2026-11-18 | Created `codex/t13-s1-project-entry-eligibility` from clean `main/17706bc` and verified that the six applied files matched E105 before review. |
-| Commit, merge, push, and delete merged branch | User **PASS** ("pass"), 2026-11-18 | Authorized in E107. |
+| Commit, merge, push, and delete merged branch | User **PASS** ("pass"), 2026-11-18 | Authorized in E107 and executed in E108. |
 
 ### T01.S1 authorization
 
