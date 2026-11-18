@@ -18,6 +18,69 @@
 
 namespace {
 
+void check_project_entry_eligibility(const auto& check) {
+    constexpr auto unknown = MARKY_PROJECT_ENTRY_UNKNOWN;
+    constexpr auto regular = MARKY_PROJECT_ENTRY_REGULAR_FILE;
+    constexpr auto directory = MARKY_PROJECT_ENTRY_DIRECTORY;
+    constexpr auto symlink = MARKY_PROJECT_ENTRY_SYMLINK;
+    constexpr auto package = MARKY_PROJECT_ENTRY_PACKAGE;
+    constexpr auto other = MARKY_PROJECT_ENTRY_OTHER;
+    constexpr auto skip = MARKY_PROJECT_ENTRY_SKIP;
+    constexpr auto document = MARKY_PROJECT_ENTRY_DOCUMENT;
+    constexpr auto scan = MARKY_PROJECT_ENTRY_SCAN_DIRECTORY;
+    constexpr auto needs_target = MARKY_PROJECT_ENTRY_NEEDS_TARGET_METADATA;
+
+    struct Fixture {
+        std::string_view label;
+        std::string_view extension;
+        MarkyProjectEntryKind kind;
+        MarkyProjectEntryKind target;
+        bool hidden;
+        MarkyProjectEntryDisposition expected;
+    };
+
+    constexpr Fixture fixtures[] = {
+        {"md document", "md", regular, unknown, false, document},
+        {"mixed-case markdown document", "MarkDOWN", regular, unknown, false, document},
+        {"uppercase mdown document", "MDOWN", regular, unknown, false, document},
+        {"mixed-case mkd document", "mKD", regular, unknown, false, document},
+        {"Kelvin sign lowercases to k", "m\xE2\x84\xAA" "d", regular, unknown, false, document},
+        {"unsupported text extension", "txt", regular, unknown, false, skip},
+        {"extensionless regular file", {}, regular, unknown, false, skip},
+        {"unsupported longer extension", "markdowns", regular, unknown, false, skip},
+        {"embedded NUL does not terminate extension", {"md\0txt", 6}, regular, unknown, false, skip},
+        {"hidden Markdown document", "md", regular, unknown, true, skip},
+        {"ordinary directory", {}, directory, unknown, false, scan},
+        {"Markdown suffix on directory", "md", directory, unknown, false, scan},
+        {"hidden directory", {}, directory, unknown, true, skip},
+        {"Markdown package", "md", package, unknown, false, skip},
+        {"special file with Markdown suffix", "md", other, unknown, false, skip},
+        {"unclassified entry", "md", unknown, unknown, false, skip},
+        {"linked directory with Markdown suffix", "md", symlink, directory, false, skip},
+        {"linked package with Markdown suffix", "md", symlink, package, false, skip},
+        {"linked special file with Markdown suffix", "md", symlink, other, false, skip},
+        {"hidden link to regular file", "md", symlink, regular, true, skip},
+        {"hidden link requires no probe", "md", symlink, unknown, true, skip},
+        {"text link requires no probe", "txt", symlink, unknown, false, skip},
+        {"Markdown link needs native target metadata", "md", symlink, unknown, false, needs_target},
+        {"first Markdown alias of regular target", "md", symlink, regular, false, document},
+        {"second Markdown alias of same target", "MKD", symlink, regular, false, document},
+        {"text alias of same target", "txt", symlink, regular, false, skip},
+    };
+
+    for (const auto& fixture : fixtures) {
+        check(marky_project_classify_entry({
+                  {fixture.extension.data(), fixture.extension.size()},
+                  fixture.kind, fixture.target, fixture.hidden
+              }) == fixture.expected,
+              fixture.label);
+    }
+
+    constexpr char extension_buffer[] = {'m', 'd', 'x'};
+    check(marky_project_classify_entry({{extension_buffer, 2}, regular, unknown, false}) == document,
+          "extension length limits reads to the supplied bytes");
+}
+
 void check_owned_paragraph(const auto& check) {
     // Decomposed é, emoji, embedded NUL and a final ASCII byte.
     constexpr char expected[] = "e\xCC\x81\xF0\x9F\x8E\xB5\0" "!";
@@ -1614,6 +1677,7 @@ int main() {
         }
     };
 
+    check_project_entry_eligibility(check);
     check_owned_paragraph(check);
     check_empty_document(check, nullptr);
     check_empty_document(check, "");

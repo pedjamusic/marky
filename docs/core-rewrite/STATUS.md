@@ -1,6 +1,6 @@
 # Core rewrite status
 
-Updated: 2026-11-16. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
+Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
 
 ## Current checkpoint
 
@@ -17,7 +17,8 @@ Updated: 2026-11-16. This is the authoritative live ledger. [README](README.md) 
 - **T11.S2 is accepted and delivered.** User **PASS** ("pass."), 2026-11-14, accepts E91 (E92). The native block mapping landed on `main` as `35cf000` (E93). The standalone image sizing and zoom follow-up landed as `9a173d7`. [Verification](#t11s2-mac-run)
 - **T11.S3 and T11 are accepted and delivered.** User **PASS** ("pass"), 2026-11-15, accepts E94 (E95). The accepted candidate landed on `main` as `d04f4ab` (E96). T12.S1 received the native comparison cases and known differences in OWE-T11. [Verification and manual steps](#t11s3-mac-run)
 - **T12.S1 is complete.** User **PASS** ("then pass"), 2026-11-15, accepted the candidate of E98 after the full review (E99). [PR #6](https://github.com/pedjamusic/marky/pull/6) landed on `main` as `230ee8f` (E100). The approved performance comparison passes and resolves B08 (E101). [Comparison results](T12-S1-READER-COMPARISON.md)
-- **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). T13.S1, project entry eligibility, is next when selected. [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
+- **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
+- **T13.S1 is applied on `codex/t13-s1-project-entry-eligibility` from `main/17706bc`.** The portable classifier identifies Markdown documents, directories to scan, entries to skip, and links that need target metadata. User **PASS** ("pass"), 2026-11-18, accepts the branch candidate in E106. E107 records acceptance. T13.S2 tree assembly is next after integration.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -39,7 +40,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T10 | [04](phases/04-inline-semantics.md) | done | T10.S1 done; T10.S2 done; T10.S3 done | E78–E81 record S1 verification, user PASS, and integration. E82–E84 record the same steps for S2. E85–E87 verify S3 and the full portable semantic corpus and record user PASS and integration. |
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
-| T13 | [06](phases/06-project-rules.md) | queued | T13.S1 queued; T13.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T13 | [06](phases/06-project-rules.md) | in_progress | T13.S1 done; T13.S2 queued | E106 verifies the branch candidate. E107 records user PASS. |
 | T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -203,6 +204,9 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E102 | T12.S2 production reader cutover | User authorized local branch `codex/t12-s2-reader-cutover` from `main/b42623e` and carrying the approved amendment into its working diff. [Signed Release candidate and exact identity](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) | 127 Release unit tests, 12 Release UI tests, and both macOS CTest configurations passed. The standalone app passed a native picker, image grant and preview, rapid switching, decoding failure recovery, and folder and single-file restoration smoke test. | User PASS pending. Branch creation executed. The candidate is uncommitted. |
 | E103 | T12.S2 and T12 acceptance | User **PASS** ("pass"), 2026-11-16, accepts E102. | Rechecked the E102 app and test patch hash, the signed Release executable hash, and the signature. | PASS authorizes committing the candidate, merging it into local `main`, pushing `main`, and deleting the merged T12.S2 branch. |
 | E104 | T12.S2 and T12 integration | Accepted candidate and PASS record landed as `bb03141bc8603a7a0d681ffdfaf9eb2b8443e594`, 2026-11-16. | The staged app and test diff matched E102. Local `main` fast-forwarded. `git push origin main` and `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted commit on GitHub before local T12.S2 branch deletion. | Production cutover delivered. T13.S1 is next when selected. T17 and T18 receive OWE-T12. |
+| E105 | T13.S1 portable project-entry classification | Verified snapshot from clean `main/17706bcb8185d5414422efa9ab4f2cebb9db757f`. Five-file core patch SHA-256 `bf3da92ae66d87a07850324e4b96e23a1a271a035ee8244242b34c8dba612e5b`, excluding this ledger. | [Verification below](#t13s1-mac-run). All three CTest targets passed in Debug, Release, and ASan/UBSan. The linked-directory negative control failed as expected. Xcode passed 127 unit tests in 136 executions. Native scanner integration belongs to T16. Windows/MSVC and Linux/GCC execution remain open under B03. | Pending. |
+| E106 | T13.S1 branch candidate | Uncommitted on `codex/t13-s1-project-entry-eligibility` from `17706bcb8185d5414422efa9ab4f2cebb9db757f`. Five-file core patch SHA-256 `c80ed2ef47c44bb72adbdfb8867c773d171073431b6059cfcebf1726b514209a`, excluding this ledger. | [Branch verification below](#t13s1-mac-run). The standards review changed the Kelvin-sign fixture to explicit UTF-8 bytes for compiler character-set independence. The spec review confirmed native metadata ownership and per-entry classification. Debug, Release, and ASan/UBSan CTest passed 3/3 each. Xcode passed 127 unit and 11 UI tests, with 3 opt-in performance tests skipped and no failures. Windows and Linux execution remain open under B03. | User PASS recorded in E107. |
+| E107 | T13.S1 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E106. | Verified all six branch files byte for byte against E106 before recording acceptance. The core sources, build inputs, and test fixtures match the tested candidate. | PASS authorizes commit, fast-forward merge to main, main push, and merged-branch cleanup. |
 
 ### T06.S1 Mac run
 
@@ -528,6 +532,39 @@ done
 
 To review, run `open -n -a /tmp/MarkyT11S3.1e5lEH/SignedDebug/Build/Products/Debug/Marky.app --env MARKY_TEST_DEFAULTS_SUITE=Marky.T11S3Review --args --core-reader-test`. Open `/tmp/MarkyT11S3.1e5lEH/ReaderFixture` via **Open Folder**. Select `02-Large.md` and immediately select `03-Latest.md`. Verify **Latest selection** stays visible. Visit `04-Invalid.md` to verify the decoding error, then return to `01-Start.md` to verify recovery. Change typography mode, text size, and appearance to check the open document restyles. Review the focused tests for deterministic coverage of ordering, cancellation, and a settings change while a read is suspended.
 
+### T13.S1 Mac run
+
+E21 and E34 supply the T03.S1 and T04.S2 prerequisites. The candidate adds `marky_project_classify_entry` to [the C interface](../../core/include/MarkyCore.h). The caller supplies the final extension, hidden status, entry kind, and resolved link target kind when available. A visible Markdown-suffixed link can ask the caller for target metadata. A positive classification belongs to the entry being classified, so links to the same regular file remain separate entries for tree assembly. Native enumeration retains responsibility for failures such as unreadable targets. T13.S2 consumes eligibility during tree assembly, and T16 owns the native scanner adapter. OWE-T13 carries the fixtures and input contract to T16.
+
+Commands ran on macOS 27.2.1 (26B131), arm64, Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). From the source snapshot root, set `run_dir` to a fresh output location and run the following for both Debug and Release.
+
+```sh
+cmake -S core -B "$run_dir/$configuration" -DCMAKE_BUILD_TYPE="$configuration" \
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
+cmake --build "$run_dir/$configuration" --parallel 4
+ctest --test-dir "$run_dir/$configuration" --output-on-failure
+```
+
+The sanitizer run used Debug plus `-DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'` in a separate directory. All configurations passed 3/3 CTest targets. A separate Release build that deliberately allowed traversal through linked directories failed the named fixture `linked directory with Markdown suffix`. The original candidate passed all suites. The public header passed a C11 syntax check with Clang. An independent probe through the existing Swift scanner confirmed Kelvin-sign extension matching, distinct names for two Markdown links to the same regular text file, and omission of a linked directory and a dangling link on this host.
+
+```sh
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath "$run_dir/xcode" -resultBundlePath "$run_dir/MarkyTests-retry.xcresult" \
+  -only-testing:MarkyTests test
+```
+
+The successful run used expanded Xcode access after the restricted run failed writing the SwiftPM caches. The result bundle reported 127 passing unit tests in 136 executions, no failures or skips. UI and signed-app acceptance are deferred to native integration. The local patch and test results are in `/tmp/MarkyT13S1.9rkXK6/`.
+
+For E106, the same core commands ran from the task branch. Each configuration passed the focused `ctest --test-dir "$run_dir/$configuration" -R '^marky_core_tests$' --output-on-failure` and the full 3/3 suite after the fixture edit. The final fixture still caught the linked-directory negative control in an isolated Release build. Strict Clang C11 header and C++20 source checks passed, and the static archive exported the unmangled C classifier symbol.
+
+```sh
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath "$run_dir/xcode" -resultBundlePath "$run_dir/MarkyTests.xcresult" \
+  -parallel-testing-enabled NO test
+```
+
+The complete Mac scheme reported 138 passed test functions in 147 passing executions, zero failures, and three performance skips because the opt-in fixtures were unset. The branch patch, logs, and result bundle are in `/tmp/MarkyT13S1-branch.ImrS7v/`.
+
 ## Git authorization and integration
 
 This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
@@ -542,6 +579,14 @@ This is independent of technical completion and user acceptance. Record the actu
 | Pull/push | User explicitly authorized synchronization and wrap-up, 2026-11-06 | Merged main pulled with --ff-only; final documentation checkpoint uses the authorized main push. |
 | Delete branch/worktree | User explicitly authorized merged-branch cleanup, 2026-11-06 | codex/cpp-core-roadmap deleted locally and on origin after merge. Temporary local handoff branch is disposable after its checkpoint reaches main. No extra worktree was created. |
 | Open PR | User explicitly requested a PR for CodeRabbit review, 2026-11-06 | [PR #3](https://github.com/pedjamusic/marky/pull/3) merged; review limits recorded in E01. |
+
+### T13.S1 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Core eligibility and verification | User selected T13.S1, 2026-11-18 | Implemented and verified in an isolated source snapshot (E105). |
+| Create local task branch and apply candidate | User replied **“Approved”**, 2026-11-18 | Created `codex/t13-s1-project-entry-eligibility` from clean `main/17706bc` and verified that the six applied files matched E105 before review. |
+| Commit, merge, push, and delete merged branch | User **PASS** ("pass"), 2026-11-18 | Authorized in E107. |
 
 ### T01.S1 authorization
 

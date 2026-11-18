@@ -65,6 +65,46 @@ typedef struct {
     size_t byte_count;
 } MarkyUtf8View;
 
+typedef uint32_t MarkyProjectEntryKind;
+
+enum {
+    MARKY_PROJECT_ENTRY_UNKNOWN = 0,
+    MARKY_PROJECT_ENTRY_REGULAR_FILE = 1,
+    MARKY_PROJECT_ENTRY_DIRECTORY = 2,
+    MARKY_PROJECT_ENTRY_SYMLINK = 3,
+    MARKY_PROJECT_ENTRY_PACKAGE = 4,
+    MARKY_PROJECT_ENTRY_OTHER = 5
+};
+
+typedef uint32_t MarkyProjectEntryDisposition;
+
+enum {
+    MARKY_PROJECT_ENTRY_SKIP = 0,
+    MARKY_PROJECT_ENTRY_DOCUMENT = 1,
+    MARKY_PROJECT_ENTRY_SCAN_DIRECTORY = 2,
+    MARKY_PROJECT_ENTRY_NEEDS_TARGET_METADATA = 3
+};
+
+typedef struct {
+    MarkyUtf8View name_extension;
+    MarkyProjectEntryKind kind;
+    MarkyProjectEntryKind target_kind;
+    uint8_t is_hidden;
+} MarkyProjectEntryMetadata;
+
+/*
+ * Classifies one enumerated child using native-supplied metadata. Pass the final
+ * extension without its dot, in caller-validated UTF-8. For links, pass the
+ * link's own extension and the resolved target's kind. Package status takes
+ * precedence over file type. is_hidden includes native flags and dot names.
+ *
+ * An eligible link with unknown target kind requires more metadata. Native
+ * probe failures remain scan failures according to the host's scan policy.
+ * A document decision belongs to the original entry and carries no target
+ * identity. The call neither borrows beyond return nor accesses the filesystem.
+ */
+MarkyProjectEntryDisposition marky_project_classify_entry(MarkyProjectEntryMetadata entry);
+
 typedef struct {
     size_t depth;
     MarkyListMarkerKind marker_kind;
