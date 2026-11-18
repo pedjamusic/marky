@@ -20,6 +20,7 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
 - **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 follows below.
 - **T13.S2 and T13 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the portable project tree candidate (E110–E111). The accepted core landed on `main` as `8543bc7` (E112). T14.S1 project indexing and T15.S1 favorite membership can follow when selected.
+- **T14.S1 is accepted.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). T14.S2 consumes this index for query filtering. T15.S1 is independently eligible after T13 and remains queued.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -42,7 +43,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
-| T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T14 | [06](phases/06-project-rules.md) | in_progress | T14.S1 done; T14.S2 queued | E113–E115 record verification and acceptance. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -213,6 +214,9 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E110 | T13.S2 branch candidate | Uncommitted on `codex/t13-s2-project-tree` from `0076f735d16386c912856a6924a47442f7b535d3`. | Applied the E109 patch and compared the core files and original ledger byte for byte with the verified snapshot before recording this branch checkpoint. `git diff --check` passed. | E111 records user PASS. |
 | E111 | T13.S2 and T13 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E110. | Rechecked the core files byte for byte against the verified E109 snapshot. `git diff --check` passed. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 | E112 | T13.S2 and T13 integration | Accepted candidate and PASS record landed as `8543bc7f64f924d4135c4533f1a86153b02a29e2`, 2026-11-18. | The staged core files matched E109. Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the commit before the merged local task branch was deleted. | T13 is complete. T16 receives OWE-T13. |
+| E113 | T14.S1 portable project index | Isolated source snapshot based on clean `main/1bf32e3f542affacbef0b5952ef0632b05fda955`. Core patch SHA-256 `5c97cc03e017a8d3c82e614bcdb86f4800f845d50c3e66416a76b18740074469`. | [Mac verification](#t14s1-mac-run). Debug, Release, and ASan/UBSan each passed 3/3 CTest targets. Two negative controls failed at the expected checks. Xcode passed 127 unit tests in 136 executions. | E114 records branch approval and application. E115 records user PASS. Windows/MSVC and Linux/GCC execution remain open under B03. |
+| E114 | T14.S1 branch candidate | Uncommitted on `codex/t14-s1-project-index` from `1bf32e3f542affacbef0b5952ef0632b05fda955`. User replied “Approve the branch” on 2026-11-18. | The applied core patch matched E113 byte for byte. `git diff --check` passed. | E115 records user PASS. |
+| E115 | T14.S1 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts E114. | Rechecked the core patch byte for byte against E113. `git diff --check` passed. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 
 ### T06.S1 Mac run
 
@@ -580,6 +584,16 @@ The fixture includes a 16,384-level hierarchy, nonalphabetical sibling order, al
 Ran on arm64 macOS 27.2.1 (26B131), Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). From the snapshot root, use the [T13.S1 commands](#t13s1-mac-run) for Debug, Release and ASan/UBSan. Each passed 3/3 CTest targets. The C header and tree implementation passed strict C11 and C++20 syntax checks. The archive exported the tree functions with C linkage and omitted test checkpoints.
 
 Two isolated Release builds independently removed ancestor retention and upgraded partial results to complete. The core executable returned nonzero for each and reported the corresponding fixture failure. The original Release build passed. The T13.S1 focused Xcode unit test command with a fresh result bundle passed 127 unit tests in 136 executions, with no failures or skips. UI and signed-app acceptance belong to T16. The core patch and local results are in `/tmp/MarkyT13S2.XHGXNW/`.
+
+### T14.S1 Mac run
+
+[The C interface](../../core/include/MarkyCore.h) looks up retained nodes by opaque identity or root-relative name segments. Each tree indexes identities and parent/name pairs. Lookups compare exact bytes, and an empty path selects the root. Duplicate retained identities or duplicate names under one parent prevent the tree from publishing. Node indices belong to one tree. The supplied identities remain stable across rebuilds. An index miss describes the indexed view. T15 requires separate authorized evidence before it can treat a favorite as missing.
+
+[The project fixture](../../core/tests/CoreTests.cpp) checks both document links, reuse of a filename in different folders, parent indices, partial views, and a rebuild with changed node positions. It also looks up a path 16,384 levels deep. Two isolated Release negative controls truncated the opaque identity at its embedded NUL and ignored the parent in path lookup. Each failed the expected checks.
+
+Ran on arm64 macOS 27.2.1 (26B131) with Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). The baseline Release passed 3/3 CTest targets. The candidate passed 3/3 in Debug, Release, and ASan/UBSan using the [T13.S1 commands](#t13s1-mac-run). The public header passed strict C11 and the tree source passed strict C++20 syntax checks. The Release archive exported both lookup functions with C linkage. The focused Xcode command in the same section passed 127 tests in 136 executions after allowing Xcode to use its SwiftPM caches. Native project adoption and UI acceptance belong to T16.
+
+The source snapshot, patches, and result bundle are in `/tmp/MarkyT14S1.pMvqoX/`. To review this core-only slice, inspect the patch and the lookup and rebuild assertions in the project fixture. Repeat the Mac verification commands from the candidate source directory.
 
 ## Git authorization and integration
 

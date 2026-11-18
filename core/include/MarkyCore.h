@@ -24,7 +24,8 @@ enum {
     MARKY_STATUS_INTERNAL_ERROR = 3,
     MARKY_STATUS_CANCELLED = 4,
     MARKY_STATUS_PROJECT_SCAN_UNKNOWN = 5,
-    MARKY_STATUS_PROJECT_SCAN_FAILED = 6
+    MARKY_STATUS_PROJECT_SCAN_FAILED = 6,
+    MARKY_STATUS_PROJECT_NODE_NOT_FOUND = 7
 };
 
 enum {
@@ -137,11 +138,13 @@ typedef struct {
  * to an earlier traversable directory. Supply stable, nonempty opaque UTF-8
  * identities unique within the project. Supply names as caller-validated UTF-8,
  * one relative path segment per child. The root's display name may be empty.
- * Identities and names are copied verbatim.
+ * Identities and names are copied verbatim. Duplicate retained identities or
+ * duplicate retained names under the same parent return INVALID_ARGUMENT.
  *
  * The result retains the root, eligible documents, and their ancestors in
  * supplied order. Its node indices are dense, and parent_index refers to the
- * result's indices. Retained document links keep their entry's own identity.
+ * result's indices. Indices belong to this tree only. Retained document links
+ * keep their entry's own identity across builds.
  *
  * COMPLETE represents a successful full scan. PARTIAL represents an
  * intentionally limited view of known entries, such as a single picked file.
@@ -166,6 +169,18 @@ size_t marky_project_tree_node_count(const MarkyProjectTree* tree);
 /* Copies a node view. Its immutable UTF-8 views remain valid until tree release. */
 MarkyStatus marky_project_tree_node_at(const MarkyProjectTree* tree, size_t index,
                                       MarkyProjectTreeNodeView* out_node);
+
+/*
+ * Look up a retained node by identity or by root-relative name segments.
+ * Comparisons use exact bytes. Zero segments select the root. Each supplied
+ * identity or segment must have nonempty storage. The call borrows inputs
+ * until return and writes *out_index only on success. A well-formed lookup
+ * with no match in this tree returns PROJECT_NODE_NOT_FOUND.
+ */
+MarkyStatus marky_project_tree_find_identity(const MarkyProjectTree* tree, MarkyUtf8View identity,
+                                            size_t* out_index);
+MarkyStatus marky_project_tree_find_path(const MarkyProjectTree* tree, const MarkyUtf8View* segments,
+                                        size_t segment_count, size_t* out_index);
 
 typedef struct {
     size_t depth;

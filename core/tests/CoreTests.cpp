@@ -90,12 +90,14 @@ void check_project_tree(const auto& check) {
     constexpr auto symlink = MARKY_PROJECT_ENTRY_SYMLINK;
     constexpr auto unknown = MARKY_PROJECT_ENTRY_UNKNOWN;
 
-    const auto entry = [](std::string_view identity, std::string_view name, size_t parent,
+    const auto view = [](std::string_view bytes) {
+        return MarkyUtf8View{bytes.data(), bytes.size()};
+    };
+    const auto entry = [view](std::string_view identity, std::string_view name, size_t parent,
                           MarkyProjectEntryKind kind, std::string_view extension = {},
                           MarkyProjectEntryKind target = MARKY_PROJECT_ENTRY_UNKNOWN) {
         return MarkyProjectTreeEntry{
-            {identity.data(), identity.size()}, {name.data(), name.size()}, parent,
-            {{extension.data(), extension.size()}, kind, target, false}
+            view(identity), view(name), parent, {view(extension), kind, target, false}
         };
     };
     char link_name[] = "z-link.md";
@@ -138,6 +140,68 @@ void check_project_tree(const auto& check) {
     check_node(tree.get(), 4, 2, false, {"z\0link", 6}, "z-link.md");
     check_node(tree.get(), 5, 2, false, "a-link", "a-link.MKD");
 
+    constexpr auto missing = MARKY_STATUS_PROJECT_NODE_NOT_FOUND;
+    constexpr auto invalid = MARKY_STATUS_INVALID_ARGUMENT;
+    constexpr size_t untouched = 99;
+    const std::array first_link_path = {view("Chapters"), view("Deep"), view("z-link.md")};
+    const std::array second_link_path = {view("Chapters"), view("Deep"), view("a-link.MKD")};
+    const auto check_lookup = [&](const MarkyProjectTree* indexed, MarkyUtf8View identity,
+                                  const auto& path, size_t expected, std::string_view label) {
+        size_t by_identity = untouched, by_path = untouched;
+        check(marky_project_tree_find_identity(indexed, identity, &by_identity) == MARKY_STATUS_OK &&
+                  marky_project_tree_find_path(indexed, path.data(), path.size(), &by_path) == MARKY_STATUS_OK &&
+                  by_identity == expected && by_path == expected,
+              label);
+    };
+    check_lookup(tree.get(), view("project"), std::array<MarkyUtf8View, 0>{}, 0, "root identity and empty path");
+    check_lookup(tree.get(), view("deep"), std::array{view("Chapters"), view("Deep")}, 2, "nested folder lookup");
+    check_lookup(tree.get(), view({"z\0link", 6}), first_link_path, 4,
+                 "first link resolves by its complete identity and its copied relative path");
+    check_lookup(tree.get(), view("a-link"), second_link_path, 5, "second link resolves to a distinct node");
+
+    size_t result_index = untouched;
+    check(marky_project_tree_find_identity(tree.get(), view("z"), &result_index) == missing &&
+              marky_project_tree_find_identity(tree.get(), view("empty"), &result_index) == missing &&
+              marky_project_tree_find_identity(tree.get(), {}, &result_index) == invalid &&
+              marky_project_tree_find_identity(tree.get(), view("project"), nullptr) == invalid &&
+              result_index == untouched,
+          "missing identities and invalid identity input do not write the result");
+    for (const auto path : {std::array{view("chapters"), view("Deep")},
+                            std::array{view("Chapters/Deep"), view("z-link.md")},
+                            std::array{view("Chapters"), view("..")},
+                            std::array{view("README.md"), view("child.md")}}) {
+        check(marky_project_tree_find_path(tree.get(), path.data(), path.size(), &result_index) == missing &&
+                  result_index == untouched,
+              "paths use exact supplied segments and each segment must belong to its parent");
+    }
+    const std::array invalid_path = {view("absent"), MarkyUtf8View{nullptr, 1}};
+    check(marky_project_tree_find_path(tree.get(), invalid_path.data(), invalid_path.size(), &result_index)
+              == invalid &&
+              marky_project_tree_find_path(tree.get(), nullptr, 1, &result_index) == invalid &&
+              marky_project_tree_find_path(nullptr, nullptr, 0, &result_index) == invalid &&
+              result_index == untouched,
+          "invalid relative path inputs do not write the result");
+
+    const std::array rebuilt_entries = {
+        entries[0], entry("top-link", "z-link.md", 0, symlink, "md", regular),
+        entries[2], entry("deep", "Deep", 2, directory),
+        entry("a-link", "a-link.MKD", 3, symlink, "MKD", regular),
+        entry({"z\0link", 6}, "z-link.md", 3, symlink, "md", regular), entries[5]
+    };
+    raw_tree = nullptr;
+    check(marky_project_tree_create(rebuilt_entries.data(), rebuilt_entries.size(), complete, nullptr, &raw_tree)
+              == MARKY_STATUS_OK,
+          "rebuild with a new sibling and changed enumeration order");
+    const std::unique_ptr<MarkyProjectTree, decltype(&marky_project_tree_release)>
+        rebuilt(raw_tree, marky_project_tree_release);
+    check_lookup(rebuilt.get(), view({"z\0link", 6}), first_link_path, 5, "first link retains its rebuild identity");
+    check_lookup(rebuilt.get(), view("a-link"), second_link_path, 4, "second link retains its rebuild identity");
+    check_lookup(rebuilt.get(), view("top-link"), std::array{view("z-link.md")}, 1,
+                 "identical names in different folders resolve independently");
+    check_node(rebuilt.get(), 5, 3, false, {"z\0link", 6}, "z-link.md");
+    check_node(rebuilt.get(), 4, 3, false, "a-link", "a-link.MKD");
+    check_lookup(tree.get(), view("a-link"), second_link_path, 5, "rebuild leaves earlier snapshot readable");
+
     const std::array picked_file = {entries[0], entries[5]};
     raw_tree = nullptr;
     check(marky_project_tree_create(picked_file.data(), picked_file.size(), partial, nullptr, &raw_tree)
@@ -146,6 +210,10 @@ void check_project_tree(const auto& check) {
               marky_project_tree_node_count(raw_tree) == 2,
           "a picked file outside a full scan carries partial coverage");
     check_node(raw_tree, 1, 0, false, "readme", "README.md");
+    check_lookup(raw_tree, view("readme"), std::array{view("README.md")}, 1, "partial tree indexes its known file");
+    check(marky_project_tree_find_path(raw_tree, first_link_path.data(), first_link_path.size(), &result_index)
+              == missing && result_index == untouched,
+          "a partial tree reports a lookup miss for an unobserved path");
     marky_project_tree_release(raw_tree);
 
     for (const MarkyProjectScanState state : {complete, partial}) {
@@ -192,6 +260,13 @@ void check_project_tree(const auto& check) {
     check_failure(missing_identity.data(), missing_identity.size(), complete, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
                   "retained entries require opaque identities");
 
+    const std::array duplicate_identity = {entries[0], entries[5], entry("readme", "Other.md", 0, regular, "md")};
+    check_failure(duplicate_identity.data(), duplicate_identity.size(), complete, nullptr, invalid,
+                  "duplicate retained identities would make lookup ambiguous");
+    const std::array duplicate_sibling_name = {entries[0], entries[5], entry("other", "README.md", 0, regular, "md")};
+    check_failure(duplicate_sibling_name.data(), duplicate_sibling_name.size(), complete, nullptr, invalid,
+                  "duplicate retained sibling names would make lookup ambiguous");
+
     check(marky_project_tree_scan_state(nullptr) == MARKY_PROJECT_SCAN_UNKNOWN &&
               marky_project_tree_node_count(nullptr) == 0,
           "a missing tree cannot be used as complete evidence");
@@ -226,6 +301,8 @@ void check_project_tree(const auto& check) {
               == MARKY_STATUS_OK && marky_project_tree_node_count(raw_tree) == depth + 1,
           "deep projects build and release without recursive stack growth");
     check_node(raw_tree, depth, depth - 1, false, identities.back(), "node");
+    check_lookup(raw_tree, view(identities.back()), std::vector(depth, view("node")), depth,
+                 "deep path lookup is iterative");
     marky_project_tree_release(raw_tree);
 }
 
