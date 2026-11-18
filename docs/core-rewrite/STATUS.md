@@ -20,7 +20,7 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
 - **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 follows below.
 - **T13.S2 and T13 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the portable project tree candidate (E110–E111). The accepted core landed on `main` as `8543bc7` (E112). T14.S1 project indexing and T15.S1 favorite membership can follow when selected.
-- **T14.S1 is accepted.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). T14.S2 consumes this index for query filtering. T15.S1 is independently eligible after T13 and remains queued.
+- **T14.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). The core landed on `main` as `db44c7d` (E116). T14.S2 consumes this index for query filtering. T15.S1 is independently eligible after T13 and remains queued.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -43,7 +43,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
-| T14 | [06](phases/06-project-rules.md) | in_progress | T14.S1 done; T14.S2 queued | E113–E115 record verification and acceptance. |
+| T14 | [06](phases/06-project-rules.md) | in_progress | T14.S1 done; T14.S2 queued | E113–E116 record verification, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -217,6 +217,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E113 | T14.S1 portable project index | Isolated source snapshot based on clean `main/1bf32e3f542affacbef0b5952ef0632b05fda955`. Core patch SHA-256 `5c97cc03e017a8d3c82e614bcdb86f4800f845d50c3e66416a76b18740074469`. | [Mac verification](#t14s1-mac-run). Debug, Release, and ASan/UBSan each passed 3/3 CTest targets. Two negative controls failed at the expected checks. Xcode passed 127 unit tests in 136 executions. | E114 records branch approval and application. E115 records user PASS. Windows/MSVC and Linux/GCC execution remain open under B03. |
 | E114 | T14.S1 branch candidate | Uncommitted on `codex/t14-s1-project-index` from `1bf32e3f542affacbef0b5952ef0632b05fda955`. User replied “Approve the branch” on 2026-11-18. | The applied core patch matched E113 byte for byte. `git diff --check` passed. | E115 records user PASS. |
 | E115 | T14.S1 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts E114. | Rechecked the core patch byte for byte against E113. `git diff --check` passed. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
+| E116 | T14.S1 integration | Accepted candidate and PASS record landed as `db44c7da81e3a58edf5b3c040a23006b41892120`, 2026-11-18. | The staged core patch matched E113. Local `main` fast-forwarded, and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the commit before deletion of the merged local branch. | T14.S1 is complete. T14.S2 and T15.S1 are queued. |
 
 ### T06.S1 Mac run
 
