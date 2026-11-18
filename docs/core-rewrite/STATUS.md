@@ -22,7 +22,8 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T13.S2 and T13 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the portable project tree candidate (E110–E111). The accepted core landed on `main` as `8543bc7` (E112). T14.S1 project indexing and T15.S1 favorite membership can follow when selected.
 - **T14.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). The core landed on `main` as `db44c7d` (E116). T14.S2 consumes this index for query filtering.
 - **T14.S2 and T14 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the [portable query filter](#t14s2-mac-run) in E119. The accepted core landed on `main` as `e680cce` (E120).
-- **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124). T15.S2 remains queued.
+- **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124).
+- **T15.S2 received user PASS.** E126 accepts the [verified reconciliation candidate](#t15s2-mac-run). E127 records branch placement and Release verification.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -46,7 +47,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
-| T15 | [06](phases/06-project-rules.md) | in_progress | T15.S1 done; T15.S2 queued | E121–E124 record membership verification, acceptance, branch placement, and integration. |
+| T15 | [06](phases/06-project-rules.md) | in_progress | T15.S1 done; T15.S2 accepted, pending integration | E121–E124 record membership delivery. E125 verifies reconciliation and E126 records user PASS. T16.S2 owns native persistence integration. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
@@ -228,6 +229,9 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E122 | T15.S1 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts the isolated E121 candidate. | The core patch hash matches E121. The patch still applies cleanly to `main/74c2793`, and the Release CTest suite passed 3/3. | PASS authorizes committing the candidate, merging and pushing main, and cleaning up the merged branch. Branch creation approval was pending at acceptance. |
 | E123 | T15.S1 branch placement | User replied "create", 2026-11-18, approving `codex/t15-s1-favorite-membership` from clean `main/74c2793`. Created the branch and applied E122. | Compared all four applied files with the snapshot before updating this record. Release CTest passed 3/3 from the branch in `BranchRelease`. `git diff --check` passed. | E122 authorizes candidate integration. |
 | E124 | T15.S1 integration | The accepted candidate landed on `main` as `d94e04d41caa896fafc861a0cd855ae26563ac85`, 2026-11-18. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T15.S1 is complete. T15.S2 reconciliation is next when selected. |
+| E125 | T15.S2 portable favorite reconciliation | Isolated source snapshot from clean `main/3da01b24fd023813310b505cb13bf67967a567df`. Core patch SHA-256 `e3f480d60e82e5e2cc664078e922552cd7ca332a4150ed6c43c0ff1b3eada3da`. | [Mac verification](#t15s2-mac-run). Debug, Release, and ASan/UBSan each passed 3/3 CTest targets. The unauthorized alias and incomplete scan controls failed at their expected checks. Xcode passed 127 unit tests across 136 executions. | Local branch placement and user PASS are pending. Windows/MSVC and Linux/GCC execution remain open under B03. |
+| E126 | T15.S2 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts the isolated E125 candidate. | The patch hash matches E125, both patches still apply cleanly to `main/3da01b2`, and the Release CTest suite passed 3/3. | PASS authorizes commit, merge to main, main push, and merged-branch cleanup. Branch creation requires separate approval. |
+| E127 | T15.S2 branch placement | The user clarified the Git workflow on 2026-11-18. Work with slices goes on a branch, and small standalone changes may stay on main. Created `codex/t15-s2-favorite-reconciliation` from clean `main/3da01b2` for the accepted patch. | Compared the four applied files with the candidate before this ledger update. Release CTest passed 3/3 from `BranchRelease`. `git diff --check` passed. | E126 authorizes integration. |
 
 ### T06.S1 Mac run
 
@@ -627,6 +631,18 @@ The [portable fixture](../../core/tests/CoreTests.cpp) checks every defined scan
 Ran on macOS 27.2.1 (26B131), arm64, with Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). The [T13.S1 commands](#t13s1-mac-run) passed all three CTest targets in Debug, Release, and ASan/UBSan. Clang accepted the public header in strict C11 and the source in strict C++20. The Release archive exported the membership function with C linkage. The focused Xcode command in the same section passed 127 unit tests across 136 executions. Native UI integration and acceptance belong to T16.S2.
 
 The snapshot, `T15.S1-favorite-membership.patch`, and logs are in `/tmp/MarkyT15S1.SsVr8N/`. E122 records user PASS. E123 records the byte-identical candidate on the approved branch.
+
+### T15.S2 Mac run
+
+[`marky_project_reconcile_favorites`](../../core/include/MarkyCore.h) merges the latest canonical favorites with any authorized alias favorites. It removes only paths with confirmed absence under a complete scan. A path absent from the latest lists cannot return because it appeared in an earlier probe. The result owns the deduplicated canonical list and directs migration of the supplied alias when authorized. Native code supplies equivalent keys for paths it considers equal and owns grants, storage order, and dictionary updates. Other legacy project keys stay outside the operation.
+
+T16.S2 consumes this contract through OWE-T15. After any suspended probes, the native adapter reads the latest store and applies the result against that state without yielding between the read and write. The adapter wires native grants, alias identity, persistence, and favorite visibility. The core result carries no authority to inspect a path.
+
+The [portable fixtures](../../core/tests/CoreTests.cpp) check edits made during a probe, unknown paths, authorized and unauthorized legacy lists, alias migration with an empty legacy list, and incomplete scans. They also verify exact path identity, result ownership, malformed input, and cancellation. Two isolated Release controls forced alias migration without authority and permitted pruning after an incomplete scan. Each failed the expected fixture.
+
+Ran on macOS 27.2.1 (26B131), arm64, with Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). Debug, Release, and ASan/UBSan each passed all three CTest targets using the [T13.S1 commands](#t13s1-mac-run). Clang accepted the header in strict C11 and the implementation in strict C++20. The Release archive exported all five functions with C linkage. The focused Xcode command in the same section passed 127 unit tests in 136 executions, including the existing native favorite edits and alias tests. Xcode needed access to its SwiftPM caches. That suite exercises the current native flow. The CTest fixtures exercise the new API.
+
+The source snapshot, `T15.S2-favorite-reconciliation.patch`, and results are in `/tmp/MarkyT15S2.kekyKd/`. E126 records user PASS for this candidate. Native integration and signed-app acceptance belong to T16. E127 records the byte-identical patch and Release verification on the task branch.
 
 ## Git authorization and integration
 

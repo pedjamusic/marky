@@ -120,6 +120,96 @@ void check_project_favorite_membership(const auto& check) {
     }
 }
 
+void check_project_favorite_reconciliation(const auto& check) {
+    const auto utf8 = [](std::string_view path) -> MarkyUtf8View {
+        return {path.data(), path.size()};
+    };
+    const auto list = [](const auto& paths) -> MarkyProjectFavoritePaths {
+        return {paths.data(), paths.size()};
+    };
+    const auto reconcile = [&](MarkyProjectFavoriteReconciliation input, bool migrate_alias,
+                               std::initializer_list<std::string_view> paths, std::string_view label) {
+        MarkyProjectFavoriteResult* raw_result = nullptr;
+        const auto status = marky_project_reconcile_favorites(input, nullptr, &raw_result);
+        const std::unique_ptr<MarkyProjectFavoriteResult, decltype(&marky_project_favorite_result_release)>
+            result(raw_result, marky_project_favorite_result_release);
+        check(status == MARKY_STATUS_OK && result &&
+              marky_project_favorite_result_count(result.get()) == paths.size() &&
+              marky_project_favorite_result_migrates_alias(result.get()) == migrate_alias, label);
+        size_t index = 0;
+        for (const auto expected : paths) {
+            const auto path = marky_project_favorite_result_path(result.get(), index++);
+            check(path.data != nullptr && std::string_view(path.data, path.byte_count) == expected, label);
+        }
+    };
+
+    // The user removed REMOVED-DURING-PROBE.md and added NEW.md while the
+    // probe was pending. The latest list also contains an unprobed location.
+    const std::array latest = {utf8("NEW.md"), utf8("MISSING.md"), utf8("unavailable/KEEP.md")};
+    const std::array missing = {utf8("MISSING.md"), utf8("REMOVED-DURING-PROBE.md")};
+    const std::array legacy = {utf8("NEW.md"), utf8("ALIAS.md"), utf8("MISSING.md")};
+    const MarkyProjectFavoriteReconciliation input = {
+        list(latest), list(legacy), list(missing), MARKY_PROJECT_SCAN_COMPLETE, false
+    };
+    reconcile(input, false, {"NEW.md", "unavailable/KEEP.md"},
+              "apply completed probes to latest favorites without importing unauthorized legacy data");
+
+    auto authorized = input;
+    authorized.alias_is_authorized = true;
+    reconcile(authorized, true, {"ALIAS.md", "NEW.md", "unavailable/KEEP.md"},
+              "merge only the authorized alias and apply confirmed absence to the union");
+    authorized.latest_alias = {};
+    reconcile(authorized, true, {"NEW.md", "unavailable/KEEP.md"},
+              "record the authorized alias even when it has no legacy favorites");
+
+    for (const MarkyProjectScanState state : {MARKY_PROJECT_SCAN_PARTIAL, MARKY_PROJECT_SCAN_UNKNOWN,
+                                             MARKY_PROJECT_SCAN_FAILED}) {
+        auto incomplete = input;
+        incomplete.scan_state = state;
+        reconcile(incomplete, false, {"MISSING.md", "NEW.md", "unavailable/KEEP.md"},
+                  "retain favorites when the scan cannot support pruning");
+    }
+
+    char owned_path[] = "KEEP.md";
+    const std::array keys = {utf8(owned_path), utf8(std::string_view("KEEP.md\0suffix", 14)), utf8("")};
+    const std::array one_missing = {utf8("KEEP.md")};
+    reconcile({list(keys), {}, list(one_missing), MARKY_PROJECT_SCAN_COMPLETE, false},
+              false, {"", std::string_view("KEEP.md\0suffix", 14)},
+              "match complete path keys and preserve unprobed empty legacy keys");
+
+    MarkyProjectFavoriteResult* result = nullptr;
+    check(marky_project_reconcile_favorites({list(keys), {}, {}, MARKY_PROJECT_SCAN_COMPLETE, false},
+                                            nullptr, &result) == MARKY_STATUS_OK && result,
+          "reconciliation publishes an owned result");
+    owned_path[0] = 'X';
+    const auto stored = marky_project_favorite_result_path(result, 1);
+    check(stored.data != nullptr && std::string_view(stored.data, stored.byte_count) == "KEEP.md",
+          "reconciliation copies path bytes before returning");
+    check(marky_project_favorite_result_path(result, keys.size()).data == nullptr,
+          "out-of-range favorite path has an empty view");
+    marky_project_favorite_result_release(result);
+    result = nullptr;
+
+    const MarkyUtf8View invalid_path{nullptr, 1};
+    auto invalid = input;
+    invalid.latest_canonical = {&invalid_path, 1};
+    check(marky_project_reconcile_favorites(invalid, nullptr, &result) == MARKY_STATUS_INVALID_ARGUMENT &&
+          result == nullptr, "a malformed path prevents publishing a reconciliation result");
+    invalid.latest_canonical = {nullptr, 1};
+    check(marky_project_reconcile_favorites(invalid, nullptr, &result) == MARKY_STATUS_INVALID_ARGUMENT &&
+          result == nullptr, "a nonempty list requires a paths buffer");
+    check(marky_project_reconcile_favorites(input, nullptr, nullptr) == MARKY_STATUS_INVALID_ARGUMENT,
+          "reconciliation requires an output handle");
+
+    MarkyCancellationToken* token = nullptr;
+    check(marky_cancellation_token_create(&token) == MARKY_STATUS_OK && token,
+          "favorite reconciliation cancellation token");
+    marky_cancellation_token_request(token);
+    check(marky_project_reconcile_favorites(input, token, &result) == MARKY_STATUS_CANCELLED && result == nullptr,
+          "cancelled reconciliation publishes no result");
+    marky_cancellation_token_release(token);
+}
+
 void check_project_query_result(const auto& check, const MarkyProjectTree* tree,
                                 MarkyProjectQuery query, std::initializer_list<size_t> files,
                                 std::initializer_list<size_t> favorites, std::string_view label) {
@@ -2013,6 +2103,7 @@ int main() {
 
     check_project_entry_eligibility(check);
     check_project_favorite_membership(check);
+    check_project_favorite_reconciliation(check);
     check_project_tree(check);
     check_owned_paragraph(check);
     check_empty_document(check, nullptr);

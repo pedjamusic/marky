@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 typedef struct MarkyDocument MarkyDocument;
+typedef struct MarkyProjectFavoriteResult MarkyProjectFavoriteResult;
 typedef struct MarkyProjectTree MarkyProjectTree;
 typedef struct MarkyProjectQueryResult MarkyProjectQueryResult;
 typedef struct MarkyCancellationToken MarkyCancellationToken;
@@ -151,6 +152,52 @@ enum {
  */
 MarkyProjectFavoriteDisposition marky_project_favorite_membership(
     MarkyProjectScanState scan_state, MarkyProjectFavoriteAvailability availability);
+
+typedef struct {
+    const MarkyUtf8View* paths;
+    size_t count;
+} MarkyProjectFavoritePaths;
+
+typedef struct {
+    MarkyProjectFavoritePaths latest_canonical;
+    MarkyProjectFavoritePaths latest_alias;
+    MarkyProjectFavoritePaths confirmed_missing;
+    MarkyProjectScanState scan_state;
+    uint8_t alias_is_authorized;
+} MarkyProjectFavoriteReconciliation;
+
+/*
+ * Reconcile one project's latest saved lists. Read them after asynchronous
+ * probes finish and before committing the result. confirmed_missing contains
+ * only paths whose absence was confirmed by an authorized native probe for
+ * this project. Only a complete scan can apply those removals.
+ *
+ * Supply a nonzero alias_is_authorized only when the opened grant and its
+ * distinct canonical project identity authorize migration. In that case the
+ * result merges the supplied alias list and directs the caller to migrate
+ * that one alias, even if its list is empty. Other saved project keys are
+ * outside this operation. Native code owns identity, grants, and persistence.
+ *
+ * Path keys are caller-validated UTF-8, compared as exact bytes. Use the same
+ * native equality representation for all three lists. The result is a unique
+ * canonical list in byte order. Native code can apply its own storage order.
+ * Arrays and their bytes are borrowed until return. A nonzero count requires
+ * a buffer in each used list. An unauthorized alias list and absence evidence
+ * for an incomplete scan are ignored. Empty keys are preserved unless pruned.
+ *
+ * Failure or cancellation leaves *out_result NULL. The optional cancellation
+ * token follows marky_document_create_cancellable.
+ */
+MarkyStatus marky_project_reconcile_favorites(MarkyProjectFavoriteReconciliation input,
+                                             const MarkyCancellationToken* token,
+                                             MarkyProjectFavoriteResult** out_result);
+
+size_t marky_project_favorite_result_count(const MarkyProjectFavoriteResult* result);
+uint8_t marky_project_favorite_result_migrates_alias(const MarkyProjectFavoriteResult* result);
+
+/* The view borrows result storage until release. NULL or out of range yields an empty view. */
+MarkyUtf8View marky_project_favorite_result_path(const MarkyProjectFavoriteResult* result, size_t index);
+void marky_project_favorite_result_release(MarkyProjectFavoriteResult* result);
 
 typedef struct {
     MarkyUtf8View identity;

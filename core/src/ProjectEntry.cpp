@@ -1,8 +1,19 @@
 #include "MarkyCore.h"
+#include "CancellationToken.h"
 #include "Utf8.h"
 
 #include <array>
+#include <memory>
+#include <new>
+#include <set>
+#include <string>
 #include <string_view>
+#include <vector>
+
+struct MarkyProjectFavoriteResult {
+    bool migrate_alias = false;
+    std::vector<std::string> paths;
+};
 
 namespace {
 
@@ -79,4 +90,91 @@ MarkyProjectFavoriteDisposition marky_project_favorite_membership(
     default:
         return MARKY_PROJECT_FAVORITE_RETAIN_HIDDEN;
     }
+}
+
+MarkyStatus marky_project_reconcile_favorites(MarkyProjectFavoriteReconciliation input,
+                                             const MarkyCancellationToken* token,
+                                             MarkyProjectFavoriteResult** out_result) try {
+    if (out_result == nullptr) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
+    *out_result = nullptr;
+    if (marky::cancellation_requested(token)) {
+        return MARKY_STATUS_CANCELLED;
+    }
+
+    const bool prune = marky_project_favorite_membership(input.scan_state, MARKY_PROJECT_FAVORITE_AUTHORIZED_MISSING)
+        == MARKY_PROJECT_FAVORITE_PRUNE;
+    const bool migrate_alias = input.alias_is_authorized != 0;
+    std::set<std::string_view> saved_paths;
+    struct PathUpdate {
+        MarkyProjectFavoritePaths list;
+        bool remove;
+    };
+    constexpr MarkyProjectFavoritePaths empty{};
+    const PathUpdate updates[] = {
+        {input.latest_canonical, false},
+        {migrate_alias ? input.latest_alias : empty, false},
+        {prune ? input.confirmed_missing : empty, true}
+    };
+    for (const auto& update : updates) {
+        const auto [paths, count] = update.list;
+        if (paths == nullptr && count != 0) {
+            return MARKY_STATUS_INVALID_ARGUMENT;
+        }
+        for (size_t index = 0; index < count; ++index) {
+            if (marky::cancellation_requested(token)) {
+                return MARKY_STATUS_CANCELLED;
+            }
+            const auto [data, byte_count] = paths[index];
+            if (data == nullptr && byte_count != 0) {
+                return MARKY_STATUS_INVALID_ARGUMENT;
+            }
+            const auto path = byte_count == 0 ? std::string_view{} : std::string_view(data, byte_count);
+            if (update.remove) {
+                saved_paths.erase(path);
+            } else {
+                saved_paths.insert(path);
+            }
+        }
+    }
+
+    auto result = std::make_unique<MarkyProjectFavoriteResult>();
+    result->migrate_alias = migrate_alias;
+    result->paths.reserve(saved_paths.size());
+    for (const auto path : saved_paths) {
+        if (marky::cancellation_requested(token)) {
+            return MARKY_STATUS_CANCELLED;
+        }
+        result->paths.emplace_back(path);
+    }
+    if (marky::cancellation_requested(token)) {
+        return MARKY_STATUS_CANCELLED;
+    }
+    *out_result = result.release();
+    return MARKY_STATUS_OK;
+} catch (const std::bad_alloc&) {
+    return MARKY_STATUS_ALLOCATION_FAILURE;
+} catch (...) {
+    return MARKY_STATUS_INTERNAL_ERROR;
+}
+
+size_t marky_project_favorite_result_count(const MarkyProjectFavoriteResult* result) {
+    return result == nullptr ? 0 : result->paths.size();
+}
+
+uint8_t marky_project_favorite_result_migrates_alias(const MarkyProjectFavoriteResult* result) {
+    return result != nullptr && result->migrate_alias;
+}
+
+MarkyUtf8View marky_project_favorite_result_path(const MarkyProjectFavoriteResult* result, size_t index) {
+    if (result == nullptr || index >= result->paths.size()) {
+        return {};
+    }
+    const auto& path = result->paths[index];
+    return {path.data(), path.size()};
+}
+
+void marky_project_favorite_result_release(MarkyProjectFavoriteResult* result) {
+    delete result;
 }
