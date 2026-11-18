@@ -1,4 +1,5 @@
 #include "MarkyCore.h"
+#include "CancellationToken.h"
 #include "InlineSyntax.h"
 #include "ListCharacterProperties.h"
 #include "LiteralSyntax.h"
@@ -9,7 +10,6 @@
 #endif
 
 #include <algorithm>
-#include <atomic>
 #include <memory>
 #include <new>
 #include <optional>
@@ -73,16 +73,9 @@ struct MarkyDocument {
 #endif
 };
 
-struct MarkyCancellationToken {
-    std::atomic<bool> requested{false};
-};
-
 namespace {
 
-bool cancellation_requested(const MarkyCancellationToken* token) noexcept {
-    // The flag carries no other state. The caller manages token lifetime.
-    return token != nullptr && token->requested.load(std::memory_order_relaxed);
-}
+using marky::cancellation_requested;
 
 struct Fence {
     char marker;

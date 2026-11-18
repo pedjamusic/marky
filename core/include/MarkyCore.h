@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 typedef struct MarkyDocument MarkyDocument;
+typedef struct MarkyProjectTree MarkyProjectTree;
 typedef struct MarkyCancellationToken MarkyCancellationToken;
 typedef uint32_t MarkyStatus;
 typedef uint32_t MarkyBlockKind;
@@ -21,7 +22,9 @@ enum {
     MARKY_STATUS_INVALID_ARGUMENT = 1,
     MARKY_STATUS_ALLOCATION_FAILURE = 2,
     MARKY_STATUS_INTERNAL_ERROR = 3,
-    MARKY_STATUS_CANCELLED = 4
+    MARKY_STATUS_CANCELLED = 4,
+    MARKY_STATUS_PROJECT_SCAN_UNKNOWN = 5,
+    MARKY_STATUS_PROJECT_SCAN_FAILED = 6
 };
 
 enum {
@@ -104,6 +107,65 @@ typedef struct {
  * identity. The call neither borrows beyond return nor accesses the filesystem.
  */
 MarkyProjectEntryDisposition marky_project_classify_entry(MarkyProjectEntryMetadata entry);
+
+typedef uint32_t MarkyProjectScanState;
+
+enum {
+    MARKY_PROJECT_SCAN_UNKNOWN = 0,
+    MARKY_PROJECT_SCAN_COMPLETE = 1,
+    MARKY_PROJECT_SCAN_PARTIAL = 2,
+    MARKY_PROJECT_SCAN_FAILED = 3
+};
+
+typedef struct {
+    MarkyUtf8View identity;
+    MarkyUtf8View name;
+    size_t parent_index;
+    MarkyProjectEntryMetadata metadata;
+} MarkyProjectTreeEntry;
+
+typedef struct {
+    MarkyUtf8View identity;
+    MarkyUtf8View name;
+    size_t parent_index;
+    uint8_t is_directory;
+} MarkyProjectTreeNodeView;
+
+/*
+ * Builds an owned tree from native enumeration. Entry 0 is the project root;
+ * its parent_index is 0 and its metadata is ignored. Every other entry refers
+ * to an earlier traversable directory. Supply stable, nonempty opaque UTF-8
+ * identities unique within the project. Supply names as caller-validated UTF-8,
+ * one relative path segment per child. The root's display name may be empty.
+ * Identities and names are copied verbatim.
+ *
+ * The result retains the root, eligible documents, and their ancestors in
+ * supplied order. Its node indices are dense, and parent_index refers to the
+ * result's indices. Retained document links keep their entry's own identity.
+ *
+ * COMPLETE represents a successful full scan. PARTIAL represents an
+ * intentionally limited view of known entries, such as a single picked file.
+ * UNKNOWN and FAILED return the corresponding status without reading entries.
+ * Unresolved visible metadata needed for a decision returns PROJECT_SCAN_UNKNOWN.
+ * Absence from any tree is insufficient on its own to remove a favorite;
+ * a complete scan permits the host to run its authorized absence probes.
+ *
+ * Inputs and the optional cancellation token are borrowed until return.
+ * Any failure leaves *out_tree NULL. See marky_document_create_cancellable
+ * for the cancellation and token-lifetime contract.
+ */
+MarkyStatus marky_project_tree_create(const MarkyProjectTreeEntry* entries, size_t entry_count,
+                                     MarkyProjectScanState scan_state, const MarkyCancellationToken* token,
+                                     MarkyProjectTree** out_tree);
+
+/* NULL is a no-op for release, and yields UNKNOWN state and zero nodes. */
+void marky_project_tree_release(MarkyProjectTree* tree);
+MarkyProjectScanState marky_project_tree_scan_state(const MarkyProjectTree* tree);
+size_t marky_project_tree_node_count(const MarkyProjectTree* tree);
+
+/* Copies a node view. Its immutable UTF-8 views remain valid until tree release. */
+MarkyStatus marky_project_tree_node_at(const MarkyProjectTree* tree, size_t index,
+                                      MarkyProjectTreeNodeView* out_node);
 
 typedef struct {
     size_t depth;

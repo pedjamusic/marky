@@ -5,6 +5,7 @@ set(marky_core_sources
     src/Document.cpp
     src/InlineSyntax.cpp
     src/ProjectEntry.cpp
+    src/ProjectTree.cpp
     src/ReferenceLabel.cpp
 )
 add_library(marky_core STATIC ${marky_core_sources})

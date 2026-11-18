@@ -18,7 +18,8 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T11.S3 and T11 are accepted and delivered.** User **PASS** ("pass"), 2026-11-15, accepts E94 (E95). The accepted candidate landed on `main` as `d04f4ab` (E96). T12.S1 received the native comparison cases and known differences in OWE-T11. [Verification and manual steps](#t11s3-mac-run)
 - **T12.S1 is complete.** User **PASS** ("then pass"), 2026-11-15, accepted the candidate of E98 after the full review (E99). [PR #6](https://github.com/pedjamusic/marky/pull/6) landed on `main` as `230ee8f` (E100). The approved performance comparison passes and resolves B08 (E101). [Comparison results](T12-S1-READER-COMPARISON.md)
 - **T12.S2 and T12 are complete.** User **PASS** ("pass"), 2026-11-16, accepts the signed Release candidate in E102. The C++ reader landed on `main` as `bb03141` (E104). [Candidate and verification](T12-S2-PRODUCTION-CUTOVER.md#candidate-and-verification-record) · [T13.S1 scope](phases/06-project-rules.md#t13--eligibility-and-project-trees)
-- **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 tree assembly is next when selected.
+- **T13.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts E106. The portable project-entry classifier landed on `main` as `2d919f7` (E107–E108). T13.S2 follows below.
+- **T13.S2 and T13 are accepted.** User **PASS** ("pass"), 2026-11-18, accepts the portable project tree candidate (E110–E111). Integrate the accepted candidate. T14.S1 and T15.S1 can follow when selected.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -40,7 +41,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T10 | [04](phases/04-inline-semantics.md) | done | T10.S1 done; T10.S2 done; T10.S3 done | E78–E81 record S1 verification, user PASS, and integration. E82–E84 record the same steps for S2. E85–E87 verify S3 and the full portable semantic corpus and record user PASS and integration. |
 | T11 | [05](phases/05-mac-document-integration.md) | done | T11.S1 done; T11.S2 done; T11.S3 done | E88–E93 cover native text and blocks. E94–E96 record verification, user PASS, and integration for asynchronous loading and cached settings rerender. |
 | T12 | [05](phases/05-mac-document-integration.md) | done | T12.S1 done; T12.S2 done | E97–E101 record the parity and performance evidence. B06 and B08 are resolved. E102–E104 record candidate verification, user PASS, and integration. |
-| T13 | [06](phases/06-project-rules.md) | in_progress | T13.S1 done; T13.S2 queued | E106 verifies the branch candidate. E107 records user PASS. E108 records main integration. |
+| T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E111 verify and accept S2. |
 | T14 | [06](phases/06-project-rules.md) | queued | T14.S1 queued; T14.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T15 | [06](phases/06-project-rules.md) | queued | T15.S1 queued; T15.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -82,7 +83,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T10 | T10 | T11, T12 | closed | E85 supplies the C run views and the full portable corpus. E88–E89 and E91–E92 close the T11 receipt with accepted native link destinations, inline alt text, and standalone image presentation. T12 receipt closed with the full native corpus and signed candidate acceptance (E102–E103). |
 | OWE-T11 | T11 | T12 | closed | E88–E95 deliver `CoreMarkdownParserTests` for native mapping, lifetime and Swift/core comparisons, `MarkdownRegressionTests` for loading through both parsers, and the Debug reader route for native inspection. T12 receipt closed with E97–E98 parity and quote evidence and E102–E103 dense-document, load lifecycle, and signed candidate acceptance. |
 | OWE-T12 | T12 | T17, T18 | open | E102 supplies the [cutover evidence and Swift removal inventory](T12-S2-PRODUCTION-CUTOVER.md). E103 accepts the cutover. T17 records fixed-baseline performance and T18 verifies removal against the inventory. |
-| OWE-T13 | T13 | T16 | planned | Native enumeration and complete/partial/failure cases satisfy metadata/tree fixtures. |
+| OWE-T13 | T13 | T16 | open | E106 and E109 supply accepted eligibility, tree and scan-state fixtures. Close with native enumeration and complete, single-file partial, failed and unknown cases, including preservation of favorites outside a partial view. |
 | OWE-T14 | T14 | T16 | planned | Native search/favorites/outline checks satisfy matching/order/filter/index fixtures. |
 | OWE-T15 | T15 | T16 | planned | Native persistence integration preserves availability, latest-store edits, and authorized alias cases. |
 | OWE-T16 | T16 | T17, T19 | planned | T17 resource/performance results on fixed large projects; T19 final signed native acceptance. |
@@ -208,6 +209,9 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E106 | T13.S1 branch candidate | Uncommitted on `codex/t13-s1-project-entry-eligibility` from `17706bcb8185d5414422efa9ab4f2cebb9db757f`. Five-file core patch SHA-256 `c80ed2ef47c44bb72adbdfb8867c773d171073431b6059cfcebf1726b514209a`, excluding this ledger. | [Branch verification below](#t13s1-mac-run). The standards review changed the Kelvin-sign fixture to explicit UTF-8 bytes for compiler character-set independence. The spec review confirmed native metadata ownership and per-entry classification. Debug, Release, and ASan/UBSan CTest passed 3/3 each. Xcode passed 127 unit and 11 UI tests, with 3 opt-in performance tests skipped and no failures. Windows and Linux execution remain open under B03. | User PASS recorded in E107. |
 | E107 | T13.S1 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E106. | Verified all six branch files byte for byte against E106 before recording acceptance. The core sources, build inputs, and test fixtures match the tested candidate. | PASS authorizes commit, fast-forward merge to main, main push, and merged-branch cleanup. |
 | E108 | T13.S1 integration | Accepted candidate and PASS record committed as `2d919f75b9c277d096d528d0ad3664dff22660a1`, 2026-11-18. | The staged core files matched E106. Local main fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the accepted commit before the merged local task branch was deleted. This ledger-only closeout uses the same main push authorization. | T13.S1 delivered. T13.S2 tree assembly is next when selected. |
+| E109 | T13.S2 portable project tree assembly | Isolated source snapshot from clean `main/0076f735d16386c912856a6924a47442f7b535d3`. Nine-file core patch SHA-256 `e1be7e32eb6ade111756505e5d40692f02c34674b7c643b07f71da33292b4c2b`, excluding this ledger. | [Mac verification below](#t13s2-mac-run). Debug, Release, and ASan/UBSan CTest passed 3/3 each. Two Release negative controls failed at the expected checks. Xcode passed 127 unit tests in 136 executions. | User PASS and local branch authorization pending. Windows/MSVC and Linux/GCC execution remain open under B03. |
+| E110 | T13.S2 branch candidate | Uncommitted on `codex/t13-s2-project-tree` from `0076f735d16386c912856a6924a47442f7b535d3`. | Applied the E109 patch and compared the core files and original ledger byte for byte with the verified snapshot before recording this branch checkpoint. `git diff --check` passed. | E111 records user PASS. |
+| E111 | T13.S2 and T13 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E110. | Rechecked the core files byte for byte against the verified E109 snapshot. `git diff --check` passed. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 
 ### T06.S1 Mac run
 
@@ -566,6 +570,16 @@ xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,a
 
 The complete Mac scheme reported 138 passed test functions in 147 passing executions, zero failures, and three performance skips because the opt-in fixtures were unset. The branch patch, logs, and result bundle are in `/tmp/MarkyT13S1-branch.ImrS7v/`.
 
+### T13.S2 Mac run
+
+[The C interface](../../core/include/MarkyCore.h) consumes the project root and entries in parent-first order. The caller supplies stable opaque identities, one name segment per child, metadata, scan state, and desired sibling order. The output owns its strings and uses dense parent indices. It retains eligible documents and their ancestors, including distinct links to a shared target. Empty branches are removed and the project root survives an empty result. T14 can use the parent indices and segments to index retained entries. T15 can use the scan state to distinguish when native absence probing is allowed. Favorite removal requires a complete scan and a separate authorized probe confirming absence. T16 owns native enumeration and adoption of project results. Failed or unknown scans and unresolved required metadata produce no tree.
+
+The fixture includes a 16,384-level hierarchy, nonalphabetical sibling order, aliases, a selected-file partial view, empty complete and partial results, invalid parent references, and ownership checks. The fault suite injects an allocation failure after the first node is copied and cancels a second build at the same point while an independent build succeeds.
+
+Ran on arm64 macOS 27.2.1 (26B131), Apple Clang 21.0.0, CMake 4.4.5, and Xcode 27.2 (27B52). From the snapshot root, use the [T13.S1 commands](#t13s1-mac-run) for Debug, Release and ASan/UBSan. Each passed 3/3 CTest targets. The C header and tree implementation passed strict C11 and C++20 syntax checks. The archive exported the tree functions with C linkage and omitted test checkpoints.
+
+Two isolated Release builds independently removed ancestor retention and upgraded partial results to complete. The core executable returned nonzero for each and reported the corresponding fixture failure. The original Release build passed. The T13.S1 focused Xcode unit test command with a fresh result bundle passed 127 unit tests in 136 executions, with no failures or skips. UI and signed-app acceptance belong to T16. The core patch and local results are in `/tmp/MarkyT13S2.XHGXNW/`.
+
 ## Git authorization and integration
 
 This is independent of technical completion and user acceptance. Record the actual user instruction and operation scope; user PASS supplies integration authorization under the clarified repository policy. The first table records historical T00 operations only.
@@ -588,6 +602,14 @@ This is independent of technical completion and user acceptance. Record the actu
 | Core eligibility and verification | User selected T13.S1, 2026-11-18 | Implemented and verified in an isolated source snapshot (E105). |
 | Create local task branch and apply candidate | User replied **“Approved”**, 2026-11-18 | Created `codex/t13-s1-project-entry-eligibility` from clean `main/17706bc` and verified that the six applied files matched E105 before review. |
 | Commit, merge, push, and delete merged branch | User **PASS** ("pass"), 2026-11-18 | Authorized in E107 and executed in E108. |
+
+### T13.S2 authorization
+
+| Operation | Authorization | Executed / evidence |
+| --- | --- | --- |
+| Core tree assembly and verification | User selected T13.S2, 2026-11-18 | Implemented and verified in an isolated source snapshot (E109). |
+| Create local task branch and apply candidate | User replied **“Approve branch creation”**, 2026-11-18 | Created `codex/t13-s2-project-tree` from clean `main/0076f73` and applied the verified candidate (E110). |
+| Commit, merge, push, and delete merged branch | User **PASS** ("pass"), 2026-11-18 | Authorized in E111. Integration pending. |
 
 ### T01.S1 authorization
 

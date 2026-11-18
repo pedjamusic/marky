@@ -66,6 +66,72 @@ void check_document_failure(const auto& check, Checkpoint injection_point,
     }
 }
 
+void check_project_tree_interruption(const auto& check) {
+    const std::string root_identity(128, 'p');
+    const MarkyProjectTreeEntry entries[] = {
+        {{root_identity.data(), root_identity.size()}, {"Project", 7}, 0, {}},
+        {{"document", 8}, {"README.md", 9}, 0, {{"md", 2}, MARKY_PROJECT_ENTRY_REGULAR_FILE, 0, false}}
+    };
+
+    MarkyProjectTree* output = nullptr;
+    on_checkpoint = [](Checkpoint point) {
+        if (point == Checkpoint::afterProjectTreeNode) {
+            throw std::bad_alloc{};
+        }
+    };
+    const auto failure = marky_project_tree_create(entries, 2, MARKY_PROJECT_SCAN_COMPLETE, nullptr, &output);
+    on_checkpoint = {};
+    check(failure == MARKY_STATUS_ALLOCATION_FAILURE && output == nullptr,
+          "allocation failure after copying the root leaves no published tree");
+    marky_project_tree_release(output);
+
+    MarkyCancellationToken* raw_token = nullptr;
+    const auto token_status = marky_cancellation_token_create(&raw_token);
+    const std::unique_ptr<MarkyCancellationToken, decltype(&marky_cancellation_token_release)>
+        token(raw_token, marky_cancellation_token_release);
+    check(token_status == MARKY_STATUS_OK && token != nullptr, "create project tree cancellation token");
+    if (!token) {
+        return;
+    }
+
+    std::latch root_copied(1);
+    std::latch resume_worker(1);
+    MarkyStatus worker_status = MARKY_STATUS_OK;
+    MarkyProjectTree* worker_tree = nullptr;
+    bool paused = false;
+    std::thread worker([&] {
+        on_checkpoint = [&](Checkpoint point) {
+            if (point != Checkpoint::afterProjectTreeNode) {
+                return;
+            }
+            if (paused) {
+                throw 42;
+            }
+            paused = true;
+            root_copied.count_down();
+            resume_worker.wait();
+        };
+        worker_status = marky_project_tree_create(entries, 2, MARKY_PROJECT_SCAN_COMPLETE, token.get(), &worker_tree);
+        if (!paused) {
+            root_copied.count_down();
+        }
+    });
+    root_copied.wait();
+    output = nullptr;
+    const auto recovered = marky_project_tree_create(entries, 2, MARKY_PROJECT_SCAN_PARTIAL, nullptr, &output);
+    marky_cancellation_token_request(token.get());
+    resume_worker.count_down();
+    worker.join();
+
+    check(paused && worker_status == MARKY_STATUS_CANCELLED && worker_tree == nullptr,
+          "cancelling after copying the root stops before copying the next node");
+    check(recovered == MARKY_STATUS_OK && marky_project_tree_scan_state(output) == MARKY_PROJECT_SCAN_PARTIAL &&
+              marky_project_tree_node_count(output) == 2,
+          "an independent tree assembly succeeds during a paused build after failure");
+    marky_project_tree_release(worker_tree);
+    marky_project_tree_release(output);
+}
+
 void check_token_allocation_failure(const auto& check, MarkyCancellationToken* existing) {
     on_checkpoint = [](Checkpoint point) {
         if (point == Checkpoint::beforeTokenAllocation) {
@@ -177,6 +243,7 @@ int main() {
     }
 
     check_token_allocation_failure(check, token.get());
+    check_project_tree_interruption(check);
     // After line four, the heading is complete and the fence has pending literal text.
     constexpr size_t in_open_fence = 4;
     check_document_failure(check, Checkpoint::afterBlockLine,

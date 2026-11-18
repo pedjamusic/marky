@@ -8,7 +8,8 @@ enum class Checkpoint {
     afterBlockLine,
     afterInlineRegion,
     beforeDocumentAllocation,
-    beforeDocumentPublication
+    beforeDocumentPublication,
+    afterProjectTreeNode
 };
 
 void checkpoint(Checkpoint point);

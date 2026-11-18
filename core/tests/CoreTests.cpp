@@ -15,6 +15,7 @@
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -79,6 +80,153 @@ void check_project_entry_eligibility(const auto& check) {
     constexpr char extension_buffer[] = {'m', 'd', 'x'};
     check(marky_project_classify_entry({{extension_buffer, 2}, regular, unknown, false}) == document,
           "extension length limits reads to the supplied bytes");
+}
+
+void check_project_tree(const auto& check) {
+    constexpr auto complete = MARKY_PROJECT_SCAN_COMPLETE;
+    constexpr auto partial = MARKY_PROJECT_SCAN_PARTIAL;
+    constexpr auto directory = MARKY_PROJECT_ENTRY_DIRECTORY;
+    constexpr auto regular = MARKY_PROJECT_ENTRY_REGULAR_FILE;
+    constexpr auto symlink = MARKY_PROJECT_ENTRY_SYMLINK;
+    constexpr auto unknown = MARKY_PROJECT_ENTRY_UNKNOWN;
+
+    const auto entry = [](std::string_view identity, std::string_view name, size_t parent,
+                          MarkyProjectEntryKind kind, std::string_view extension = {},
+                          MarkyProjectEntryKind target = MARKY_PROJECT_ENTRY_UNKNOWN) {
+        return MarkyProjectTreeEntry{
+            {identity.data(), identity.size()}, {name.data(), name.size()}, parent,
+            {{extension.data(), extension.size()}, kind, target, false}
+        };
+    };
+    char link_name[] = "z-link.md";
+    std::array entries = {
+        entry("project", {}, 0, unknown),
+        entry("empty", "Empty", 0, directory),
+        entry("chapters", "Chapters", 0, directory),
+        entry("nested-empty", "Nested", 1, directory),
+        entry("deep", "Deep", 2, directory),
+        entry("readme", "README.md", 0, regular, "md"),
+        entry("text", "NOTES.txt", 3, regular, "txt"),
+        entry({"z\0link", 6}, link_name, 4, symlink, "md", regular),
+        entry("a-link", "a-link.MKD", 4, symlink, "MKD", regular),
+        entry("dir-link", "dir-link.md", 0, symlink, "md", directory)
+    };
+    const auto check_node = [&check](const MarkyProjectTree* tree, size_t index, size_t parent,
+                                     bool is_directory, std::string_view identity, std::string_view name) {
+        MarkyProjectTreeNodeView node{};
+        const auto status = marky_project_tree_node_at(tree, index, &node);
+        check(status == MARKY_STATUS_OK &&
+                  std::string_view(node.identity.data, node.identity.byte_count) == identity &&
+                  std::string_view(node.name.data, node.name.byte_count) == name &&
+                  node.parent_index == parent && node.is_directory == is_directory,
+              identity);
+    };
+
+    MarkyProjectTree* raw_tree = nullptr;
+    const auto status = marky_project_tree_create(entries.data(), entries.size(), complete, nullptr, &raw_tree);
+    const std::unique_ptr<MarkyProjectTree, decltype(&marky_project_tree_release)>
+        tree(raw_tree, marky_project_tree_release);
+    link_name[0] = '?';
+    check(status == MARKY_STATUS_OK && tree && marky_project_tree_scan_state(tree.get()) == complete,
+          "full enumeration produces a complete tree");
+    check(marky_project_tree_node_count(tree.get()) == 6,
+          "prune nested empty branches and retain all ancestors of eligible documents");
+    check_node(tree.get(), 0, 0, true, "project", "");
+    check_node(tree.get(), 1, 0, true, "chapters", "Chapters");
+    check_node(tree.get(), 2, 1, true, "deep", "Deep");
+    check_node(tree.get(), 3, 0, false, "readme", "README.md");
+    check_node(tree.get(), 4, 2, false, {"z\0link", 6}, "z-link.md");
+    check_node(tree.get(), 5, 2, false, "a-link", "a-link.MKD");
+
+    const std::array picked_file = {entries[0], entries[5]};
+    raw_tree = nullptr;
+    check(marky_project_tree_create(picked_file.data(), picked_file.size(), partial, nullptr, &raw_tree)
+              == MARKY_STATUS_OK && raw_tree != nullptr &&
+              marky_project_tree_scan_state(raw_tree) == partial &&
+              marky_project_tree_node_count(raw_tree) == 2,
+          "a picked file outside a full scan carries partial coverage");
+    check_node(raw_tree, 1, 0, false, "readme", "README.md");
+    marky_project_tree_release(raw_tree);
+
+    for (const MarkyProjectScanState state : {complete, partial}) {
+        raw_tree = nullptr;
+        check(marky_project_tree_create(entries.data(), 1, state, nullptr, &raw_tree) == MARKY_STATUS_OK &&
+                  raw_tree != nullptr && marky_project_tree_scan_state(raw_tree) == state &&
+                  marky_project_tree_node_count(raw_tree) == 1,
+              "the root survives an empty view without changing its coverage");
+        marky_project_tree_release(raw_tree);
+    }
+
+    const auto check_failure = [&](const MarkyProjectTreeEntry* input, size_t count, MarkyProjectScanState state,
+                                   const MarkyCancellationToken* token, MarkyStatus expected, std::string_view label) {
+        MarkyProjectTree* result = tree.get();
+        check(marky_project_tree_create(input, count, state, token, &result) == expected && result == nullptr, label);
+        if (result != tree.get()) {
+            marky_project_tree_release(result);
+        }
+    };
+    check_failure(nullptr, 0, MARKY_PROJECT_SCAN_FAILED, nullptr, MARKY_STATUS_PROJECT_SCAN_FAILED,
+                  "a failed enumeration cannot publish even an empty tree");
+    check_failure(entries.data(), entries.size(), MARKY_PROJECT_SCAN_UNKNOWN, nullptr, MARKY_STATUS_PROJECT_SCAN_UNKNOWN,
+                  "unknown coverage cannot publish the supplied entries");
+    check_failure(nullptr, 0, complete, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                  "a successful enumeration requires a root");
+    check_failure(entries.data(), entries.size(), 99, nullptr, MARKY_STATUS_INVALID_ARGUMENT, "unknown scan enum");
+
+    const std::array missing_kind = {entries[0], entry("unresolved", "unknown.md", 0, unknown, "md")};
+    check_failure(missing_kind.data(), missing_kind.size(), complete, nullptr, MARKY_STATUS_PROJECT_SCAN_UNKNOWN,
+                  "an unclassified child cannot be treated as absent in a complete scan");
+    const std::array missing_target = {entries[0], entry("unresolved", "link.md", 0, symlink, "md")};
+    for (const MarkyProjectScanState state : {complete, partial}) {
+        check_failure(missing_target.data(), missing_target.size(), state, nullptr, MARKY_STATUS_PROJECT_SCAN_UNKNOWN,
+                      "a submitted Markdown link requires target metadata before publishing");
+    }
+
+    const std::array cyclic = {entries[0], entry("cycle", "Cycle", 1, directory)};
+    check_failure(cyclic.data(), cyclic.size(), complete, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                  "an entry cannot parent itself");
+    const std::array document_parent = {entries[0], entries[5], entry("child", "child.md", 1, regular, "md")};
+    check_failure(document_parent.data(), document_parent.size(), complete, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                  "entries cannot have a document parent");
+    const std::array missing_identity = {entries[0], entry({}, "README.md", 0, regular, "md")};
+    check_failure(missing_identity.data(), missing_identity.size(), complete, nullptr, MARKY_STATUS_INVALID_ARGUMENT,
+                  "retained entries require opaque identities");
+
+    check(marky_project_tree_scan_state(nullptr) == MARKY_PROJECT_SCAN_UNKNOWN &&
+              marky_project_tree_node_count(nullptr) == 0,
+          "a missing tree cannot be used as complete evidence");
+    MarkyProjectTreeNodeView node{};
+    check(marky_project_tree_node_at(tree.get(), 6, &node) == MARKY_STATUS_INVALID_ARGUMENT &&
+              marky_project_tree_node_at(tree.get(), 0, nullptr) == MARKY_STATUS_INVALID_ARGUMENT &&
+              marky_project_tree_create(entries.data(), entries.size(), complete, nullptr, nullptr)
+                  == MARKY_STATUS_INVALID_ARGUMENT,
+          "tree interface rejects invalid outputs and indices");
+
+    MarkyCancellationToken* token = nullptr;
+    check(marky_cancellation_token_create(&token) == MARKY_STATUS_OK && token != nullptr,
+          "create an independent project cancellation token");
+    marky_cancellation_token_request(token);
+    check_failure(entries.data(), entries.size(), complete, token, MARKY_STATUS_CANCELLED,
+                  "a cancelled assembly publishes no tree");
+    marky_cancellation_token_release(token);
+
+    constexpr size_t depth = 16'384;
+    std::vector<MarkyProjectTreeEntry> deep_tree;
+    deep_tree.reserve(depth + 1);
+    deep_tree.push_back(entries[0]);
+    std::vector<std::string> identities;
+    identities.reserve(depth);
+    for (size_t index = 1; index <= depth; ++index) {
+        identities.push_back(std::to_string(index));
+        deep_tree.push_back(entry(identities.back(), "node", index - 1,
+                                  index == depth ? regular : directory, index == depth ? "md" : ""));
+    }
+    raw_tree = nullptr;
+    check(marky_project_tree_create(deep_tree.data(), deep_tree.size(), complete, nullptr, &raw_tree)
+              == MARKY_STATUS_OK && marky_project_tree_node_count(raw_tree) == depth + 1,
+          "deep projects build and release without recursive stack growth");
+    check_node(raw_tree, depth, depth - 1, false, identities.back(), "node");
+    marky_project_tree_release(raw_tree);
 }
 
 void check_owned_paragraph(const auto& check) {
@@ -1678,6 +1826,7 @@ int main() {
     };
 
     check_project_entry_eligibility(check);
+    check_project_tree(check);
     check_owned_paragraph(check);
     check_empty_document(check, nullptr);
     check_empty_document(check, "");
