@@ -655,6 +655,46 @@ struct MarkyTests {
     }
 
     @MainActor
+    @Test("the project tree preserves native order and linked document identities through a folder alias")
+    func projectTreePreservesOrderAndLinkedIdentity() async throws {
+        try await Self.withTemporaryDirectory { location in
+            let project = location.appendingPathComponent("project", isDirectory: true)
+            let folder = project.appendingPathComponent("z Notes", isDirectory: true)
+            let empty = project.appendingPathComponent("empty", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
+            let document = folder.appendingPathComponent("Café.mKd")
+            try "# Document".write(to: document, atomically: true, encoding: .utf8)
+            try "Not Markdown".write(to: empty.appendingPathComponent("notes.txt"), atomically: true, encoding: .utf8)
+            try "# Hidden".write(to: project.appendingPathComponent(".hidden.md"), atomically: true, encoding: .utf8)
+            try "# Readme".write(to: project.appendingPathComponent("a README.MD"), atomically: true, encoding: .utf8)
+            let link = project.appendingPathComponent("B link.md")
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: document)
+            let alias = location.appendingPathComponent("alias", isDirectory: true)
+            try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: project)
+
+            let tree = try await FileNode.loadProjectTree(at: alias)
+
+            #expect(tree.url == project)
+            #expect(tree.children?.map(\.name) == ["z Notes", "a README.MD", "B link.md"])
+            let nested = try #require(tree.children?.first?.children?.first)
+            #expect(nested.url == document)
+            #expect(tree.children?.last?.url == link)
+        }
+    }
+
+    @MainActor
+    @Test("dangling Markdown links are omitted from the project tree")
+    func scannerOmitsDanglingMarkdownLink() async throws {
+        try await Self.withTemporaryDirectory { root in
+            try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("broken.md"),
+                                                       withDestinationURL: root.appendingPathComponent("absent.md"))
+            let tree = try FileNode.buildProjectTree(at: root)
+            #expect(tree.children == [])
+        }
+    }
+
+    @MainActor
     @Test("an unreadable child makes a direct folder scan incomplete")
     func scannerReportsUnreadableChild() async throws {
         #if os(macOS)

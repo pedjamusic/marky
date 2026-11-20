@@ -85,7 +85,7 @@ nonisolated enum CoreMarkdownParser {
     @concurrent
     static func parse(_ source: String) async throws -> CoreMarkdownDocument {
         try Task.checkCancellation()
-        let token = try CancellationToken()
+        let token = try CoreCancellationToken(failure: failure(for:))
         return try await withTaskCancellationHandler {
             try Task.checkCancellation()
             let document = try copyDocument(from: source, token: token)
@@ -96,7 +96,7 @@ nonisolated enum CoreMarkdownParser {
         }
     }
 
-    private static func copyDocument(from source: String, token: CancellationToken) throws -> CoreMarkdownDocument {
+    private static func copyDocument(from source: String, token: CoreCancellationToken) throws -> CoreMarkdownDocument {
         var input = source
         let quotePrefix = MarkdownContentBlocks.nestedQuoteIndicator
         let quotePrefixLength = quotePrefix.utf8.count
@@ -311,31 +311,6 @@ nonisolated enum CoreMarkdownParser {
             CancellationError()
         default:
             ParseError.internalFailure
-        }
-    }
-
-    // The handle is immutable and both closures retain its owner while they use it.
-    // The core explicitly permits concurrent cancellation requests during a parse.
-    private final class CancellationToken: @unchecked Sendable {
-        let handle: OpaquePointer
-
-        init() throws {
-            var result: OpaquePointer?
-            let status = marky_cancellation_token_create(&result)
-            guard let result else { throw failure(for: status) }
-            guard status == MarkyStatus(MARKY_STATUS_OK) else {
-                marky_cancellation_token_release(result)
-                throw ParseError.internalFailure
-            }
-            handle = result
-        }
-
-        deinit {
-            marky_cancellation_token_release(handle)
-        }
-
-        func request() {
-            marky_cancellation_token_request(handle)
         }
     }
 }

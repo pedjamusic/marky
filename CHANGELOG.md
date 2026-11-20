@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 - Standalone images display at their natural size when they fit the reading column. Click an image to open a native preview with fit, actual-size, and zoom controls.
 - Large documents lay out blocks as you scroll, so the first page opens faster and uses less memory.
 - The macOS reader uses Marky's C++ Markdown parser for all documents.
+- The macOS project scanner uses the C++ core to select Markdown files and omit empty folders.
 
 ## [0.2.4] - 2026-11-06
 

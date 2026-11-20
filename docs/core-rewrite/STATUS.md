@@ -1,6 +1,6 @@
 # Core rewrite status
 
-Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
+Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
 
 ## Current checkpoint
 
@@ -23,7 +23,8 @@ Updated: 2026-11-18. This is the authoritative live ledger. [README](README.md) 
 - **T14.S1 is complete.** User **PASS** ("pass"), 2026-11-18, accepts the verified project index candidate (E113–E115). The core landed on `main` as `db44c7d` (E116). T14.S2 consumes this index for query filtering.
 - **T14.S2 and T14 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the [portable query filter](#t14s2-mac-run) in E119. The accepted core landed on `main` as `e680cce` (E120).
 - **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124).
-- **T15.S2 and T15 are complete.** User **PASS** (E126) accepts the [verified reconciliation candidate](#t15s2-mac-run). The core landed on `main` as `636d33b` (E128). T16.S1 is next when selected.
+- **T15.S2 and T15 are complete.** User **PASS** (E126) accepts the [verified reconciliation candidate](#t15s2-mac-run). The core landed on `main` as `636d33b` (E128).
+- **T16.S1 is accepted.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. E129 verifies the [signed candidate](#t16s1-mac-run), E130 records user **PASS**, and E131 records branch placement.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -48,7 +49,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
-| T16 | [06](phases/06-project-rules.md) | queued | T16.S1 queued; T16.S2 queued; T16.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 queued; T16.S3 queued | E129–E131 record verification, acceptance, and branch placement for T16.S1. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -233,6 +234,32 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E126 | T15.S2 user acceptance | User **PASS** ("pass"), 2026-11-18, accepts the isolated E125 candidate. | The patch hash matches E125, both patches still apply cleanly to `main/3da01b2`, and the Release CTest suite passed 3/3. | PASS authorizes commit, merge to main, main push, and merged-branch cleanup. Branch creation requires separate approval. |
 | E127 | T15.S2 branch placement | The user clarified the Git workflow on 2026-11-18. Work with slices goes on a branch, and small standalone changes may stay on main. Created `codex/t15-s2-favorite-reconciliation` from clean `main/3da01b2` for the accepted patch. | Compared the four applied files with the candidate before this ledger update. Release CTest passed 3/3 from `BranchRelease`. `git diff --check` passed. | E126 authorizes integration. |
 | E128 | T15.S2 and T15 integration | The accepted reconciliation landed on `main` as `636d33ba1aa5dc16f13791b738553bea001fcd42`, 2026-11-18. | Local `main` fast-forwarded. `git push origin main` succeeded, and `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T15 is complete. OWE-T15 passes the reconciliation contract and fixtures to T16.S2. |
+| E129 | T16.S1 native project scan | Isolated source snapshot from clean `main/55d9fe2494d296d5067acc5994574582d10759f5`. Five-file patch SHA-256 `eb79b8d3677925a46e511a013b44696075d52e98b0e83c6afc29273b6b44e832` excludes this ledger. | [Mac verification](#t16s1-mac-run). Xcode passed 129 unit tests and 11 UI tests. Debug and Release CTest passed 3/3 each. The signed Release app passed native folder picker, linked-file reading, failed-open preservation, and relaunch restoration checks. | E130 records acceptance. |
+| E130 | T16.S1 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E129. | Rechecked the patch and executable SHA-256 values, clean patch application and reversal, and the app signature. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
+| E131 | T16.S1 branch placement | User replied "pass" again on 2026-11-20 with branch approval the remaining step. Created `codex/t16-s1-native-project-scan` from clean `main/55d9fe2`. | The temporary files had expired. The reconstructed five-file patch exactly matched E129's SHA-256. It passed clean application and reversal checks on the branch. Xcode reran all 129 unit tests across 138 executions with no failures. | E130 authorizes integration. |
+
+### T16.S1 Mac run
+
+The original candidate was Marky 0.2.4 (5) on macOS 27.2.1 (26B131) arm64 with Xcode 27.2 (27B52). The signed Release executable SHA-256 was `1ed2afe97d0a93db65ab36e30996f948f13d0beb5ab0dbb6ab89c9210be0d30e`. Strict signature verification passed. The entitlements included the app sandbox and read-only user-selected file access. The temporary app bundle has expired.
+
+- Debug Xcode passed 129 unit tests and 11 UI tests. Three opt-in performance UI tests skipped. Scanner coverage includes folder aliases, native order, Unicode extensions, distinct linked-file identities, packages, special files, dangling links, and unreadable children. Existing regressions cover unavailable bookmarks, explicit-open precedence, latest-request publication, failed-open preservation, and balanced security scopes.
+- The signed Release app opened a generated project through the native picker. The outline omitted the empty folder, hidden file, package, dangling link, and linked directory. Selecting the Markdown link displayed its target. Opening a folder with an unreadable child showed a permissions error and preserved the active project and document. The folder restored on relaunch and the link remained readable. This run used a separate preferences suite.
+- Debug and Release CTest passed 3/3 each under Apple Clang 21.0.0. The portable sources are unchanged in this slice. Windows and Linux execution remains open under B03.
+- The optimized scanner probe returned 5,002 Markdown files and 601 directories on the fixed T02.S2 project. The candidate threw `CancellationError` in all six cancellation runs. A deliberately modified core that retained empty folders failed the count check. The five measured scan times per side overlapped. This scanner check does not establish the full-app performance result required in T17.
+
+Run the native checks from the repository root. Use separate derived-data directories for the test and Release builds.
+
+```sh
+xcodebuild -scheme Marky -project Marky.xcodeproj \
+  -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO \
+  -derivedDataPath /tmp/MarkyT16S1-check-debug test \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+xcodebuild -scheme Marky -project Marky.xcodeproj -configuration Release \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/MarkyT16S1-check-release build \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+```
+
+From `core/`, configure, build, and run CTest with `macos-appleclang-debug` and `macos-appleclang-release`.
 
 ### T06.S1 Mac run
 
