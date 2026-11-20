@@ -25,7 +25,8 @@ Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) 
 - **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124).
 - **T15.S2 and T15 are complete.** User **PASS** (E126) accepts the [verified reconciliation candidate](#t15s2-mac-run). The core landed on `main` as `636d33b` (E128).
 - **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132).
-- **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136). T16.S3 native UI acceptance is next when selected.
+- **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136).
+- **T16.S3 and T16 are complete.** User **PASS** (E138) accepts the [signed macOS candidate](#t16s3-mac-run) verified in E137. T17.S1 is next when selected.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -50,7 +51,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
-| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 done; T16.S3 queued | E129–E132 record T16.S1. E133–E136 record T16.S2 branch authorization, verification, acceptance, and integration. |
+| T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137 supplies the signed T16.S3 candidate and checklist. E138 records user acceptance. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -92,7 +93,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T13 | T13 | T16 | closed | E129 and E134 supply native enumeration, complete and partial scans, failed-open preservation, and retention when availability is unknown. E130 and E135 record user acceptance. |
 | OWE-T14 | T14 | T16 | closed | E134 verifies native matching, ordering, filtering, and outline behavior against the index and query fixtures in E113 and E117. E135 records user acceptance. |
 | OWE-T15 | T15 | T16 | closed | E134 verifies native persistence for availability, latest-store edits, and authorized aliases against the [T15.S2 fixtures and API](#t15s2-mac-run). E135 records user acceptance. |
-| OWE-T16 | T16 | T17, T19 | planned | T17 resource/performance results on fixed large projects; T19 final signed native acceptance. |
+| OWE-T16 | T16 | T17, T19 | open | E137 and E138 supply the accepted native project integration, the fixed T02.S2 project and 12-copy cancellation fixture, and the signed-app checklist. T17 owes resource and performance results. T19 owes final signed native acceptance. |
 | OWE-T17 | T17 | T19 | planned | Required corrective findings resolved before T18 acceptance; final T19 execution/audit verifies fixes, sanitizer/resource/performance evidence. |
 | OWE-T18 | T18 | T19 | planned | Final clean builds/dependency inspection and audit verify final source inventory, removal, interface docs, and commands. |
 
@@ -243,6 +244,34 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E134 | T16.S2 project search and favorites | Uncommitted changes on the approved branch. Nine-file patch SHA-256 `5a72c11fe780c9dec6d3d25d3853976f15b78ad7fc7da70034fda5f702ead872` excludes this ledger. | [Mac run](#t16s2-mac-run). Xcode passed 131 unit tests and 12 UI tests across the full and focused runs. Debug, Release, and ASan/UBSan CTest each passed 3/3. The signed app opened and searched the fixed large folder. | User PASS and integration are pending. Windows/MSVC and Linux/GCC execution remain open under B03. |
 | E135 | T16.S2 acceptance | User **PASS** ("pass"), 2026-11-20, accepts E134. | Rechecked the signed executable and patch SHA-256 values, strict code signature, and clean patch reversal. | PASS authorizes the focused commit, fast-forward merge into local main, main push, and merged branch cleanup. |
 | E136 | T16.S2 integration | The accepted candidate landed on `main` as `878ccb1da9136aa0a51f5db190a82fced08cca4d`, 2026-11-20. | The staged patch matched E134 byte for byte. Local `main` fast-forwarded, and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T16.S2 is complete. T16.S3 is next when selected. |
+| E137 | T16.S3 native UI verification | Built clean `main` at `fee89c791ab1524be7da743c2c5f7295dc8df496`. The user authorized and the session created `codex/t16-s3-native-acceptance` from that revision on 2026-11-20. | [Mac run](#t16s3-mac-run). All 131 unit and 12 UI tests passed. Three opt-in performance tests skipped. The exact signed Release app passed the project and single-file restoration checks. | User PASS pending. OWE-T16 remains planned for T17 and T19. |
+| E138 | T16.S3 and T16 acceptance | User **PASS** ("pass"), 2026-11-20, accepts E137. | Rechecked the strict signature and executable SHA-256. The PASS covers the candidate as a whole. | PASS authorizes the ledger commit, fast-forward merge into local `main`, main push, and merged branch cleanup. OWE-T16 opens for T17 and T19. |
+
+### T16.S3 Mac run
+
+The signed Release candidate is `/private/tmp/MarkyT16S3.o5bUkg/Release/Build/Products/Release/Marky.app`. It is Marky 0.2.4 (5), built with Xcode 27.2 (27B52) on macOS 27.2.1 (26B131) arm64. The ad-hoc signature passed `codesign --verify --deep --strict`. The app has sandbox and read-only user-selected file entitlements. The executable SHA-256 is `5abfcff7206d4b7146a5f135be6f51fac454ca569b372ecbf0ef27fcda95647f`.
+
+- The full Xcode scheme passed 131 unit tests and 12 UI tests with zero failures. Three opt-in performance tests skipped. Unit tests proved that closing or replacing a pending scan prevents stale results and releases candidate access. The UI suite covered native keyboard disclosure, collapse-all, search and selection, and adding, filtering, and removing a favorite.
+- With the signed app, the fixed [T02.S2 project](T02-S2-PERFORMANCE.md#fixed-inputs) opened through the native picker. A `note-09` result displayed **Note 000-0-09**. In the review folder, Left and Right collapsed and expanded **Zulu** while **Review Home** stayed open. The `ZULU` query kept the folder visible, and clearing it restored the expanded child.
+- Opening the unreadable fixture showed a permission error and preserved **Zulu Guide**. Cancelling a picker preserved the same document. After quitting and relaunching, the review folder restored and its README remained readable. A separately picked **Picked.txt** opened as a one-file view. Its text reappeared after quitting and relaunching.
+- Opening the 60,024-file cancellation fixture and immediately closing the project returned to the launch screen. The launch screen was still visible at the next check. The unit tests verify cancellation during a pending scan. The signed run checks the visible result and does not measure scan timing.
+- The signed run used an isolated preferences suite. Favorite persistence through a signed relaunch remains a manual acceptance check. VoiceOver and unavailable external volumes were not exercised. Windows/MSVC and Linux/GCC execution remains open under B03.
+
+To review the candidate, quit any running smoke-test instance of Marky. Launch the same candidate with separate review preferences.
+
+```sh
+run=/private/tmp/MarkyT16S3.o5bUkg
+open -n "$run/Release/Build/Products/Release/Marky.app" \
+	--env MARKY_TEST_DEFAULTS_SUITE=Marky.T16S3.Review.o5bUkg
+```
+
+1. Use **Open Folder** to open `ReviewProject` in the run directory. Select **README.md**, then expand **Zulu**. Use Left and Right on **Zulu** and check that **Review Home** stays open.
+2. Hover over **Zulu → Guide.md** and star it. Search for `ZULU`. **Files** should show the folder, and **Favorites** should show **Guide.md**. Select the favorite and check for **Zulu Guide**. Clear the search, quit, and rerun the launch command. Confirm that the folder and favorite return and the favorite still opens.
+3. With **Zulu Guide** open, try opening `UnreadableProject`. Dismiss the permission error and verify that the guide is still open.
+4. Open `large-fixture/project` and search for `note-09`. Open a result. With a project open, pick `CancellationProject` and immediately press Command-Shift-W. Check that Marky returns to its launch screen and stays there.
+5. Use **Open File** to select `FileOnly/Picked.txt`. Verify that its text appears and it is the only file in **Files**. Quit and rerun the launch command. The text should appear again.
+
+Repeat the build and full test with the [T16.S1 Xcode commands](#t16s1-mac-run) and fresh derived-data directories. E137 used the same signing flags and added `-resultBundlePath /private/tmp/MarkyT16S3.o5bUkg/AcceptanceTests.xcresult` to the test command. The fixed project regenerates with the [T02.S2 fixture commands](T02-S2-PERFORMANCE.md#reproduction). The cancellation fixture contains 12 copies of that project. The unreadable fixture contains a nested Markdown file whose parent directory mode is `000`.
 
 ### T16.S2 Mac run
 
