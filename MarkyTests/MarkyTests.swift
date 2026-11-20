@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MarkyCore
 import Testing
 import SwiftUI
 @testable import Marky
@@ -189,31 +190,38 @@ struct MarkyTests {
 
     @MainActor
     @Test("displayedNodes updates only from root and search query changes")
-    func displayedNodesTracksRootAndSearchQuery() {
-        let service = ThrowingProjectSessionService()
-        let viewModel = ContentViewModel(projectSessionService: service)
+    func displayedNodesTracksRootAndSearchQuery() async throws {
+        try await Self.withTemporaryDirectory { root in
+            let viewModel = ContentViewModel(projectSessionService: ThrowingProjectSessionService())
+            let readme = root.appendingPathComponent("README.md")
+            let docs = root.appendingPathComponent("docs", isDirectory: true)
+            try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
+            try "Readme".write(to: readme, atomically: true, encoding: .utf8)
+            try "Guide".write(to: docs.appendingPathComponent("GÜIDE.md"), atomically: true, encoding: .utf8)
+            viewModel.openPickedFolder(root)
+            await viewModel.waitForProjectLoad()
+            #expect(viewModel.displayedNodes.map(\.name) == ["docs", "README.md"])
 
-        let readme = FileNode(url: URL(fileURLWithPath: "/tmp/README.md"), name: "README.md", isDirectory: false, children: nil)
-        let guide = FileNode(url: URL(fileURLWithPath: "/tmp/docs/GUIDE.md"), name: "GUIDE.md", isDirectory: false, children: nil)
-        let docs = FileNode(url: URL(fileURLWithPath: "/tmp/docs"), name: "docs", isDirectory: true, children: [guide])
+            viewModel.sidebarSearchText = "  güIDE "
+            await viewModel.waitForSidebarSearch()
+            #expect(viewModel.displayedNodes.map(\.name) == ["docs"])
+            #expect(viewModel.displayedNodes.first?.children?.map(\.name) == ["GÜIDE.md"])
 
-        viewModel.root = FileNode(
-            url: URL(fileURLWithPath: "/tmp/root"),
-            name: "root",
-            isDirectory: true,
-            children: [readme, docs]
-        )
+            let beforeSelection = viewModel.displayedNodes
+            viewModel.selectedURL = readme
+            #expect(viewModel.displayedNodes == beforeSelection)
 
-        #expect(viewModel.displayedNodes.count == 2)
+            viewModel.sidebarSearchText = "güide"
+            viewModel.sidebarSearchText = "docs"
+            await viewModel.waitForSidebarSearch()
+            #expect(viewModel.displayedNodes.map(\.name) == ["docs"])
+            #expect(viewModel.displayedNodes.first?.children?.isEmpty == true)
 
-        viewModel.sidebarSearchText = "guide"
-        #expect(viewModel.displayedNodes.count == 1)
-        #expect(viewModel.displayedNodes.first?.name == "docs")
-        #expect(viewModel.displayedNodes.first?.children?.first?.name == "GUIDE.md")
-
-        let beforeSelection = viewModel.displayedNodes
-        viewModel.selectedURL = readme.url
-        #expect(viewModel.displayedNodes == beforeSelection)
+            viewModel.sidebarSearchText = "missing"
+            viewModel.sidebarSearchText = "  "
+            await viewModel.waitForSidebarSearch()
+            #expect(viewModel.displayedNodes.map(\.name) == ["docs", "README.md"])
+        }
     }
 
     @MainActor
@@ -303,11 +311,37 @@ struct MarkyTests {
             #expect(viewModel.displayedSections[0].nodes.map(\.url) == [guide])
 
             viewModel.sidebarSearchText = "notes"
+            await viewModel.waitForSidebarSearch()
 
             #expect(viewModel.displayedSections[0].title == "Favorites")
             #expect(viewModel.displayedSections[0].nodes.isEmpty)
             #expect(viewModel.displayedSections[1].nodes.count == 1)
             #expect(viewModel.displayedSections[1].nodes.first?.url == notes)
+        }
+    }
+
+    @MainActor
+    @Test("favorite search matches folder paths and sorts equal names by path")
+    func favoriteSearchMatchesRelativePaths() async throws {
+        try await Self.withTemporaryDirectory { root in
+            for folder in ["Zulu", "alpha"] {
+                let directory = root.appendingPathComponent(folder)
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try folder.write(to: directory.appendingPathComponent("Guide.md"), atomically: true, encoding: .utf8)
+            }
+            let store = InMemoryFavoritesStore()
+            store.saveFavoriteRelativePaths(["Zulu/Guide.md", "alpha/Guide.md"], for: root)
+            let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), favoritesStore: store)
+            model.openPickedFolder(root)
+            await model.waitForProjectLoad()
+            #expect(model.displayedSections.first?.nodes.map { $0.url.deletingLastPathComponent().lastPathComponent }
+                    == ["alpha", "Zulu"])
+
+            model.sidebarSearchText = "  ZULU "
+            await model.waitForSidebarSearch()
+            #expect(model.displayedNodes.map(\.name) == ["Zulu"])
+            #expect(model.displayedNodes.first?.children?.isEmpty == true)
+            #expect(model.displayedSections.first?.nodes.map(\.url) == [root.appendingPathComponent("Zulu/Guide.md")])
         }
     }
 
@@ -361,17 +395,21 @@ struct MarkyTests {
     }
 
     private actor SuspendedScan {
-        var requests: [URL: CheckedContinuation<FileNode, Error>] = [:]
-        func scan(_ url: URL) async throws -> FileNode {
+        var requests: [URL: CheckedContinuation<ProjectIndex, Error>] = [:]
+        func scan(_ url: URL) async throws -> ProjectIndex {
             try await withCheckedThrowingContinuation { requests[url] = $0 }
         }
         func hasRequest(_ url: URL) -> Bool { requests[url] != nil }
         func fail(_ url: URL) {
             requests.removeValue(forKey: url)?.resume(throwing: ProjectScanError.unreadableDirectory)
         }
-        func finish(_ url: URL) {
-            requests.removeValue(forKey: url)?.resume(returning:
-                FileNode(url: url, name: url.lastPathComponent, isDirectory: true, children: []))
+        func finish(_ url: URL) async {
+            guard let request = requests.removeValue(forKey: url) else { return }
+            do {
+                request.resume(returning: try await FileNode.loadProjectIndex(at: url))
+            } catch {
+                request.resume(throwing: error)
+            }
         }
     }
 
@@ -398,7 +436,11 @@ struct MarkyTests {
             let guide = root.appendingPathComponent("GUIDE.md")
             try "# Readme".write(to: readme, atomically: true, encoding: .utf8)
             try "# Guide".write(to: guide, atomically: true, encoding: .utf8)
-            let store = InMemoryFavoritesStore()
+            let suite = "MarkyTests.Reopen.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let store = ProjectFavoritesStore(userDefaults: defaults)
+            let secondStore = ProjectFavoritesStore(userDefaults: defaults)
             store.saveFavoriteRelativePaths(["README.md", "DELETED.md"], for: root)
             let probe = SuspendedFavoriteProbe()
             let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), favoritesStore: store,
@@ -414,7 +456,7 @@ struct MarkyTests {
             model.toggleFavorite(for: guideNode)
             // An independent window can also update the shared store while this
             // window's previous project remains interactive.
-            store.saveFavoriteRelativePaths(store.favoriteRelativePaths(for: root) + ["NEW-UNKNOWN.txt"], for: root)
+            secondStore.saveFavoriteRelativePaths(secondStore.favoriteRelativePaths(for: root) + ["NEW-UNKNOWN.txt"], for: root)
             await probe.finish(missing: ["DELETED.md"])
             await model.waitForProjectLoad()
             #expect(store.favoriteRelativePaths(for: root) == ["GUIDE.md", "NEW-UNKNOWN.txt"])
@@ -448,10 +490,10 @@ struct MarkyTests {
     @Test("a picked file survives parent scan failure without pruning sibling favorites")
     func pickedFileFallsBackAfterParentScanFailure() async throws {
         try await Self.withTemporaryDirectory { root in
-            let file = root.appendingPathComponent("README.md")
+            let file = root.appendingPathComponent("README.txt")
             try "Readme".write(to: file, atomically: true, encoding: .utf8)
             let store = InMemoryFavoritesStore()
-            store.saveFavoriteRelativePaths(["README.md", "SIBLING.md"], for: root)
+            store.saveFavoriteRelativePaths(["README.txt", "SIBLING.md"], for: root)
             let access = RecordingResourceAccess()
             let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), favoritesStore: store,
                                          resourceAccess: access, scanProject: { _ in throw ProjectScanError.unreadableDirectory })
@@ -459,7 +501,7 @@ struct MarkyTests {
             await model.waitForProjectLoad()
             #expect(model.root?.children?.map(\.url) == [file])
             #expect(model.selectedURL == file)
-            #expect(store.favoriteRelativePaths(for: root) == ["README.md", "SIBLING.md"])
+            #expect(store.favoriteRelativePaths(for: root) == ["README.txt", "SIBLING.md"])
             #expect(access.starts == [root, file])
             #expect(access.stops == [root])
             model.closeProject()
@@ -533,17 +575,30 @@ struct MarkyTests {
             try "Readme".write(to: file, atomically: true, encoding: .utf8)
             let alias = root.appendingPathComponent("alias", isDirectory: true)
             try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: project)
-            let store = InMemoryFavoritesStore()
-            store.saveFavoriteRelativePaths(["README.md"], for: alias)
+            let suite = "MarkyTests.Alias.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let otherAlias = root.appendingPathComponent("other-alias")
+            defaults.set([alias.path: ["README.md"], otherAlias.path: ["KEEP.md"]], forKey: "favorites")
+            let store = ProjectFavoritesStore(userDefaults: defaults, favoritesByProjectKey: "favorites")
             let access = RecordingResourceAccess()
+            access.allowAccess = false
             let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), favoritesStore: store, resourceAccess: access)
             model.openPickedFolder(alias)
             await model.waitForProjectLoad()
+            #expect(model.favoriteFileURLs.isEmpty)
+            #expect(defaults.dictionary(forKey: "favorites")?[alias.path] as? [String] == ["README.md"])
+
+            access.allowAccess = true
+            model.openPickedFolder(alias)
+            await model.waitForProjectLoad()
             #expect(model.root?.url == project)
+            #expect(defaults.dictionary(forKey: "favorites")?[alias.path] == nil)
+            #expect(defaults.dictionary(forKey: "favorites")?[otherAlias.path] as? [String] == ["KEEP.md"])
             #expect(model.favoriteFileURLs == [file])
             #expect(model.isFavorite(FileNode(url: alias.appendingPathComponent("README.md"), name: "README.md", isDirectory: false)))
             model.closeProject()
-            #expect(access.starts == [alias])
+            #expect(access.starts == [alias, alias])
             #expect(access.stops == [alias])
         }
     }
@@ -591,7 +646,7 @@ struct MarkyTests {
             defaults.set([alias.path: ["README.md"]], forKey: "favorites")
             let store = ProjectFavoritesStore(userDefaults: defaults, favoritesByProjectKey: "favorites")
             // Only the current authorized alias is migrated; no historical paths are resolved.
-            store.migrateFavorites(from: alias, to: project)
+            _ = try store.reconcileFavorites(for: project, authorizedAlias: alias, confirmedMissing: [], scanState: MarkyProjectScanState(MARKY_PROJECT_SCAN_COMPLETE))
             #expect(store.favoriteRelativePaths(for: project) == ["README.md"])
             store.saveFavoriteRelativePaths(["GUIDE.md"], for: project)
             #expect(store.favoriteRelativePaths(for: alias) == ["GUIDE.md"])
@@ -601,31 +656,35 @@ struct MarkyTests {
 
     @MainActor
     @Test("superseding or closing a scan prevents stale publication and releases candidate access")
-    func supersedingAndClosingScans() async {
-        let scanner = SuspendedScan()
-        let access = RecordingResourceAccess()
-        let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), resourceAccess: access,
-                                     scanProject: { try await scanner.scan($0) })
-        let first = URL(fileURLWithPath: "/project-first")
-        let second = URL(fileURLWithPath: "/project-second")
-        model.openPickedFolder(first)
-        while !(await scanner.hasRequest(first)) { await Task.yield() }
-        model.openPickedFolder(second)
-        while !(await scanner.hasRequest(second)) { await Task.yield() }
-        await scanner.finish(second)
-        await model.waitForProjectLoad()
-        #expect(model.root?.url == second)
-        await scanner.finish(first)
-        while !access.stops.contains(first) { await Task.yield() }
-        #expect(model.root?.url == second)
-        model.openPickedFolder(first)
-        while !(await scanner.hasRequest(first)) { await Task.yield() }
-        model.closeProject()
-        await scanner.finish(first)
-        await model.waitForProjectLoad()
-        #expect(model.root == nil)
-        #expect(access.stops.filter { $0 == first }.count == 2)
-        #expect(access.stops.filter { $0 == second }.count == 1)
+    func supersedingAndClosingScans() async throws {
+        try await Self.withTemporaryDirectory { root in
+            let scanner = SuspendedScan()
+            let access = RecordingResourceAccess()
+            let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), resourceAccess: access,
+                                         scanProject: { try await scanner.scan($0) })
+            let first = root.appendingPathComponent("project-first", isDirectory: true)
+            let second = root.appendingPathComponent("project-second", isDirectory: true)
+            try FileManager.default.createDirectory(at: first, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
+            model.openPickedFolder(first)
+            while !(await scanner.hasRequest(first)) { await Task.yield() }
+            model.openPickedFolder(second)
+            while !(await scanner.hasRequest(second)) { await Task.yield() }
+            await scanner.finish(second)
+            await model.waitForProjectLoad()
+            #expect(model.root?.url == second)
+            await scanner.finish(first)
+            while !access.stops.contains(first) { await Task.yield() }
+            #expect(model.root?.url == second)
+            model.openPickedFolder(first)
+            while !(await scanner.hasRequest(first)) { await Task.yield() }
+            model.closeProject()
+            await scanner.finish(first)
+            await model.waitForProjectLoad()
+            #expect(model.root == nil)
+            #expect(access.stops.filter { $0 == first }.count == 2)
+            #expect(access.stops.filter { $0 == second }.count == 1)
+        }
     }
 
     @MainActor
@@ -784,6 +843,32 @@ struct MarkyTests {
     }
 
     @MainActor
+    @Test("favorite probes retain invalid paths and unknown descendants of directory links")
+    func favoriteProbesStayInsideProject() async throws {
+        try await Self.withTemporaryDirectory { root in
+            let project = root.appendingPathComponent("project", isDirectory: true)
+            let outside = root.appendingPathComponent("outside", isDirectory: true)
+            for directory in [project, outside] {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            }
+            try FileManager.default.createSymbolicLink(at: project.appendingPathComponent("link"), withDestinationURL: outside)
+            let retained = ["../outside/missing.md", "nested/../missing.md", "./missing.md", "/missing.md",
+                            "nested//missing.md", "link/missing.md"]
+            let suite = "MarkyTests.Probe.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let store = ProjectFavoritesStore(userDefaults: defaults)
+            store.saveFavoriteRelativePaths(retained + ["missing.md"], for: project)
+            let model = ContentViewModel(projectSessionService: ThrowingProjectSessionService(), favoritesStore: store)
+            model.openPickedFolder(project)
+            await model.waitForProjectLoad()
+            #expect(model.root?.url == project)
+            #expect(model.favoriteFileURLs.isEmpty)
+            #expect(store.favoriteRelativePaths(for: project) == retained.sorted())
+        }
+    }
+
+    @MainActor
     @Test("authorized alias migration is dictionary-only and preserves unknown legacy locations")
     func favoritesAliasMigrationDefersUnknownLocations() throws {
         let suite = "MarkyTests.Favorites.\(UUID().uuidString)"
@@ -794,7 +879,7 @@ struct MarkyTests {
         let unknown = "/Volumes/Disconnected/unknown-project"
         defaults.set([alias.path: ["ALIAS.md"], canonical.path: ["CURRENT.md"], unknown: ["KEEP.md"]], forKey: "favorites")
         let store = ProjectFavoritesStore(userDefaults: defaults, favoritesByProjectKey: "favorites")
-        store.migrateFavorites(from: alias, to: canonical)
+        _ = try store.reconcileFavorites(for: canonical, authorizedAlias: alias, confirmedMissing: [], scanState: MarkyProjectScanState(MARKY_PROJECT_SCAN_COMPLETE))
         #expect(store.favoriteRelativePaths(for: canonical) == ["ALIAS.md", "CURRENT.md"])
         #expect(store.favoriteRelativePaths(for: alias) == ["ALIAS.md", "CURRENT.md"])
         let reopened = ProjectFavoritesStore(userDefaults: defaults, favoritesByProjectKey: "favorites")

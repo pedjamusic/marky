@@ -346,6 +346,22 @@ void check_project_tree(const auto& check) {
                  "first link resolves by its complete identity and its copied relative path");
     check_lookup(tree.get(), view("a-link"), second_link_path, 5, "second link resolves to a distinct node");
 
+    bool queries_passed = true;
+    std::thread background_query([&] {
+        // Each reader owns its result, while the indexed tree is shared.
+        for (int iteration = 0; iteration < 32; ++iteration) {
+            check_project_query_result(
+                [&](bool passed, std::string_view) { queries_passed &= passed; },
+                tree.get(), {name_matches.data(), name_matches.size(), favorites.data(), favorites.size()},
+                {1, 2, 4}, {5, 4}, "background query shares the immutable index");
+        }
+    });
+    for (int iteration = 0; iteration < 32; ++iteration) {
+        check_lookup(tree.get(), view("a-link"), second_link_path, 5, "lookup while the same index is queried");
+    }
+    background_query.join();
+    check(queries_passed, "background queries share the immutable index");
+
     size_t result_index = untouched;
     check(marky_project_tree_find_identity(tree.get(), view("z"), &result_index) == missing &&
               marky_project_tree_find_identity(tree.get(), view("empty"), &result_index) == missing &&
@@ -389,15 +405,21 @@ void check_project_tree(const auto& check) {
     check_node(rebuilt.get(), 4, 3, false, "a-link", "a-link.MKD");
     check_lookup(tree.get(), view("a-link"), second_link_path, 5, "rebuild leaves earlier snapshot readable");
 
-    const std::array picked_file = {entries[0], entries[5]};
+    const std::array picked_file = {
+        entries[0], entry("readme", "README.txt", 0, MARKY_PROJECT_ENTRY_PICKED_FILE, "txt")
+    };
+    raw_tree = nullptr;
+    check(marky_project_tree_create(picked_file.data(), picked_file.size(), complete, nullptr, &raw_tree)
+              == MARKY_STATUS_INVALID_ARGUMENT && raw_tree == nullptr,
+          "a complete scan cannot bypass folder eligibility for a picked file");
     raw_tree = nullptr;
     check(marky_project_tree_create(picked_file.data(), picked_file.size(), partial, nullptr, &raw_tree)
               == MARKY_STATUS_OK && raw_tree != nullptr &&
               marky_project_tree_scan_state(raw_tree) == partial &&
               marky_project_tree_node_count(raw_tree) == 2,
           "a picked file outside a full scan carries partial coverage");
-    check_node(raw_tree, 1, 0, false, "readme", "README.md");
-    check_lookup(raw_tree, view("readme"), std::array{view("README.md")}, 1, "partial tree indexes its known file");
+    check_node(raw_tree, 1, 0, false, "readme", "README.txt");
+    check_lookup(raw_tree, view("readme"), std::array{view("README.txt")}, 1, "partial tree indexes its known file");
     check(marky_project_tree_find_path(raw_tree, first_link_path.data(), first_link_path.size(), &result_index)
               == missing && result_index == untouched,
           "a partial tree reports a lookup miss for an unobserved path");

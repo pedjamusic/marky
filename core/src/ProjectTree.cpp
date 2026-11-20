@@ -81,13 +81,16 @@ MarkyStatus marky_project_tree_create(const MarkyProjectTreeEntry* entries, size
         const auto& entry = entries[index];
         if (entry.parent_index >= index ||
             decisions[entry.parent_index].disposition != MARKY_PROJECT_ENTRY_SCAN_DIRECTORY ||
-            entry.metadata.kind > MARKY_PROJECT_ENTRY_OTHER ||
+            entry.metadata.kind > MARKY_PROJECT_ENTRY_PICKED_FILE ||
+            (entry.metadata.kind == MARKY_PROJECT_ENTRY_PICKED_FILE &&
+             (scan_state != MARKY_PROJECT_SCAN_PARTIAL || entry_count != 2)) ||
             (entry.metadata.kind == MARKY_PROJECT_ENTRY_SYMLINK &&
              entry.metadata.target_kind > MARKY_PROJECT_ENTRY_OTHER) ||
             (entry.metadata.name_extension.data == nullptr && entry.metadata.name_extension.byte_count != 0)) {
             return MARKY_STATUS_INVALID_ARGUMENT;
         }
-        const auto disposition = marky_project_classify_entry(entry.metadata);
+        const auto disposition = entry.metadata.kind == MARKY_PROJECT_ENTRY_PICKED_FILE
+            ? MARKY_PROJECT_ENTRY_DOCUMENT : marky_project_classify_entry(entry.metadata);
         if ((!entry.metadata.is_hidden && entry.metadata.kind == MARKY_PROJECT_ENTRY_UNKNOWN) ||
             disposition == MARKY_PROJECT_ENTRY_NEEDS_TARGET_METADATA) {
             return MARKY_STATUS_PROJECT_SCAN_UNKNOWN;

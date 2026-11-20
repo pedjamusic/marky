@@ -79,7 +79,8 @@ enum {
     MARKY_PROJECT_ENTRY_DIRECTORY = 2,
     MARKY_PROJECT_ENTRY_SYMLINK = 3,
     MARKY_PROJECT_ENTRY_PACKAGE = 4,
-    MARKY_PROJECT_ENTRY_OTHER = 5
+    MARKY_PROJECT_ENTRY_OTHER = 5,
+    MARKY_PROJECT_ENTRY_PICKED_FILE = 6
 };
 
 typedef uint32_t MarkyProjectEntryDisposition;
@@ -229,6 +230,9 @@ typedef struct {
  *
  * COMPLETE represents a successful full scan. PARTIAL represents an
  * intentionally limited view of known entries, such as a single picked file.
+ * A PARTIAL tree consisting of the root and one explicitly opened regular
+ * file may use PICKED_FILE for that child. The host has already admitted it,
+ * independent of the extension and visibility rules for folder enumeration.
  * UNKNOWN and FAILED return the corresponding status without reading entries.
  * Unresolved visible metadata needed for a decision returns PROJECT_SCAN_UNKNOWN.
  * Absence from any tree is insufficient on its own to remove a favorite;

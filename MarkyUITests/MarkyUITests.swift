@@ -53,6 +53,40 @@ final class MarkyUITests: XCTestCase {
     }
 
     @MainActor
+    func testFolderSearchKeepsFavoriteWithoutShowingUnmatchedFileInOutline() throws {
+        let app = try makeSeededApp()
+        app.launch()
+        defer { app.terminate() }
+
+        let outline = app.outlines["files-outline"]
+        let docs = outline.staticTexts["docs"]
+        XCTAssertTrue(docs.waitForExistence(timeout: 5))
+        docs.click()
+        let guide = outline.staticTexts["GUIDE.md"]
+        XCTAssertTrue(guide.waitForExistence(timeout: 5))
+        guide.hover()
+        let addFavorite = outline.buttons["Add to Favorites"]
+        XCTAssertTrue(addFavorite.waitForExistence(timeout: 5))
+        addFavorite.click()
+
+        let search = app.textFields["sidebar-search-field"]
+        search.click()
+        search.typeText("DOCS")
+        XCTAssertTrue(guide.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(docs.exists)
+        let favorite = app.staticTexts["GUIDE.md"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 5))
+        favorite.click()
+        let reader = app.descendants(matching: .any)["markdown-reader"].firstMatch
+        XCTAssertTrue(reader.staticTexts["Guide Fixture"].waitForExistence(timeout: 5))
+
+        let removeFavorite = app.buttons["Remove from Favorites"]
+        removeFavorite.click()
+        XCTAssertTrue(removeFavorite.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(reader.staticTexts["Guide Fixture"].exists)
+    }
+
+    @MainActor
     func testCollapseFoldersHidesPreviouslyExpandedChildren() throws {
         let app = try makeSeededApp()
         app.launch()

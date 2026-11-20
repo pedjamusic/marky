@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - Large documents lay out blocks as you scroll, so the first page opens faster and uses less memory.
 - The macOS reader uses Marky's C++ Markdown parser for all documents.
 - The macOS project scanner uses the C++ core to select Markdown files and omit empty folders.
+- The macOS sidebar uses the shared project index for search and favorites while keeping localized matching and the existing saved favorites.
 
 ## [0.2.4] - 2026-11-06
 
