@@ -25,7 +25,7 @@ Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) 
 - **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124).
 - **T15.S2 and T15 are complete.** User **PASS** (E126) accepts the [verified reconciliation candidate](#t15s2-mac-run). The core landed on `main` as `636d33b` (E128).
 - **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132).
-- **T16.S2 is accepted.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run) from E134. Integration is in progress.
+- **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136). T16.S3 native UI acceptance is next when selected.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -50,7 +50,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
-| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 awaiting integration; T16.S3 queued | E129–E132 record T16.S1. E133–E135 record T16.S2 branch authorization, verification, and acceptance. |
+| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 done; T16.S3 queued | E129–E132 record T16.S1. E133–E136 record T16.S2 branch authorization, verification, acceptance, and integration. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -89,9 +89,9 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T10 | T10 | T11, T12 | closed | E85 supplies the C run views and the full portable corpus. E88–E89 and E91–E92 close the T11 receipt with accepted native link destinations, inline alt text, and standalone image presentation. T12 receipt closed with the full native corpus and signed candidate acceptance (E102–E103). |
 | OWE-T11 | T11 | T12 | closed | E88–E95 deliver `CoreMarkdownParserTests` for native mapping, lifetime and Swift/core comparisons, `MarkdownRegressionTests` for loading through both parsers, and the Debug reader route for native inspection. T12 receipt closed with E97–E98 parity and quote evidence and E102–E103 dense-document, load lifecycle, and signed candidate acceptance. |
 | OWE-T12 | T12 | T17, T18 | open | E102 supplies the [cutover evidence and Swift removal inventory](T12-S2-PRODUCTION-CUTOVER.md). E103 accepts the cutover. T17 records fixed-baseline performance and T18 verifies removal against the inventory. |
-| OWE-T13 | T13 | T16 | open | E106 and E109 supply accepted eligibility, tree and scan-state fixtures. Close with native enumeration and complete, single-file partial, failed and unknown cases, including preservation of favorites outside a partial view. E129 and E134 supply the native evidence. |
-| OWE-T14 | T14 | T16 | open | E113 and E117 deliver the index and query fixtures. E134 verifies native matching, ordering, filtering, and outline behavior. |
-| OWE-T15 | T15 | T16 | open | [T15.S2 fixtures and API](#t15s2-mac-run) are available. E134 supplies native persistence evidence for availability, latest-store edits, and authorized aliases. |
+| OWE-T13 | T13 | T16 | closed | E129 and E134 supply native enumeration, complete and partial scans, failed-open preservation, and retention when availability is unknown. E130 and E135 record user acceptance. |
+| OWE-T14 | T14 | T16 | closed | E134 verifies native matching, ordering, filtering, and outline behavior against the index and query fixtures in E113 and E117. E135 records user acceptance. |
+| OWE-T15 | T15 | T16 | closed | E134 verifies native persistence for availability, latest-store edits, and authorized aliases against the [T15.S2 fixtures and API](#t15s2-mac-run). E135 records user acceptance. |
 | OWE-T16 | T16 | T17, T19 | planned | T17 resource/performance results on fixed large projects; T19 final signed native acceptance. |
 | OWE-T17 | T17 | T19 | planned | Required corrective findings resolved before T18 acceptance; final T19 execution/audit verifies fixes, sanitizer/resource/performance evidence. |
 | OWE-T18 | T18 | T19 | planned | Final clean builds/dependency inspection and audit verify final source inventory, removal, interface docs, and commands. |
@@ -242,6 +242,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E133 | T16.S2 branch placement | The user approved creating `codex/t16-s2-project-search-favorites` on 2026-11-20. Created the branch from clean `main/dc5bc45bd3849590c038427574393a5f60286b2d`. | Verified the checkout before implementation. | Branch authorization only. |
 | E134 | T16.S2 project search and favorites | Uncommitted changes on the approved branch. Nine-file patch SHA-256 `5a72c11fe780c9dec6d3d25d3853976f15b78ad7fc7da70034fda5f702ead872` excludes this ledger. | [Mac run](#t16s2-mac-run). Xcode passed 131 unit tests and 12 UI tests across the full and focused runs. Debug, Release, and ASan/UBSan CTest each passed 3/3. The signed app opened and searched the fixed large folder. | User PASS and integration are pending. Windows/MSVC and Linux/GCC execution remain open under B03. |
 | E135 | T16.S2 acceptance | User **PASS** ("pass"), 2026-11-20, accepts E134. | Rechecked the signed executable and patch SHA-256 values, strict code signature, and clean patch reversal. | PASS authorizes the focused commit, fast-forward merge into local main, main push, and merged branch cleanup. |
+| E136 | T16.S2 integration | The accepted candidate landed on `main` as `878ccb1da9136aa0a51f5db190a82fced08cca4d`, 2026-11-20. | The staged patch matched E134 byte for byte. Local `main` fast-forwarded, and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T16.S2 is complete. T16.S3 is next when selected. |
 
 ### T16.S2 Mac run
 
