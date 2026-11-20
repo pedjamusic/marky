@@ -24,7 +24,7 @@ Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) 
 - **T14.S2 and T14 are complete.** User **PASS** ("pass"), 2026-11-18, accepts the [portable query filter](#t14s2-mac-run) in E119. The accepted core landed on `main` as `e680cce` (E120).
 - **T15.S1 favorite membership is complete.** User **PASS** (E122) accepts the [verified candidate](#t15s1-mac-run). The core landed on `main` as `d94e04d` (E124).
 - **T15.S2 and T15 are complete.** User **PASS** (E126) accepts the [verified reconciliation candidate](#t15s2-mac-run). The core landed on `main` as `636d33b` (E128).
-- **T16.S1 is accepted.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. E129 verifies the [signed candidate](#t16s1-mac-run), E130 records user **PASS**, and E131 records branch placement.
+- **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132). T16.S2 is next when selected.
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -49,7 +49,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T13 | [06](phases/06-project-rules.md) | done | T13.S1 done; T13.S2 done | E106–E108 record S1. E109–E112 record S2 verification, acceptance, and integration. |
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
-| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 queued; T16.S3 queued | E129–E131 record verification, acceptance, and branch placement for T16.S1. |
+| T16 | [06](phases/06-project-rules.md) | in_progress | T16.S1 done; T16.S2 queued; T16.S3 queued | E129–E132 record verification, acceptance, branch placement, and integration for T16.S1. |
 | T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
@@ -237,6 +237,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E129 | T16.S1 native project scan | Isolated source snapshot from clean `main/55d9fe2494d296d5067acc5994574582d10759f5`. Five-file patch SHA-256 `eb79b8d3677925a46e511a013b44696075d52e98b0e83c6afc29273b6b44e832` excludes this ledger. | [Mac verification](#t16s1-mac-run). Xcode passed 129 unit tests and 11 UI tests. Debug and Release CTest passed 3/3 each. The signed Release app passed native folder picker, linked-file reading, failed-open preservation, and relaunch restoration checks. | E130 records acceptance. |
 | E130 | T16.S1 acceptance | User **PASS** ("pass"), 2026-11-18, accepts E129. | Rechecked the patch and executable SHA-256 values, clean patch application and reversal, and the app signature. | PASS authorizes committing, merging to main, pushing main, and deleting the merged task branch. |
 | E131 | T16.S1 branch placement | User replied "pass" again on 2026-11-20 with branch approval the remaining step. Created `codex/t16-s1-native-project-scan` from clean `main/55d9fe2`. | The temporary files had expired. The reconstructed five-file patch exactly matched E129's SHA-256. It passed clean application and reversal checks on the branch. Xcode reran all 129 unit tests across 138 executions with no failures. | E130 authorizes integration. |
+| E132 | T16.S1 integration | The accepted candidate landed on `main` as `e82c68f795cdf47efaff3c6667b4425a1b8ff63f`, 2026-11-20. | The staged files matched E129 byte for byte. Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. This ledger update uses the same main-push authorization. | T16.S1 is complete. T16.S2 is next when selected. |
 
 ### T16.S1 Mac run
 
