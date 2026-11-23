@@ -115,9 +115,12 @@ final class ProjectFavoritesStore: ProjectFavoritesStoring {
         let canonicalKey = projectURL.standardizedFileURL.path
         var favorites = favoritesByProject
         let aliasKey = alias?.standardizedFileURL.path
-        if let aliasKey { favorites.removeValue(forKey: aliasKey) }
-        favorites[canonicalKey] = paths.isEmpty ? nil : paths
-        userDefaults.set(favorites, forKey: favoritesByProjectKey)
+        let retained = paths.isEmpty ? nil : paths
+        if aliasKey != nil || favorites[canonicalKey] != retained {
+            if let aliasKey { favorites.removeValue(forKey: aliasKey) }
+            favorites[canonicalKey] = retained
+            userDefaults.set(favorites, forKey: favoritesByProjectKey)
+        }
         if let aliasKey {
             var aliases = projectAliases
             aliases[aliasKey] = canonicalKey

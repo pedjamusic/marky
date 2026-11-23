@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - Large documents lay out blocks as you scroll, so the first page opens faster and uses less memory.
 - The macOS reader uses Marky's C++ Markdown parser for all documents.
 - The macOS project scanner uses the C++ core to select Markdown files and omit empty folders.
+- Large project scans reuse resolved folder paths and can stop during folder sorting when a scan is canceled.
 - The macOS sidebar uses the shared project index for search and favorites while keeping localized matching and the existing saved favorites.
 - The core C API rejects malformed UTF-8 with typed results.
 

@@ -21,15 +21,15 @@ struct PerformanceProbe {
             // Read/decode stays outside the semantic timer, but inside process peak memory.
             let text = try String(contentsOf: document, encoding: .utf8)
             let semanticStart = now()
-            let prepared = MarkdownContentBlocks.prepare(from: text)
-            guard prepared.count == 3585 else { throw ProbeError.unexpectedOutput }
+            let prepared = try await CoreMarkdownParser.parse(text)
+            guard prepared.blocks.count == 3585 else { throw ProbeError.unexpectedOutput }
             if scenario == "render" {
-                let rendered = MarkdownContentBlocks.render(preparedBlocks: prepared,
+                let rendered = MarkdownContentBlocks.render(coreDocument: prepared,
                     mode: .allSystem, textSizePreset: .default, isDarkMode: false)
-                guard rendered.count == prepared.count else { throw ProbeError.unexpectedOutput }
+                guard rendered.count == prepared.blocks.count else { throw ProbeError.unexpectedOutput }
                 extra["blocks"] = rendered.count
             } else {
-                extra["blocks"] = prepared.count
+                extra["blocks"] = prepared.blocks.count
             }
             extra["processing_ms"] = (now() - semanticStart) * 1000
         case "document":
@@ -61,9 +61,10 @@ struct PerformanceProbe {
                 guard let tree = model.root, counts(tree) == (5002, 601), model.errorMessage == nil else { throw ProbeError.unexpectedOutput }
                 let searchStart = now()
                 model.sidebarSearchText = "note-09"
+                await model.waitForSidebarSearch()
                 let searchEnd = now()
                 let filtered = FileNode(url: project, name: "project", isDirectory: true, children: model.displayedNodes)
-                guard counts(filtered).0 == 500 else { throw ProbeError.unexpectedOutput }
+                guard counts(filtered).0 == 500, model.errorMessage == nil else { throw ProbeError.unexpectedOutput }
                 extra["search_ms"] = (searchEnd - searchStart) * 1000
                 extra["matches"] = 500
             }

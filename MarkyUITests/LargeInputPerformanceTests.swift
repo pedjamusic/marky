@@ -21,6 +21,11 @@ final class LargeInputPerformanceTests: XCTestCase {
         app.launchArguments = ["-settings.appearanceMode", "light",
                                "-settings.markdownTypographyMode", "allSystem",
                                "-settings.markdownReaderTextSizePreset", "default"]
+        let environment = ProcessInfo.processInfo.environment
+        if let frameKey = environment["MARKY_PERFORMANCE_FRAME_KEY"],
+           let frame = environment["MARKY_PERFORMANCE_FRAME"] {
+            app.launchArguments += ["-\(frameKey)", frame]
+        }
         return app
     }
 

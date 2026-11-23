@@ -93,11 +93,12 @@ private nonisolated enum NativeProjectScan {
         var entries = [Entry(url: root, name: root.lastPathComponent, nameExtension: "", parentIndex: 0,
                              kind: MarkyProjectEntryKind(MARKY_PROJECT_ENTRY_DIRECTORY),
                              targetKind: MarkyProjectEntryKind(MARKY_PROJECT_ENTRY_UNKNOWN))]
-        try enumerate(root, parentIndex: 0, entries: &entries)
+        let locale = Locale.current
+        try enumerate(root, parentIndex: 0, locale: locale, entries: &entries)
         return try assemble(entries, scanState: MarkyProjectScanState(MARKY_PROJECT_SCAN_COMPLETE), token: token)
     }
 
-    private static func enumerate(_ directory: URL, parentIndex: Int, entries: inout [Entry]) throws {
+    private static func enumerate(_ directory: URL, parentIndex: Int, locale: Locale, entries: inout [Entry]) throws {
         try Task.checkCancellation()
         let contents: [URL]
         do {
@@ -148,22 +149,24 @@ private nonisolated enum NativeProjectScan {
             }
 
             let isDirectory = disposition == MarkyProjectEntryDisposition(MARKY_PROJECT_ENTRY_SCAN_DIRECTORY)
-            let nativeURL = isDirectory ? url.canonicalFileURL : url.canonicalDocumentURL
+            // The scan already resolved the parent. Keep each document's own name, including symlinks.
+            let nativeURL = isDirectory ? url.canonicalFileURL : directory.appendingPathComponent(name, isDirectory: false)
             children.append(Entry(url: nativeURL, name: name, nameExtension: nameExtension, parentIndex: parentIndex,
                                   kind: kind, targetKind: targetKind))
         }
 
-        children.sort { a, b in
+        try children.sort { a, b in
+            try Task.checkCancellation()
             let directory = MarkyProjectEntryKind(MARKY_PROJECT_ENTRY_DIRECTORY)
             if (a.kind == directory) != (b.kind == directory) { return a.kind == directory }
-            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            return a.name.compare(b.name, options: .caseInsensitive, locale: locale) == .orderedAscending
         }
         for child in children {
             try Task.checkCancellation()
             let index = entries.count
             entries.append(child)
             if child.kind == MarkyProjectEntryKind(MARKY_PROJECT_ENTRY_DIRECTORY) {
-                try enumerate(child.url, parentIndex: index, entries: &entries)
+                try enumerate(child.url, parentIndex: index, locale: locale, entries: &entries)
             }
         }
     }

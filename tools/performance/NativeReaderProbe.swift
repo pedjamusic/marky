@@ -29,6 +29,11 @@ struct NativeReaderProbe {
             config.environment = ["MARKY_UI_TEST_SEED": "1", "MARKY_UI_TEST_PROJECT_PATH": root.appendingPathComponent("project").path]
             config.arguments = ["-settings.appearanceMode", "light", "-settings.markdownTypographyMode", "allSystem",
                                 "-settings.markdownReaderTextSizePreset", "default"]
+            let environment = ProcessInfo.processInfo.environment
+            if let frameKey = environment["MARKY_PERFORMANCE_FRAME_KEY"],
+               let frame = environment["MARKY_PERFORMANCE_FRAME"] {
+                config.arguments += ["-\(frameKey)", frame]
+            }
             let app = try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
             // Also stop our exact diagnostic process if capture/OCR/setup fails.
             defer { if !app.isTerminated { app.forceTerminate() } }
@@ -45,7 +50,7 @@ struct NativeReaderProbe {
             CGWarpMouseCursorPosition(sidebar)
             try await Task.sleep(for: .milliseconds(250))
             for _ in 0..<6 {
-                if before.contains(where: { $0.0 == "LARGE.md" }) { break }
+                if before.contains(where: isLargeSidebarRow) { break }
                 guard let wheel = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1,
                                           wheel1: -10000, wheel2: 0, wheel3: 0) else { throw ProbeError.event }
                 wheel.location = sidebar
@@ -53,7 +58,7 @@ struct NativeReaderProbe {
                 try await Task.sleep(for: .milliseconds(500))
                 before = try recognize(windowID: windowID, to: beforeURL)
             }
-            guard let row = before.first(where: { $0.0 == "LARGE.md" && $0.1.midX < 280 / frame.width }) else {
+            guard let row = before.first(where: isLargeSidebarRow) else {
                 throw ProbeError.row
             }
             let point = CGPoint(x: frame.minX + row.1.midX * frame.width, y: frame.minY + (1 - row.1.midY) * frame.height)
@@ -101,6 +106,11 @@ struct NativeReaderProbe {
             }
             guard app.isTerminated else { throw ProbeError.termination }
         }
+    }
+
+    // Vision can include the file icon in the sidebar filename or drop the dot.
+    private static func isLargeSidebarRow(_ result: (String, CGRect)) -> Bool {
+        result.1.midX < 280.0 / 1252 && result.0.lowercased().filter(\.isLetter).hasSuffix("largemd")
     }
 
     private static func window(for pid: pid_t) throws -> (Int, CGRect) {
