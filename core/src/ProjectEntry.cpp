@@ -18,11 +18,13 @@ struct MarkyProjectFavoriteResult {
 namespace {
 
 bool is_markdown_extension(MarkyUtf8View extension) {
-    if (extension.data == nullptr || extension.byte_count == 0) {
+    // Only ASCII letters and the three-byte Kelvin sign can match.
+    constexpr std::string_view longest_extension = "markdown";
+    if (extension.byte_count == 0 || extension.byte_count > longest_extension.size() + 2 ||
+        !marky::is_valid_utf8(extension.data, extension.byte_count)) {
         return false;
     }
 
-    constexpr std::string_view longest_extension = "markdown";
     std::array<char, longest_extension.size()> lowercase;
     std::string_view source(extension.data, extension.byte_count);
     size_t length = 0;
@@ -127,7 +129,7 @@ MarkyStatus marky_project_reconcile_favorites(MarkyProjectFavoriteReconciliation
                 return MARKY_STATUS_CANCELLED;
             }
             const auto [data, byte_count] = paths[index];
-            if (data == nullptr && byte_count != 0) {
+            if (!marky::is_valid_utf8(data, byte_count)) {
                 return MARKY_STATUS_INVALID_ARGUMENT;
             }
             const auto path = byte_count == 0 ? std::string_view{} : std::string_view(data, byte_count);

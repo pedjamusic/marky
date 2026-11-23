@@ -99,11 +99,27 @@ ctest --test-dir /tmp/MarkyCore-Release --output-on-failure --no-tests=error
 
 Keep build directories outside `core/`. For a multi-configuration generator, use `cmake --build ... --config Debug` and `ctest ... -C Debug` (likewise Release). The manual route does not read the presets. [S1 evidence](../docs/core-rewrite/T03-S1-CORE-BUILD.md) records its original execution.
 
+## Sanitizer, mutation, and stress checks
+
+The normal CTest suite includes `marky_core_hardening_tests`. It exercises the public document, project tree, filter, and favorites APIs with fixed malformed inputs, seeded mutations, and large synthetic documents and projects. The seeds and input sizes are in [HardeningTests.cpp](tests/HardeningTests.cpp).
+
+To run the same tests with AddressSanitizer and UndefinedBehaviorSanitizer, start in the repository root. Use GCC or Clang with both sanitizer runtimes installed. Use a fresh build directory for each configuration.
+
+```sh
+build=$(mktemp -d)
+cmake -S core -B "$build" -DCMAKE_BUILD_TYPE=Debug -DMARKY_CORE_SANITIZERS=ON
+cmake --build "$build"
+ctest --test-dir "$build" --output-on-failure --no-tests=error
+ctest --test-dir "$build" -V -R '^marky_core_hardening_tests$'
+```
+
+The CMake option instruments the core and test executables. The tests replay the same seeds on each run and need no libFuzzer runtime. [T17.S1 execution evidence](../docs/core-rewrite/STATUS.md#t17s1-mac-run)
+
 ## Source scope
 
 `marky_core` is explicitly `STATIC`. Its production source list is explicit in [CMakeLists.txt](CMakeLists.txt); test sources are a separate executable. C++20 is required and compiler language extensions are disabled. There are no fetched packages, generated data downloads, third-party test frameworks or third-party runtime libraries. `-DBUILD_TESTING=OFF` builds just the archive without presets.
 
-- [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows caller-validated UTF-8 and an optional cancellation token for the call. The result owns its bytes. Copy a view if it must outlive its document.
+- [`include/MarkyCore.h`](include/MarkyCore.h) is the C-compatible document interface. Creation borrows UTF-8 and an optional cancellation token for the call. Malformed UTF-8 returns `MARKY_STATUS_INVALID_ARGUMENT`. The result owns its bytes. Copy a view if it must outlive its document.
 - [`src/Document.cpp`](src/Document.cpp) normalizes CRLF and returns ordered paragraphs, ATX and Setext headings, thematic breaks, literal code, lists, quotes, tables, and standalone images. Fenced code retains its literal lines. Indented code drops its required indentation and trailing blank lines. Paragraph source joins soft lines with spaces, keeps LF for hard breaks, and preserves backslashes for inline interpretation. Heading source is exposed with its level. An ATX opening space with a basic combining accent (U+0300–U+036F) leaves the line in prose. Thematic breaks ignore those accents when they attach to whitespace and carry empty text. The [T04.S2 spec](../docs/core-rewrite/T04-S2-FAILURES-AND-CANCELLATION.md) defines status handling and token lifetime.
 - List blocks contain source-ordered items. Depth is the count of leading ASCII spaces and tabs divided by two, rounded down. Each item has a bullet, ordered marker with its original spelling, or explicit task state. Continuations retain LF and attach to the preceding item. Ordered markers and their separators use pinned Unicode 17.0.0 numeric and character boundary data. [Unicode data and license](src/ListCharacterProperties.h)
 - Quote blocks contain source-ordered lines with a marker depth and prepared Markdown. A line with only quote markers keeps its depth and has empty source. An unmarked line ends the quote. Fences and indented code retain literal quote markers, and an indented list continuation can retain them as item source. Quote markers use the same pinned Unicode character boundary data as list markers. Inline parsing can use the line boundaries and depth when styles span multiple lines.

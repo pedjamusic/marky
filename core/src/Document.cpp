@@ -4,6 +4,7 @@
 #include "ListCharacterProperties.h"
 #include "LiteralSyntax.h"
 #include "ReferenceLabel.h"
+#include "Utf8.h"
 
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
 #include "DocumentTestCheckpoints.h"
@@ -972,6 +973,10 @@ MarkyStatus marky_document_create_with_quote_prefix(const char* utf8, size_t byt
         return MARKY_STATUS_CANCELLED;
     }
 
+    if (!marky::is_valid_utf8(utf8, byte_count) ||
+        !marky::is_valid_utf8(nested_quote_prefix.data, nested_quote_prefix.byte_count)) {
+        return MARKY_STATUS_INVALID_ARGUMENT;
+    }
     const auto input = byte_count == 0 ? std::string_view("") : std::string_view(utf8, byte_count);
     const auto prefix = nested_quote_prefix.byte_count == 0 ? std::string_view("") :
         std::string_view(nested_quote_prefix.data, nested_quote_prefix.byte_count);

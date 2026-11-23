@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 project(MarkyCore LANGUAGES CXX)
 
+option(MARKY_CORE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+if(MARKY_CORE_SANITIZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "^(AppleClang|Clang|GNU)$" OR MSVC)
+        message(FATAL_ERROR "MARKY_CORE_SANITIZERS requires GCC or Clang with a GNU-style driver")
+    endif()
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
 set(marky_core_sources
     src/Document.cpp
     src/InlineSyntax.cpp
@@ -49,5 +58,10 @@ if(BUILD_TESTING)
         CXX_EXTENSIONS NO
     )
     add_test(NAME marky_core_fault_tests COMMAND marky_core_fault_tests)
-    set_tests_properties(marky_core_tests marky_core_fault_tests marky_markdown_corpus PROPERTIES TIMEOUT 60)
+    add_executable(marky_core_hardening_tests tests/HardeningTests.cpp)
+    target_link_libraries(marky_core_hardening_tests PRIVATE marky_core)
+    set_target_properties(marky_core_hardening_tests PROPERTIES CXX_EXTENSIONS NO)
+    add_test(NAME marky_core_hardening_tests COMMAND marky_core_hardening_tests)
+
+    set_tests_properties(marky_core_hardening_tests marky_core_tests marky_core_fault_tests marky_markdown_corpus PROPERTIES TIMEOUT 60)
 endif()

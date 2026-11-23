@@ -1,6 +1,6 @@
 # Core rewrite status
 
-Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
+Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
 
 ## Current checkpoint
 
@@ -27,6 +27,7 @@ Updated: 2026-11-20. This is the authoritative live ledger. [README](README.md) 
 - **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132).
 - **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136).
 - **T16.S3 and T16 are complete.** User **PASS** (E138) accepts the [signed macOS candidate](#t16s3-mac-run) verified in E137. T17.S1 is next when selected.
+- **T17.S1 is accepted.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. T17.S2 is next when selected. [macOS run](#t17s1-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -52,7 +53,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
-| T17 | [07](phases/07-hardening-and-closure.md) | queued | T17.S1 queued; T17.S2 queued; T17.S3 queued | Not implemented; no verification or acceptance claimed. |
+| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 queued; T17.S3 queued | E140 records verified T17.S1 coverage. User PASS is recorded in E141. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
@@ -247,6 +248,46 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E137 | T16.S3 native UI verification | Built clean `main` at `fee89c791ab1524be7da743c2c5f7295dc8df496`. The user authorized and the session created `codex/t16-s3-native-acceptance` from that revision on 2026-11-20. | [Mac run](#t16s3-mac-run). All 131 unit and 12 UI tests passed. Three opt-in performance tests skipped. The exact signed Release app passed the project and single-file restoration checks. | User PASS pending. OWE-T16 remains planned for T17 and T19. |
 | E138 | T16.S3 and T16 acceptance | User **PASS** ("pass"), 2026-11-20, accepts E137. | Rechecked the strict signature and executable SHA-256. The PASS covers the candidate as a whole. | PASS authorizes the ledger commit, fast-forward merge into local `main`, main push, and merged branch cleanup. OWE-T16 opens for T17 and T19. |
 | E139 | T16.S3 and T16 integration | The acceptance record landed on `main` as `70102ed85153277c0fb4a7918134e05e80fa4f27`, 2026-11-20. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T16 is delivered. T17.S1 is next when selected. This ledger-only update records Git execution under the same main-push authorization. |
+| E140 | T17.S1 core hardening | User authorized the local branch `codex/t17-s1-core-hardening` from `edb596821c612157edcf7c652466be777e2d555c`. The uncommitted nine-file candidate patch, excluding this ledger, is `/private/tmp/MarkyT17S1.7KrQ9S/T17.S1.patch` with SHA-256 `14200e9c00241a81bdb568e99edc7ab82c962e118a6e5647536eda1f6b0e123c`. | [Mac run](#t17s1-mac-run). Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets. Xcode passed 131 unit tests. | User PASS pending. T17.S2 owns cancellation and resource-lifetime verification. T17.S3 owns the fixed-baseline performance gate. |
+| E141 | T17.S1 acceptance | User **PASS** ("Pass."), 2026-11-23, accepts E140. | The candidate patch and Release executable hashes matched E140. The signature passed strict verification again. Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets on rerun. Local and remote `main` matched the candidate base before integration. | PASS authorizes the focused commit, fast-forward merge into `main`, push of `main`, and deletion of the merged local branch. |
+
+### T17.S1 Mac run
+
+macOS 27.2.1 (26B131), arm64, Apple Clang 21.0.0 (clang-2100.4.1.1), CMake and CTest 4.5.0, Unix Makefiles, and Xcode 27.2 (27B52) with the macOS 27.2 SDK. The three standalone configurations passed all four CTest targets, including the shared Markdown corpus and fault suite. ASan and UBSan emitted no diagnostics.
+
+The public API tests cover truncated, overlong, surrogate, and out-of-range UTF-8, plus legal scalar boundaries and embedded NUL. Document creation, project tree creation, lookups, and reconciliation return `MARKY_STATUS_INVALID_ARGUMENT` for malformed bytes in validated fields. The standalone extension classifier uses its existing `MARKY_PROJECT_ENTRY_SKIP` disposition. The tests also check null buffer/count mismatches, out-of-range indices, failure output values, and preservation of valid content.
+
+[HardeningTests.cpp](../../core/tests/HardeningTests.cpp) records the input construction. The document test mutates five Markdown examples for 4,096 iterations with seed `0x17D0C`, checks public inline ranges, and submits a malformed byte variant of each generated input. The project test runs 4,096 iterations with seed `0x17CAA`. It varies entry metadata, names, parent indices, lookup results, query flags, and favorite reconciliation inputs. Stress fixtures include 8,192 paragraphs, 8,192 mixed delimiter fragments, 4,096 nested quote markers and images, and a project with a 4,096-segment path and 8,192 sibling files. The installed Apple Clang toolchain lacked its macOS libFuzzer archive. These runs use deterministic mutation under compiler sanitizers.
+
+A negative control removed UTF-8 validation from project path segments in an isolated Release test build. The hardening test reported an invalid lookup failure and CTest exited 8. The original Release build passed again. The public header passed a C11 syntax check. `otool -L` showed only system libraries in the normal Release test and the ASan runtime in the instrumented test.
+
+From the repository root, reproduce the standalone runs in a fresh directory:
+
+```sh
+run=$(mktemp -d)
+for config in Debug Release; do
+    cmake -S core -B "$run/$config" -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE="$config"
+    cmake --build "$run/$config" --parallel 8
+    ctest --test-dir "$run/$config" --output-on-failure --no-tests=error
+done
+cmake -S core -B "$run/ASan-UBSan" -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_BUILD_TYPE=Debug -DMARKY_CORE_SANITIZERS=ON
+cmake --build "$run/ASan-UBSan" --parallel 8
+ctest --test-dir "$run/ASan-UBSan" --output-on-failure --no-tests=error
+```
+
+The macOS unit run used `-only-testing:MarkyTests` and passed 131 tests with zero failures or skips. The signed Release build is Marky 0.2.4 (5) at `/private/tmp/MarkyT17S1.7KrQ9S/Xcode/Build/Products/Release/Marky.app`. It passed strict signature verification and includes the app sandbox and user-selected read-only file entitlements. Its executable SHA-256 is `6ab1795a10358a025a670ae45c0407ea5750a6ad433049152d99729eb5d4ae7b`. UI tests, Windows/MSVC, and Linux/GCC were outside this run.
+
+```sh
+run=$(mktemp -d)
+xcodebuild -scheme Marky -project Marky.xcodeproj -destination 'platform=macOS,arch=arm64' \
+    -derivedDataPath "$run/Xcode" -resultBundlePath "$run/Unit.xcresult" test -only-testing:MarkyTests \
+    CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+xcodebuild -scheme Marky -project Marky.xcodeproj -configuration Release \
+    -destination 'platform=macOS,arch=arm64' -derivedDataPath "$run/Xcode" build \
+    CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+codesign --verify --deep --strict "$run/Xcode/Build/Products/Release/Marky.app"
+```
 
 ### T16.S3 Mac run
 

@@ -101,7 +101,8 @@ typedef struct {
 
 /*
  * Classifies one enumerated child using native-supplied metadata. Pass the final
- * extension without its dot, in caller-validated UTF-8. For links, pass the
+ * extension without its dot, in UTF-8. Malformed UTF-8 yields SKIP for
+ * entries that need extension classification. For links, pass the
  * link's own extension and the resolved target's kind. Package status takes
  * precedence over file type. is_hidden includes native flags and dot names.
  *
@@ -179,7 +180,8 @@ typedef struct {
  * that one alias, even if its list is empty. Other saved project keys are
  * outside this operation. Native code owns identity, grants, and persistence.
  *
- * Path keys are caller-validated UTF-8, compared as exact bytes. Use the same
+ * Path keys are UTF-8, compared as exact bytes. Malformed UTF-8 in a used
+ * list returns INVALID_ARGUMENT. Use the same
  * native equality representation for all three lists. The result is a unique
  * canonical list in byte order. Native code can apply its own storage order.
  * Arrays and their bytes are borrowed until return. A nonzero count requires
@@ -218,10 +220,12 @@ typedef struct {
  * Builds an owned tree from native enumeration. Entry 0 is the project root;
  * its parent_index is 0 and its metadata is ignored. Every other entry refers
  * to an earlier traversable directory. Supply stable, nonempty opaque UTF-8
- * identities unique within the project. Supply names as caller-validated UTF-8,
- * one relative path segment per child. The root's display name may be empty.
+ * identities unique within the project. Supply UTF-8 names, one relative path
+ * segment per child. The root's display name may be empty.
  * Identities and names are copied verbatim. Duplicate retained identities or
  * duplicate retained names under the same parent return INVALID_ARGUMENT.
+ * Malformed UTF-8 in a nonroot extension or a retained name or identity
+ * returns INVALID_ARGUMENT.
  *
  * The result retains the root, eligible documents, and their ancestors in
  * supplied order. Its node indices are dense, and parent_index refers to the
@@ -258,7 +262,7 @@ MarkyStatus marky_project_tree_node_at(const MarkyProjectTree* tree, size_t inde
 /*
  * Look up a retained node by identity or by root-relative name segments.
  * Comparisons use exact bytes. Zero segments select the root. Each supplied
- * identity or segment must have nonempty storage. The call borrows inputs
+ * identity or segment must be nonempty UTF-8. The call borrows inputs
  * until return and writes *out_index only on success. A well-formed lookup
  * with no match in this tree returns PROJECT_NODE_NOT_FOUND.
  */
@@ -350,7 +354,8 @@ typedef struct {
 } MarkyInlineRunView;
 
 /*
- * Borrows byte_count bytes of caller-validated UTF-8 for this synchronous call.
+ * Borrows byte_count bytes of UTF-8 for this synchronous call. Malformed
+ * UTF-8 returns INVALID_ARGUMENT.
  * The input may be NULL for zero bytes. Embedded NUL bytes are preserved.
  * out_document must point to writable storage separate from the input. It
  * receives a new owned result on success (including empty input) and NULL
@@ -401,11 +406,12 @@ MarkyStatus marky_document_create_cancellable(const char* utf8, size_t byte_coun
 
 /*
  * Uses the same ownership and cancellation rules as marky_document_create_cancellable.
- * A reader can supply a caller-validated UTF-8 prefix with no CR or LF to
+ * A reader can supply a UTF-8 prefix with no CR or LF to
  * reproduce nested quote markers that participate in inline parsing. The
  * parser repeats the prefix depth - 1 times at the start of each nested quote
  * line. Quote line views still expose the original prepared source and depth.
  * An empty prefix gives the ordinary portable quote representation.
+ * Malformed UTF-8 or a prefix containing CR or LF returns INVALID_ARGUMENT.
  */
 MarkyStatus marky_document_create_with_quote_prefix(const char* utf8, size_t byte_count,
                                                     const MarkyCancellationToken* token,

@@ -1,5 +1,6 @@
 #include "MarkyCore.h"
 #include "CancellationToken.h"
+#include "Utf8.h"
 
 #ifdef MARKY_CORE_TEST_CHECKPOINTS
 #include "DocumentTestCheckpoints.h"
@@ -86,7 +87,7 @@ MarkyStatus marky_project_tree_create(const MarkyProjectTreeEntry* entries, size
              (scan_state != MARKY_PROJECT_SCAN_PARTIAL || entry_count != 2)) ||
             (entry.metadata.kind == MARKY_PROJECT_ENTRY_SYMLINK &&
              entry.metadata.target_kind > MARKY_PROJECT_ENTRY_OTHER) ||
-            (entry.metadata.name_extension.data == nullptr && entry.metadata.name_extension.byte_count != 0)) {
+            !marky::is_valid_utf8(entry.metadata.name_extension.data, entry.metadata.name_extension.byte_count)) {
             return MARKY_STATUS_INVALID_ARGUMENT;
         }
         const auto disposition = entry.metadata.kind == MARKY_PROJECT_ENTRY_PICKED_FILE
@@ -122,8 +123,8 @@ MarkyStatus marky_project_tree_create(const MarkyProjectTreeEntry* entries, size
             continue;
         }
         const auto& entry = entries[index];
-        if (entry.identity.data == nullptr || entry.identity.byte_count == 0 ||
-            (entry.name.data == nullptr && entry.name.byte_count != 0) ||
+        if (entry.identity.byte_count == 0 || !marky::is_valid_utf8(entry.identity.data, entry.identity.byte_count) ||
+            !marky::is_valid_utf8(entry.name.data, entry.name.byte_count) ||
             (index != 0 && entry.name.byte_count == 0)) {
             return MARKY_STATUS_INVALID_ARGUMENT;
         }
@@ -182,7 +183,8 @@ MarkyStatus marky_project_tree_node_at(const MarkyProjectTree* tree, size_t inde
 
 MarkyStatus marky_project_tree_find_identity(const MarkyProjectTree* tree, MarkyUtf8View identity,
                                             size_t* out_index) {
-    if (tree == nullptr || out_index == nullptr || identity.data == nullptr || identity.byte_count == 0) {
+    if (tree == nullptr || out_index == nullptr || identity.byte_count == 0 ||
+        !marky::is_valid_utf8(identity.data, identity.byte_count)) {
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     const auto match = tree->by_identity.find(std::string_view(identity.data, identity.byte_count));
@@ -199,7 +201,8 @@ MarkyStatus marky_project_tree_find_path(const MarkyProjectTree* tree, const Mar
         return MARKY_STATUS_INVALID_ARGUMENT;
     }
     for (size_t index = 0; index < segment_count; ++index) {
-        if (segments[index].data == nullptr || segments[index].byte_count == 0) {
+        const auto [data, byte_count] = segments[index];
+        if (byte_count == 0 || !marky::is_valid_utf8(data, byte_count)) {
             return MARKY_STATUS_INVALID_ARGUMENT;
         }
     }
