@@ -2,6 +2,10 @@
 #include "CancellationToken.h"
 #include "Utf8.h"
 
+#ifdef MARKY_CORE_TEST_CHECKPOINTS
+#include "DocumentTestCheckpoints.h"
+#endif
+
 #include <array>
 #include <memory>
 #include <new>
@@ -150,6 +154,9 @@ MarkyStatus marky_project_reconcile_favorites(MarkyProjectFavoriteReconciliation
         }
         result->paths.emplace_back(path);
     }
+#ifdef MARKY_CORE_TEST_CHECKPOINTS
+    marky::test::checkpoint(marky::test::Checkpoint::beforeProjectFavoritePublication);
+#endif
     if (marky::cancellation_requested(token)) {
         return MARKY_STATUS_CANCELLED;
     }

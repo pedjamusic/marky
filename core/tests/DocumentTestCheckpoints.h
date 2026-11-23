@@ -9,7 +9,9 @@ enum class Checkpoint {
     afterInlineRegion,
     beforeDocumentAllocation,
     beforeDocumentPublication,
-    afterProjectTreeNode
+    afterProjectTreeNode,
+    beforeProjectQueryPublication,
+    beforeProjectFavoritePublication
 };
 
 void checkpoint(Checkpoint point);

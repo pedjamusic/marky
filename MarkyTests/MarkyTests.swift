@@ -655,8 +655,9 @@ struct MarkyTests {
     }
 
     @MainActor
-    @Test("superseding or closing a scan prevents stale publication and releases candidate access")
-    func supersedingAndClosingScans() async throws {
+    @Test("superseded and closed scans release their grants when the scan exits",
+          .timeLimit(.minutes(1)), arguments: [false, true])
+    func supersedingAndClosingScans(obsoleteScanFails: Bool) async throws {
         try await Self.withTemporaryDirectory { root in
             let scanner = SuspendedScan()
             let access = RecordingResourceAccess()
@@ -667,23 +668,49 @@ struct MarkyTests {
             try FileManager.default.createDirectory(at: first, withIntermediateDirectories: true)
             try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
             model.openPickedFolder(first)
-            while !(await scanner.hasRequest(first)) { await Task.yield() }
+            while !(await scanner.hasRequest(first)) {
+                try Task.checkCancellation()
+                await Task.yield()
+            }
             model.openPickedFolder(second)
-            while !(await scanner.hasRequest(second)) { await Task.yield() }
+            while !(await scanner.hasRequest(second)) {
+                try Task.checkCancellation()
+                await Task.yield()
+            }
             await scanner.finish(second)
             await model.waitForProjectLoad()
             #expect(model.root?.url == second)
-            await scanner.finish(first)
-            while !access.stops.contains(first) { await Task.yield() }
+            #expect(access.stops.isEmpty)
+            if obsoleteScanFails {
+                await scanner.fail(first)
+            } else {
+                await scanner.finish(first)
+            }
+            while access.stops.isEmpty {
+                try Task.checkCancellation()
+                await Task.yield()
+            }
+            #expect(access.stops == [first])
             #expect(model.root?.url == second)
+            #expect(model.errorMessage == nil)
+
             model.openPickedFolder(first)
-            while !(await scanner.hasRequest(first)) { await Task.yield() }
+            while !(await scanner.hasRequest(first)) {
+                try Task.checkCancellation()
+                await Task.yield()
+            }
             model.closeProject()
-            await scanner.finish(first)
+            #expect(access.stops == [first, second])
+            if obsoleteScanFails {
+                await scanner.finish(first)
+            } else {
+                await scanner.fail(first)
+            }
             await model.waitForProjectLoad()
             #expect(model.root == nil)
-            #expect(access.stops.filter { $0 == first }.count == 2)
-            #expect(access.stops.filter { $0 == second }.count == 1)
+            #expect(model.errorMessage == nil)
+            #expect(access.starts == [first, second, first])
+            #expect(access.stops == [first, second, first])
         }
     }
 

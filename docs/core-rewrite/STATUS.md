@@ -27,7 +27,8 @@ Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) 
 - **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132).
 - **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136).
 - **T16.S3 and T16 are complete.** User **PASS** (E138) accepts the [signed macOS candidate](#t16s3-mac-run) verified in E137. T17.S1 is next when selected.
-- **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). T17.S2 is next when selected. [macOS run](#t17s1-mac-run)
+- **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). [macOS run](#t17s1-mac-run)
+- **T17.S2 is accepted.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. [Verification](#t17s2-verification-and-review)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -53,7 +54,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
-| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 queued; T17.S3 queued | E140 records verified T17.S1 coverage. E141 records user PASS and E142 records integration. |
+| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 done; T17.S3 queued | E140–E142 record T17.S1 verification, acceptance, and integration. E143 and E144 record T17.S2 verification and acceptance. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
@@ -251,6 +252,80 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E140 | T17.S1 core hardening | User authorized the local branch `codex/t17-s1-core-hardening` from `edb596821c612157edcf7c652466be777e2d555c`. The uncommitted nine-file candidate patch, excluding this ledger, is `/private/tmp/MarkyT17S1.7KrQ9S/T17.S1.patch` with SHA-256 `14200e9c00241a81bdb568e99edc7ab82c962e118a6e5647536eda1f6b0e123c`. | [Mac run](#t17s1-mac-run). Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets. Xcode passed 131 unit tests. | User PASS pending. T17.S2 owns cancellation and resource-lifetime verification. T17.S3 owns the fixed-baseline performance gate. |
 | E141 | T17.S1 acceptance | User **PASS** ("Pass."), 2026-11-23, accepts E140. | The candidate patch and Release executable hashes matched E140. The signature passed strict verification again. Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets on rerun. Local and remote `main` matched the candidate base before integration. | PASS authorizes the focused commit, fast-forward merge into `main`, push of `main`, and deletion of the merged local branch. |
 | E142 | T17.S1 integration | The accepted candidate landed on `main` as `424f09c432f750ddf051912ea5a8f69b1861ca0a` on 2026-11-23. | The staged patch matched E140 byte for byte outside this ledger. Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S1 is complete. T17.S2 is next when selected. |
+| E143 | T17.S2 cancellation and resource lifetime | The user authorized the local branch `codex/t17-s2-cancellation-lifetime` from clean `main` at `7ed81d7d56e1c8920101345a67f643936a2d1c39`. The five-file patch is uncommitted. Its SHA-256 outside this ledger is `ed5699345901f1accaa25108cbbf6ec5b6b0278a1ede057b49066ad1e2607535`. | [Verification and review steps](#t17s2-verification-and-review). Core sanitizer, race, and leak checks passed. Native lifetime tests passed on repeat and the signed Release app restored picker grants. | User PASS pending. T17.S3 owns the fixed-baseline performance gate. |
+| E144 | T17.S2 acceptance | User **PASS** ("pass"), 2026-11-23, accepts E143. | The patch and Release executable hashes matched E143. The app passed strict signature verification. Release and ASan plus UBSan each passed 4/4 CTest targets on rerun. The TSan API and fault targets both passed. Local and remote `main` matched the candidate base. | PASS authorizes the focused commit, fast-forward merge into `main`, push of `main`, and deletion of the merged local branch. |
+
+### T17.S2 verification and review
+
+Executed on macOS 27.2.1 (26B131) arm64 using Apple Clang 21.0.0 (clang-2100.4.1.1), CMake and CTest 4.5.0, Xcode 27.2 (27B52), and the macOS 27.2 SDK.
+
+- The [core fault suite](../../core/tests/DocumentFaultTests.cpp) now cancels project filtering and favorite reconciliation with a complete result still owned by the operation. It also injects allocation and unexpected exceptions at the same point. Each interruption clears the output and a subsequent call succeeds. Removing both final cancellation checks in a disposable build produced two failed assertions and CTest exited 8. The normal archive contains no test checkpoints.
+- Release and AddressSanitizer plus UndefinedBehaviorSanitizer each passed all four CTest targets. The API and fault suites each passed 100 Release repeats, 25 ASan plus UBSan repeats, and 25 ThreadSanitizer repeats. The sanitizers emitted no diagnostics. `leaks --atExit` reported zero leaked bytes in each of the two Release test executables.
+- Xcode passed all 131 unit tests with zero failures or skips. A focused run passed 20 repetitions of seven tests. Both parameterized project-scan cases ran on every repetition. They verify that an obsolete success or failure leaves the active project and error state alone. They also check that a pending grant stays open until its worker exits, and that every successful start has one stop on the same URL. The focused run also covered a current scan failure, model deallocation, stale document results, silent cancellation, and local image grants.
+
+Run the core checks from the repository root with a fresh output directory.
+
+```sh
+run=$(mktemp -d)
+targets='^marky_core_(fault_)?tests$'
+cmake -S core -B "$run/CoreRelease" -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE=Release
+cmake --build "$run/CoreRelease" --parallel 6
+ctest --test-dir "$run/CoreRelease" --output-on-failure --no-tests=error
+ctest --test-dir "$run/CoreRelease" --output-on-failure -R "$targets" --repeat until-fail:100
+for test in marky_core_tests marky_core_fault_tests; do
+	MallocStackLogging=1 leaks --atExit -- "$run/CoreRelease/$test"
+done
+
+cmake -S core -B "$run/ASan-UBSan" -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+	-DCMAKE_BUILD_TYPE=Debug -DMARKY_CORE_SANITIZERS=ON
+cmake --build "$run/ASan-UBSan" --parallel 6
+export ASAN_OPTIONS=detect_stack_use_after_return=1 UBSAN_OPTIONS=halt_on_error=1
+ctest --test-dir "$run/ASan-UBSan" --output-on-failure --no-tests=error
+ctest --test-dir "$run/ASan-UBSan" --output-on-failure -R "$targets" --repeat until-fail:25
+
+cmake -S core -B "$run/TSan" -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+	-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-omit-frame-pointer' \
+	-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
+cmake --build "$run/TSan" --parallel 6
+TSAN_OPTIONS=halt_on_error=1 ctest --test-dir "$run/TSan" --output-on-failure -R "$targets" --repeat until-fail:25
+```
+
+The full native run used the README unit command with the local signing settings below. The focused run reused its Debug products.
+
+```sh
+xcodebuild -project Marky.xcodeproj -scheme Marky -destination 'platform=macOS,arch=arm64' \
+	-derivedDataPath "$run/Debug" -resultBundlePath "$run/Unit.xcresult" \
+	-disableAutomaticPackageResolution -disablePackageRepositoryCache test -only-testing:MarkyTests \
+	CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+xcodebuild -project Marky.xcodeproj -scheme Marky -destination 'platform=macOS,arch=arm64' \
+	-derivedDataPath "$run/Debug" -resultBundlePath "$run/LifetimeRepeat.xcresult" \
+	-disableAutomaticPackageResolution -disablePackageRepositoryCache test-without-building \
+	-parallel-testing-enabled NO -test-iterations 20 \
+	'-only-testing:MarkyTests/MarkyTests/supersedingAndClosingScans(obsoleteScanFails:)' \
+	'-only-testing:MarkyTests/MarkyTests/failedScanRetainsCurrentProject()' \
+	'-only-testing:MarkyTests/MarkyTests/pendingRequestDeallocationBalancesAccess()' \
+	'-only-testing:MarkyTests/MarkdownRegressionTests/documentLifetime()' \
+	'-only-testing:MarkyTests/MarkdownRegressionTests/cancelledOrdinaryFailure()' \
+	'-only-testing:MarkyTests/MarkdownRegressionTests/localImageLoaderAccess()' \
+	'-only-testing:MarkyTests/CoreMarkdownParserTests/alreadyCancelled()'
+```
+
+The Release candidate is Marky 0.2.4 (5) at `/private/tmp/MarkyT17S2.rfsfEX/Release/Build/Products/Release/Marky.app`. Its executable SHA-256 is `b1ce8cf7e01f279943004af5b23e449fb4a468e88710507a5110fbc2f4e0199e`. It passed `codesign --verify --deep --strict` and includes app sandbox and read-only user-selected file access. The five-file candidate patch and Xcode result bundles are in `/private/tmp/MarkyT17S2.rfsfEX`.
+
+The signed app retained the open guide after an unreadable folder failed to open. Three rapid open-and-close cycles with the 60,000-file test folder returned to the launch screen without a visible stale project or error. The folder and standalone file both restored and were readable after separate relaunches. The fixed T02.S2 fixture rendered `LARGE.md` and then showed `README.md` after selection changed. The signed run checks observable behavior. The deterministic unit tests check grant counts and cancellation ordering. The heap leak measurements cover the standalone core executables. The Xcode UI suite, Windows/MSVC, and Linux/GCC remain outside this run.
+
+Launch the same candidate with separate review preferences.
+
+```sh
+run=/private/tmp/MarkyT17S2.rfsfEX
+open -n "$run/Release/Build/Products/Release/Marky.app" \
+	--env MARKY_TEST_DEFAULTS_SUITE=Marky.T17S2.Review.rfsfEX
+```
+
+1. Open `ReviewProject` and select **Guide.md**. Try opening `UnreadableProject`, then dismiss the error. The guide should still show **Latest document selected**.
+2. Pick `CancellationProject` and immediately press Command-Shift-W. The launch screen should stay visible after the scan exits.
+3. Reopen `ReviewProject`, quit, and rerun the launch command. Select **README.md** and check for **Small project read succeeded**.
+4. Use **Open File** to pick `FileOnly/Picked.txt`. Quit and rerun the launch command. Check for **Standalone grant restored**.
 
 ### T17.S1 Mac run
 

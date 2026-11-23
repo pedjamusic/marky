@@ -277,6 +277,9 @@ MarkyStatus marky_project_tree_filter(const MarkyProjectTree* tree, MarkyProject
         }
     }
 
+#ifdef MARKY_CORE_TEST_CHECKPOINTS
+    marky::test::checkpoint(marky::test::Checkpoint::beforeProjectQueryPublication);
+#endif
     if (marky::cancellation_requested(token)) {
         return MARKY_STATUS_CANCELLED;
     }

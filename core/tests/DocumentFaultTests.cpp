@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <latch>
 #include <memory>
@@ -25,6 +26,56 @@ std::string block_input() {
            "\nA | B\n--- | ---\nOwned table cell with allocated source | row\nShort row"
            "\n![Image with owned alt text](<owned image destination.png> 'Image with an owned title')\nAfter"
            "\n[guide]: <docs/owned-guide.md> \"An owned reference title\"";
+}
+
+template <typename Result>
+void check_project_publication(const auto& check, Checkpoint before_publication,
+                               const auto& create, void (*release)(Result*)) {
+    MarkyCancellationToken* raw_token = nullptr;
+    const auto token_status = marky_cancellation_token_create(&raw_token);
+    const std::unique_ptr<MarkyCancellationToken, decltype(&marky_cancellation_token_release)>
+        token(raw_token, marky_cancellation_token_release);
+    check(token_status == MARKY_STATUS_OK && token != nullptr, "create project result cancellation token");
+    if (!token) {
+        return;
+    }
+
+    Result* raw_result = nullptr;
+    const auto success = create(token.get(), &raw_result);
+    const std::unique_ptr<Result, decltype(release)> published(raw_result, release);
+    check(success == MARKY_STATUS_OK && published != nullptr, "publish an independent project result");
+
+    for (const MarkyStatus expected :
+         {MARKY_STATUS_ALLOCATION_FAILURE, MARKY_STATUS_INTERNAL_ERROR, MARKY_STATUS_CANCELLED}) {
+        on_checkpoint = [&](Checkpoint point) {
+            if (point != before_publication) {
+                return;
+            }
+            if (expected == MARKY_STATUS_ALLOCATION_FAILURE) {
+                throw std::bad_alloc{};
+            }
+            if (expected == MARKY_STATUS_INTERNAL_ERROR) {
+                throw 42; // Exercise containment of exceptions outside std::exception.
+            }
+            marky_cancellation_token_request(token.get());
+        };
+        Result* output = published.get();
+        const auto status = create(token.get(), &output);
+        on_checkpoint = {};
+        check(status == expected && output == nullptr,
+              "a failure or cancellation before project result publication must clear the output");
+        if (output != published.get()) {
+            release(output);
+        }
+    }
+
+    Result* recovered = nullptr;
+    const auto recovery = create(nullptr, &recovered);
+    check(recovery == MARKY_STATUS_OK && recovered != nullptr && recovered != published.get(),
+          "a fresh project operation must succeed after cancellation");
+    if (recovered != published.get()) {
+        release(recovered);
+    }
 }
 
 void check_document_failure(const auto& check, Checkpoint injection_point,
@@ -129,7 +180,25 @@ void check_project_tree_interruption(const auto& check) {
               marky_project_tree_node_count(output) == 2,
           "an independent tree assembly succeeds during a paused build after failure");
     marky_project_tree_release(worker_tree);
+    if (output != nullptr) {
+        const uint8_t matches[] = {0, 1};
+        const MarkyProjectFavoriteMatch favorite{1, false};
+        check_project_publication(check, Checkpoint::beforeProjectQueryPublication,
+            [&](const MarkyCancellationToken* active, MarkyProjectQueryResult** result) {
+                return marky_project_tree_filter(output, {matches, 2, &favorite, 1}, active, result);
+            }, marky_project_query_result_release);
+    }
     marky_project_tree_release(output);
+
+    const std::string path = "Folder/" + std::string(128, 'n') + ".md";
+    const MarkyUtf8View saved_path{path.data(), path.size()};
+    const MarkyProjectFavoriteReconciliation reconciliation{
+        {&saved_path, 1}, {}, {}, MARKY_PROJECT_SCAN_COMPLETE, false
+    };
+    check_project_publication(check, Checkpoint::beforeProjectFavoritePublication,
+        [&](const MarkyCancellationToken* active, MarkyProjectFavoriteResult** result) {
+            return marky_project_reconcile_favorites(reconciliation, active, result);
+        }, marky_project_favorite_result_release);
 }
 
 void check_token_allocation_failure(const auto& check, MarkyCancellationToken* existing) {
