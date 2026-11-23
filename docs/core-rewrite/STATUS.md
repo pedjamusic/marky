@@ -28,7 +28,7 @@ Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) 
 - **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136).
 - **T16.S3 and T16 are complete.** User **PASS** (E138) accepts the [signed macOS candidate](#t16s3-mac-run) verified in E137. T17.S1 is next when selected.
 - **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). [macOS run](#t17s1-mac-run)
-- **T17.S2 is accepted.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. [Verification](#t17s2-verification-and-review)
+- **T17.S2 is accepted and delivered.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. The slice landed on `main` as `ead9682` (E145). T17.S3 is next when selected. [Verification](#t17s2-verification-and-review)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -54,7 +54,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
-| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 done; T17.S3 queued | E140–E142 record T17.S1 verification, acceptance, and integration. E143 and E144 record T17.S2 verification and acceptance. |
+| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 done; T17.S3 queued | E140–E142 record T17.S1 verification, acceptance, and integration. E143–E145 record the same steps for T17.S2. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
@@ -254,6 +254,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E142 | T17.S1 integration | The accepted candidate landed on `main` as `424f09c432f750ddf051912ea5a8f69b1861ca0a` on 2026-11-23. | The staged patch matched E140 byte for byte outside this ledger. Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S1 is complete. T17.S2 is next when selected. |
 | E143 | T17.S2 cancellation and resource lifetime | The user authorized the local branch `codex/t17-s2-cancellation-lifetime` from clean `main` at `7ed81d7d56e1c8920101345a67f643936a2d1c39`. The five-file patch is uncommitted. Its SHA-256 outside this ledger is `ed5699345901f1accaa25108cbbf6ec5b6b0278a1ede057b49066ad1e2607535`. | [Verification and review steps](#t17s2-verification-and-review). Core sanitizer, race, and leak checks passed. Native lifetime tests passed on repeat and the signed Release app restored picker grants. | User PASS pending. T17.S3 owns the fixed-baseline performance gate. |
 | E144 | T17.S2 acceptance | User **PASS** ("pass"), 2026-11-23, accepts E143. | The patch and Release executable hashes matched E143. The app passed strict signature verification. Release and ASan plus UBSan each passed 4/4 CTest targets on rerun. The TSan API and fault targets both passed. Local and remote `main` matched the candidate base. | PASS authorizes the focused commit, fast-forward merge into `main`, push of `main`, and deletion of the merged local branch. |
+| E145 | T17.S2 integration | The accepted candidate landed on `main` as `ead96828486f49f4a4d65ad6739abdca870eb4d6` on 2026-11-23. | The staged patch matched E143 byte for byte outside this ledger. Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S2 is complete. T17.S3 is next when selected. |
 
 ### T17.S2 verification and review
 
