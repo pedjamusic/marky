@@ -27,7 +27,7 @@ Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) 
 - **T16.S1 is complete.** The macOS scanner passes filesystem metadata and canonical entry identities to the C++ tree builder. User **PASS** (E130) accepts the [signed candidate](#t16s1-mac-run). The slice landed on `main` as `e82c68f` (E132).
 - **T16.S2 is complete.** User **PASS** (E135) accepts the [signed project search and favorites candidate](#t16s2-mac-run). The slice landed on `main` as `878ccb1` (E136).
 - **T16.S3 and T16 are complete.** User **PASS** (E138) accepts the [signed macOS candidate](#t16s3-mac-run) verified in E137. T17.S1 is next when selected.
-- **T17.S1 is accepted.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. T17.S2 is next when selected. [macOS run](#t17s1-mac-run)
+- **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). T17.S2 is next when selected. [macOS run](#t17s1-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -53,7 +53,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T14 | [06](phases/06-project-rules.md) | done | T14.S1 done; T14.S2 done | E113–E116 record index delivery. E117–E120 record query verification, branch placement, acceptance, and integration. |
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
-| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 queued; T17.S3 queued | E140 records verified T17.S1 coverage. User PASS is recorded in E141. |
+| T17 | [07](phases/07-hardening-and-closure.md) | in progress | T17.S1 done; T17.S2 queued; T17.S3 queued | E140 records verified T17.S1 coverage. E141 records user PASS and E142 records integration. |
 | T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
@@ -250,6 +250,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E139 | T16.S3 and T16 integration | The acceptance record landed on `main` as `70102ed85153277c0fb4a7918134e05e80fa4f27`, 2026-11-20. | Local `main` fast-forwarded and `git push origin main` succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T16 is delivered. T17.S1 is next when selected. This ledger-only update records Git execution under the same main-push authorization. |
 | E140 | T17.S1 core hardening | User authorized the local branch `codex/t17-s1-core-hardening` from `edb596821c612157edcf7c652466be777e2d555c`. The uncommitted nine-file candidate patch, excluding this ledger, is `/private/tmp/MarkyT17S1.7KrQ9S/T17.S1.patch` with SHA-256 `14200e9c00241a81bdb568e99edc7ab82c962e118a6e5647536eda1f6b0e123c`. | [Mac run](#t17s1-mac-run). Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets. Xcode passed 131 unit tests. | User PASS pending. T17.S2 owns cancellation and resource-lifetime verification. T17.S3 owns the fixed-baseline performance gate. |
 | E141 | T17.S1 acceptance | User **PASS** ("Pass."), 2026-11-23, accepts E140. | The candidate patch and Release executable hashes matched E140. The signature passed strict verification again. Debug, Release, and ASan plus UBSan each passed 4/4 CTest targets on rerun. Local and remote `main` matched the candidate base before integration. | PASS authorizes the focused commit, fast-forward merge into `main`, push of `main`, and deletion of the merged local branch. |
+| E142 | T17.S1 integration | The accepted candidate landed on `main` as `424f09c432f750ddf051912ea5a8f69b1861ca0a` on 2026-11-23. | The staged patch matched E140 byte for byte outside this ledger. Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S1 is complete. T17.S2 is next when selected. |
 
 ### T17.S1 Mac run
 
