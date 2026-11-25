@@ -1,17 +1,18 @@
 # Agent rules
 
-Marky is a local-file Markdown reader. The current app is Swift/SwiftUI with AppKit integration on macOS; the product direction is cross-platform with a native host-OS UI on each platform. Preserve reading quality, responsive navigation, and user-granted file access.
+Marky is a local-file Markdown reader. The current app is Swift/SwiftUI with AppKit integration on macOS over a portable C++20 core; the product direction is cross-platform with a native host-OS UI on each platform. Preserve reading quality, responsive navigation, and user-granted file access.
 
 This file defines repository policy and takes precedence over other repository documentation. Read it before changing files.
 
 ## Read when relevant
 
-- `README.md`: current features, toolchain, and build/test commands. Confirm versions in the project settings before reporting them.
+- `README.md`: current features, architecture, toolchain, and build/test commands. Confirm versions in the project settings before reporting them.
+- `core/README.md`: core build, tests, sources, and the C interface's ownership, lifetime, and cancellation rules before changing the core or its Swift adapters.
 - `docs/core-rewrite/README.md`: entry point before C++ core planning, implementation, portability work, or handoff; follow its contract, active phase, and status ledger.
 - `_plans/*TODO*.md`: execution checklists. Check their scope and status before treating an old plan as active.
 - `docs/CODE_QUALITY_VERIFICATION.md`: project access, favorites, sidebar, and signed sandbox acceptance procedures.
 - `docs/MARKDOWN_STYLING_VERIFICATION.md` and `docs/MARKDOWN_SHOWCASE.md`: Markdown behavior and reading examples before parser or renderer work.
-- `docs/AGENT_POLICY_AND_PORTABILITY.md`: rationale for these rules, skills assessment, and C++ migration options before portability work. This is an assessment, not migration authorization.
+- `docs/AGENT_POLICY_AND_PORTABILITY.md`: rationale for these rules, skills assessment, and the original C++ migration assessment. Its architecture section predates the core.
 - `CHANGELOG.md`: released behavior. `MEMORY.md` is historical context, not policy; update it only when asked.
 
 ## Workflow
@@ -26,11 +27,11 @@ This file defines repository policy and takes precedence over other repository d
 
 ## Architecture and portability
 
-- Today there is no C++ core or CMake build. Keep the current app working; this policy does not authorize a rewrite.
+- The C++20 core in `core/` owns Markdown semantics and shared project rules. The Mac app reaches it only through `core/include/MarkyCore.h`. Keep the current app working; this policy does not authorize further rewrites or new frontends.
 - Separate reusable document and project rules from platform integration as touched code permits. Before adding logic, ask whether another platform would need the same rule. Keep that rule independent of SwiftUI/AppKit; keep file grants, bookmarks, native filesystem operations, window/menu behavior, fonts, drawing, and localized presentation in platform adapters.
 - SwiftUI-first and MVVM apply to the Apple frontend. Views describe UI; ViewModels coordinate observable state and platform services. They are not requirements for another platform's frontend.
 - Each frontend uses its host OS's native UI framework and standard controls. Share document behavior through the core; implement presentation separately for each platform.
-- If a C++ core is approved, use C++20, an independent CMake/CTest build, and a narrow Swift adapter as the only crossing point. The core owns document semantics and shared policy; its public types must not depend on Apple or other platform UI frameworks. Specify ownership, string encoding, cancellation, and errors; C++ exceptions must not escape into Swift.
+- Keep the core on C++20 with its independent CMake/CTest build, and keep the C header and its Swift adapters as the only crossing point. Its public types must not depend on Apple or other platform UI frameworks, and it performs no filesystem, network, or persistence I/O. Specify ownership, string encoding, cancellation, and errors in the header; C++ exceptions must not escape into Swift.
 - Keep existing persistence services for preferences, favorites, and bookmarks. Choose shared data formats deliberately; introduce SwiftData only for a demonstrated Apple-specific need, not as the portable model.
 - Follow the existing feature/file structure. Extract duplication when copies must change together or when a shared module has a concrete caller; avoid speculative folders and layers.
 
@@ -47,7 +48,7 @@ This file defines repository policy and takes precedence over other repository d
 ## Verification and acceptance
 
 - Behavior changes need relevant regression tests where practical, plus documentation or verification notes explaining coverage and limits. Tests assert observable behavior; demonstrate that they catch the defect when feasible.
-- Build and run the relevant unit tests using the commands in `README.md`. Run UI tests for changed interactions; broaden checks for cross-cutting changes. A future core must also pass its independent tests on the claimed target platforms.
+- Build and run the relevant unit tests using the commands in `README.md`. Run UI tests for changed interactions; broaden checks for cross-cutting changes. Core changes must also pass the core CTest presets in `core/README.md`; claim a platform only where its tests ran.
 - Before handing off UI or behavioral changes, exercise affected flows, failures, cancellation, and representative large files/folders as applicable. Sandbox restoration requires a signed, sandbox-enabled app; an unsigned or UI-test-only run is insufficient evidence.
 - Give the user the exact candidate and focused manual steps. User-reported **PASS** gates task completion, commits, and merges. Documentation-only changes need user review of the diff rather than an app test; do not claim runtime validation for them.
 - Mark `_plans/*TODO*.md` items complete only after the applicable user confirmation. Keep unfinished work explicit. Update docs/changelog for changed behavior or versions; use the existing versioned changelog convention and do not bump an app version for policy-only edits.
