@@ -63,9 +63,7 @@ private struct MarkdownTypographyProfile {
     let bodyFamily: MarkdownTypographyFontFamily
     let bodyFontSize: CGFloat
     let bodyLineHeightMultiple: CGFloat
-    let bodyParagraphSpacing: CGFloat
     let bodyTracking: CGFloat
-    let paragraphBreakSpacingBefore: CGFloat
     let paragraphBlockSpacing: CGFloat
 
     let headingScales: [CGFloat]
@@ -74,8 +72,6 @@ private struct MarkdownTypographyProfile {
     let headingSpacingAfterMultipliers: [CGFloat]
     let headingTracking: CGFloat
 
-    let listIndent: CGFloat
-    let listParagraphSpacing: CGFloat
     let listBlockSpacing: CGFloat
     let listItemSpacing: CGFloat
     let listMarkerGap: CGFloat
@@ -83,9 +79,6 @@ private struct MarkdownTypographyProfile {
     let listMarkerScale: CGFloat
     let listBulletMarkerScale: CGFloat
     let nestedListSpacing: CGFloat
-    let listLineHeightMultiple: CGFloat
-    let quoteLineHeightMultiple: CGFloat
-    let quoteObliqueness: CGFloat
     let quoteBlockSpacing: CGFloat
     let checkboxUncheckedSymbol: String
     let checkboxCheckedSymbol: String
@@ -140,17 +133,13 @@ private struct MarkdownTypographyProfile {
             bodyFamily: bodyFamily,
             bodyFontSize: bodyFontSize,
             bodyLineHeightMultiple: bodyLineHeightMultiple,
-            bodyParagraphSpacing: bodyFontSize * 0.85,
             bodyTracking: 0.12,
-            paragraphBreakSpacingBefore: bodyFontSize * 0.90,
             paragraphBlockSpacing: bodyFontSize * 0.92,
             headingScales: [1.90, 1.50, 1.25, 1.10, 1.00, 0.95],
             headingLineHeights: [1.12, 1.16, 1.20, 1.24, 1.26, 1.28],
             headingSpacingBeforeMultipliers: [2.20, 2.00, 1.70, 1.50, 1.35, 1.20],
             headingSpacingAfterMultipliers: [0.60, 0.50, 0.48, 0.42, 0.38, 0.36],
             headingTracking: -0.16,
-            listIndent: 0,
-            listParagraphSpacing: bodyFontSize * 0.30,
             listBlockSpacing: bodyFontSize * 0.80,
             listItemSpacing: bodyFontSize * 0.34,
             listMarkerGap: bodyFontSize * -0.04,
@@ -158,9 +147,6 @@ private struct MarkdownTypographyProfile {
             listMarkerScale: 1.0,
             listBulletMarkerScale: 1.12,
             nestedListSpacing: bodyFontSize * 0.20,
-            listLineHeightMultiple: bodyLineHeightMultiple,
-            quoteLineHeightMultiple: bodyLineHeightMultiple,
-            quoteObliqueness: 0.06,
             quoteBlockSpacing: bodyFontSize * 1.10,
             checkboxUncheckedSymbol: "☐",
             checkboxCheckedSymbol: "☑",
@@ -191,17 +177,13 @@ private struct MarkdownTypographyProfile {
             bodyFamily: bodyFamily,
             bodyFontSize: scaledFontSize(bodyFontSize),
             bodyLineHeightMultiple: bodyLineHeightMultiple,
-            bodyParagraphSpacing: scaledFontSize(bodyParagraphSpacing),
             bodyTracking: bodyTracking * scale,
-            paragraphBreakSpacingBefore: scaledFontSize(paragraphBreakSpacingBefore),
             paragraphBlockSpacing: scaledFontSize(paragraphBlockSpacing),
             headingScales: headingScales,
             headingLineHeights: headingLineHeights,
             headingSpacingBeforeMultipliers: headingSpacingBeforeMultipliers,
             headingSpacingAfterMultipliers: headingSpacingAfterMultipliers,
             headingTracking: headingTracking * scale,
-            listIndent: scaledFontSize(listIndent),
-            listParagraphSpacing: scaledFontSize(listParagraphSpacing),
             listBlockSpacing: scaledFontSize(listBlockSpacing),
             listItemSpacing: scaledFontSize(listItemSpacing),
             listMarkerGap: scaledFontSize(listMarkerGap),
@@ -209,9 +191,6 @@ private struct MarkdownTypographyProfile {
             listMarkerScale: listMarkerScale,
             listBulletMarkerScale: listBulletMarkerScale,
             nestedListSpacing: scaledFontSize(nestedListSpacing),
-            listLineHeightMultiple: listLineHeightMultiple,
-            quoteLineHeightMultiple: quoteLineHeightMultiple,
-            quoteObliqueness: quoteObliqueness,
             quoteBlockSpacing: scaledFontSize(quoteBlockSpacing),
             checkboxUncheckedSymbol: checkboxUncheckedSymbol,
             checkboxCheckedSymbol: checkboxCheckedSymbol,
@@ -239,18 +218,14 @@ struct MarkdownTypography {
     var bodyFontSize: CGFloat { profile.bodyFontSize }
     var bodyLineHeightMultiple: CGFloat { profile.bodyLineHeightMultiple }
     var bodyLineSpacing: CGFloat { bodyFontSize * max(0, bodyLineHeightMultiple - 1.0) }
-    var bodyParagraphSpacing: CGFloat { profile.bodyParagraphSpacing }
     var bodyTracking: CGFloat { profile.bodyTracking }
-    var paragraphBreakSpacingBefore: CGFloat { profile.paragraphBreakSpacingBefore }
     var paragraphBlockSpacing: CGFloat { profile.paragraphBlockSpacing }
 
     var headingScales: [CGFloat] { profile.headingScales }
     var headingLineHeights: [CGFloat] { profile.headingLineHeights }
     var headingTracking: CGFloat { profile.headingTracking }
 
-    var listIndent: CGFloat { profile.listIndent }
     var nestedListIndent: CGFloat { profile.listMarkerColumnWidth }
-    var listParagraphSpacing: CGFloat { profile.listParagraphSpacing }
     var listBlockSpacing: CGFloat { profile.listBlockSpacing }
     var listItemSpacing: CGFloat { profile.listItemSpacing }
     var listMarkerGap: CGFloat { profile.listMarkerGap }
@@ -258,9 +233,6 @@ struct MarkdownTypography {
     var listMarkerScale: CGFloat { profile.listMarkerScale }
     var listBulletMarkerScale: CGFloat { profile.listBulletMarkerScale }
     var nestedListSpacing: CGFloat { profile.nestedListSpacing }
-    var listLineHeightMultiple: CGFloat { profile.listLineHeightMultiple }
-    var quoteLineHeightMultiple: CGFloat { profile.quoteLineHeightMultiple }
-    var quoteObliqueness: CGFloat { profile.quoteObliqueness }
     var quoteBlockSpacing: CGFloat { profile.quoteBlockSpacing }
     var checkboxUncheckedSymbol: String { profile.checkboxUncheckedSymbol }
     var checkboxCheckedSymbol: String { profile.checkboxCheckedSymbol }

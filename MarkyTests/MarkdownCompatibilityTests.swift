@@ -3,163 +3,122 @@ import Foundation
 import Testing
 @testable import Marky
 
-/// Compares native core rendering with the fixtures and the legacy Swift reader.
+/// Checks native core rendering against the shared fixtures.
 @MainActor
 struct MarkdownCompatibilityTests {
-    @Test("Shared fixtures agree with legacy Swift preparation and inline semantics")
-    func productionCorpus() throws {
-        let corpus = try loadCorpus()
-        for fixture in corpus.fixtures {
-            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            let actual = prepared.map(project)
+    @Test("The native reader renders every shared fixture's structure, text and inline semantics")
+    func nativeCorpus() async throws {
+        for fixture in try loadCorpus().fixtures {
+            let document = try await CoreMarkdownParser.parse(fixture.input)
+            let rendered = MarkdownContentBlocks.render(coreDocument: document, mode: .allSystem, isDarkMode: false)
+            let actual = document.blocks.enumerated().map { project($1, at: $0, in: document) }
             let diagnostic = try describe(actual)
             // Compare encoded bytes: Swift String equality alone hides normalization changes.
             #expect(try encoded(actual) == encoded(fixture.blocks), "Fixture \(fixture.id): \(diagnostic)")
 
-            let rendered = MarkdownContentBlocks.render(
-                preparedBlocks: prepared, mode: .allSystem, isDarkMode: false
-            )
             let visible = rendered.flatMap(visibleText)
             let expected = fixture.blocks.flatMap(expectedVisibleText)
-            #expect(try encoded(visible) == encoded(expected), "Legacy Swift display text: \(fixture.id)")
-
-            if let legacy = fixture.legacyRuns {
-                let actual = runs(MarkdownRenderer.render(from: fixture.input))
-                let diagnostic = try describe(actual)
-                #expect(try encoded(actual) == encoded(legacy),
-                        "Older line-based helper \(fixture.id): \(diagnostic)")
-            }
-            if let inline = fixture.inlineRuns {
-                let actual = runs(MarkdownRenderer.renderInline(from: fixture.input))
-                let diagnostic = try describe(actual)
-                #expect(try encoded(actual) == encoded(inline),
-                        "Direct inline seam \(fixture.id): \(diagnostic)")
-            }
+            #expect(try encoded(visible) == encoded(expected), "Display text: \(fixture.id)")
+            #expect(rendered.map(\.id) == Array(fixture.blocks.indices), "Block identity: \(fixture.id)")
+            #expect(rendered.map(renderedShape) == fixture.blocks.map(expectedShape), "Block metadata: \(fixture.id)")
         }
     }
 
-    @Test("Both readers render the shared corpus with identical native text and attributes")
-    func nativeCorpusParity() async throws {
+    @Test("Every shared fixture uses the native base style of its block role")
+    func nativeCorpusBaseStyles() async throws {
+        let typography = MarkdownTypography(mode: .allSystem)
         for fixture in try loadCorpus().fixtures {
-            let coreDocument = try await CoreMarkdownParser.parse(fixture.input)
-            let swift = MarkdownContentBlocks.render(from: fixture.input, mode: .allSystem, isDarkMode: false)
-            let core = MarkdownContentBlocks.render(coreDocument: coreDocument, mode: .allSystem, isDarkMode: false)
-            #expect(core.count == swift.count, "Fixture \(fixture.id)")
-            for (expectedBlock, actualBlock) in zip(swift, core) {
-                let context = "Fixture \(fixture.id), block \(expectedBlock.id)"
-                let expected = nativeProjection(expectedBlock)
-                let actual = nativeProjection(actualBlock)
-                #expect(try json(actual.metadata) == json(expected.metadata), "\(context)")
-                #expect(actual.text.count == expected.text.count, "\(context)")
-                for (expectedText, actualText) in zip(expected.text, actual.text) {
-                    #expect(actualText.string.utf8.elementsEqual(expectedText.string.utf8), "\(context)")
-                    #expect(actualText.isEqual(to: expectedText), "\(context)")
-                }
-            }
-        }
-    }
-
-    private func nativeProjection(_ block: MarkdownRenderedBlock) -> (metadata: [String], text: [NSAttributedString]) {
-        switch block.kind {
-        case .heading(let level, let text): return (["heading", String(level)], [NSAttributedString(text)])
-        case .paragraph(let text): return (["paragraph"], [NSAttributedString(text)])
-        case .quote(let text): return (["quote"], [NSAttributedString(text)])
-        case .code(let text): return (["code", text], [])
-        case .list(let items):
-            return (["list"] + items.flatMap { [String($0.nestingLevel), $0.marker] },
-                    items.map { NSAttributedString($0.body) })
-        case .table(let table):
-            let rows = [table.headers] + table.rows.map(\.cells)
-            let cells = rows.flatMap { $0 }
-            return (["table"] + rows.map { String($0.count) } + cells.map { $0.alignment.rawValue },
-                    cells.map { NSAttributedString($0.content) })
-        case .image(let alt, let url, let title):
-            return (["image", alt, url] + (title.map { [$0] } ?? []), [])
-        case .thematicBreak: return (["thematicBreak"], [])
-        }
-    }
-
-    @Test("Core base blocks match the shared corpus and Swift preparation")
-    func coreBaseBlocks() async throws {
-        let ids: Set = [
-            "MD-001", "MD-002", "MD-003", "MD-004", "MD-005", "MD-006", "MD-007",
-            "MD-008", "MD-009", "MD-010", "MD-011", "MD-012", "MD-040", "MD-041",
-            "MD-044", "MD-045", "MD-046", "MD-047", "MD-048", "MD-049", "MD-050",
-            "MD-051", "MD-052", "MD-053", "MD-054", "MD-055", "MD-056", "MD-057",
-            "MD-084", "MD-085", "MD-086", "MD-087",
-        ]
-        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
-        #expect(Set(fixtures.map(\.id)) == ids)
-        for fixture in fixtures {
-            let document = try await CoreMarkdownParser.parse(fixture.input)
-            let actual = document.blocks.map(projectCoreBlock)
-            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            let expected = prepared.compactMap { block -> BaseBlock? in
+            for block in try await coreBlocks(fixture.input) {
+                let context = "Fixture \(fixture.id), block \(block.id)"
                 switch block.kind {
-                case .heading(let level, let source):
-                    return BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
-                case .paragraph(let source):
-                    return BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
-                case .code(let text):
-                    return BaseBlock(kind: "code", bytes: Array(text.utf8))
-                case .thematicBreak:
-                    return BaseBlock(kind: "thematicBreak")
-                default:
-                    Issue.record("Unexpected prepared block in \(fixture.id)")
-                    return nil
+                case .heading(let level, let text):
+                    expectBaseStyle(text, font: typography.headingFont(for: level), kern: typography.headingTracking,
+                                    lineHeight: typography.headingLineHeight(for: level), context)
+                case .paragraph(let text), .quote(let text):
+                    expectBaseStyle(text, font: typography.bodyFont(), kern: typography.bodyTracking,
+                                    lineHeight: typography.bodyLineHeightMultiple, context)
+                case .list(let items):
+                    for item in items {
+                        expectBaseStyle(item.body, font: typography.bodyFont(), kern: typography.bodyTracking,
+                                        lineHeight: typography.bodyLineHeightMultiple, context)
+                    }
+                case .table(let table):
+                    for cell in table.headers {
+                        expectBaseStyle(cell.content, font: typography.bodyFont(), kern: typography.bodyTracking,
+                                        lineHeight: typography.bodyLineHeightMultiple, bold: true, context)
+                    }
+                    for cell in table.rows.flatMap(\.cells) {
+                        expectBaseStyle(cell.content, font: typography.bodyFont(), kern: typography.bodyTracking,
+                                        lineHeight: typography.bodyLineHeightMultiple, context)
+                    }
+                case .code, .image, .thematicBreak:
+                    break
                 }
-            }
-            #expect(actual == expected, "Prepared source: \(fixture.id)")
-            #expect(actual.map(\.kind) == fixture.blocks.map(\.kind), "Block order: \(fixture.id)")
-            #expect(actual.map(\.level) == fixture.blocks.map(\.level), "Heading levels: \(fixture.id)")
-            #expect(actual.filter { $0.kind == "code" }.compactMap(\.bytes) == literalBytes(fixture),
-                    "Literal code: \(fixture.id)")
-        }
-    }
-
-    @Test("Core quote lines retain shared fixture depth, prepared source and block order")
-    func coreQuotes() async throws {
-        let fixtures = try loadCorpus().fixtures.filter { $0.blocks.contains { $0.kind == "quote" } }
-        #expect(Set(fixtures.map(\.id)).isSuperset(of: ["MD-019", "MD-024", "MD-058", "MD-060", "MD-061", "MD-071"]))
-        for fixture in fixtures {
-            let document = try await CoreMarkdownParser.parse(fixture.input)
-            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == fixture.blocks.map(\.kind),
-                    "Block order: \(fixture.id)")
-            for (index, block) in document.blocks.enumerated() {
-                guard case .quote(let lines) = block else { continue }
-                guard fixture.blocks.indices.contains(index), let expected = fixture.blocks[index].lines,
-                      prepared.indices.contains(index), case .quote(let source) = prepared[index].kind
-                else {
-                    Issue.record("Unexpected quote block in \(fixture.id)")
-                    continue
-                }
-                let bodies = quoteBodies(from: source)
-                #expect(lines.map(\.depth) == expected.map(\.depth), "Quote depth: \(fixture.id)")
-                #expect(lines.map { Array($0.source.utf8) } == bodies.map { Array($0.body.utf8) },
-                        "Prepared quote source: \(fixture.id)")
             }
         }
     }
 
-    private func projectCoreBlock(_ block: CoreMarkdownDocument.Block) -> BaseBlock {
-        switch block {
-        case .heading(let level, let source):
-            BaseBlock(kind: "heading", level: level, bytes: Array(source.utf8))
-        case .paragraph(let source):
-            BaseBlock(kind: "paragraph", bytes: Array(source.utf8))
-        case .code(let text):
-            BaseBlock(kind: "code", bytes: Array(text.utf8))
-        case .thematicBreak:
-            BaseBlock(kind: "thematicBreak")
-        case .list:
-            BaseBlock(kind: "list")
-        case .quote:
-            BaseBlock(kind: "quote")
-        case .table:
-            BaseBlock(kind: "table")
-        case .image:
-            BaseBlock(kind: "image")
+    /// Everything the view reads from a rendered block besides its text.
+    private func renderedShape(_ block: MarkdownRenderedBlock) -> [String] {
+        switch block.kind {
+        case .heading(let level, _): ["heading", String(level)]
+        case .paragraph: ["paragraph"]
+        case .quote: ["quote"]
+        case .code(let text): ["code", text]
+        case .list(let items): ["list"] + items.flatMap { [String($0.id), String($0.nestingLevel), $0.marker] }
+        case .table(let table):
+            ["table"] + ([table.headers] + table.rows.map(\.cells)).flatMap { cells in
+                [String(cells.count)] + cells.map(\.alignment.rawValue)
+            }
+        case .image(let alt, let url, let title): ["image", alt, url] + (title.map { [$0] } ?? [])
+        case .thematicBreak: ["thematicBreak"]
+        }
+    }
+
+    private func expectedShape(_ block: Block) -> [String] {
+        let typography = MarkdownTypography(mode: .allSystem)
+        switch block.kind {
+        case "heading": return ["heading", String(block.level ?? 0)]
+        case "code": return ["code", block.text ?? ""]
+        case "list":
+            return ["list"] + (block.items ?? []).enumerated().flatMap { index, item in
+                let marker = switch item.marker {
+                case "bullet": "•"
+                case "taskUnchecked": typography.checkboxUncheckedSymbol
+                case "taskChecked": typography.checkboxCheckedSymbol
+                default: item.marker
+                }
+                return [String(index), String(item.depth), marker]
+            }
+        case "table":
+            let alignments = block.alignments ?? []
+            let row = [String(alignments.count)] + alignments
+            return ["table"] + Array(repeating: row, count: (block.rows?.count ?? 0) + 1).flatMap { $0 }
+        case "image": return ["image", block.alt ?? "", block.destination ?? ""] + (block.title.map { [$0] } ?? [])
+        default: return [block.kind]
+        }
+    }
+
+    private func expectBaseStyle(
+        _ content: AttributedString, font: NSFont, kern: CGFloat, lineHeight: CGFloat,
+        bold: Bool = false, _ context: String
+    ) {
+        let text = NSAttributedString(content)
+        text.enumerateAttributes(in: NSRange(location: 0, length: text.length)) { attributes, _, _ in
+            #expect((attributes[.kern] as? CGFloat) == kern, "\(context)")
+            let paragraph = attributes[.paragraphStyle] as? NSParagraphStyle
+            #expect(paragraph?.lineHeightMultiple == lineHeight, "\(context)")
+            #expect(paragraph?.paragraphSpacing == 0, "\(context)")
+            // Code and links replace parts of the base style.
+            guard attributes[.backgroundColor] == nil, let actual = attributes[.font] as? NSFont else { return }
+            #expect(actual.pointSize == font.pointSize, "\(context)")
+            #expect(actual.familyName == font.familyName, "\(context)")
+            if attributes[.link] == nil {
+                #expect((attributes[.foregroundColor] as? NSColor) == NSColor.labelColor, "\(context)")
+            }
+            if bold {
+                #expect(NSFontManager.shared.traits(of: actual).contains(.boldFontMask), "\(context)")
+            }
         }
     }
 
@@ -179,78 +138,6 @@ struct MarkdownCompatibilityTests {
         }
     }
 
-    @Test("Core list items match shared fixture order, marker state, depth and prepared source")
-    func coreLists() async throws {
-        let ids: Set = ["MD-015", "MD-016", "MD-017", "MD-018", "MD-058", "MD-059", "MD-061", "MD-067", "MD-071"]
-        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
-        #expect(Set(fixtures.map(\.id)) == ids)
-        for fixture in fixtures {
-            let document = try await CoreMarkdownParser.parse(fixture.input)
-            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            let lists: [(index: Int, items: [CoreMarkdownDocument.ListItem])] = document.blocks.enumerated().compactMap { index, block in
-                if case .list(let items) = block { return (index, items) }
-                return nil
-            }
-            #expect(lists.map(\.index) == fixture.blocks.indices.filter { fixture.blocks[$0].kind == "list" },
-                    "List block order: \(fixture.id)")
-            for (index, items) in lists {
-                guard fixture.blocks.indices.contains(index), let expected = fixture.blocks[index].items,
-                      prepared.indices.contains(index), case .list(let swiftItems) = prepared[index].kind
-                else {
-                    Issue.record("Unexpected list block in \(fixture.id)")
-                    continue
-                }
-                let markers: [String] = items.map { item in
-                    switch item.marker {
-                    case .bullet: "bullet"
-                    case .ordered(let spelling): spelling
-                    case .task(checked: false): "taskUnchecked"
-                    case .task(checked: true): "taskChecked"
-                    }
-                }
-                #expect(markers.map { Array($0.utf8) } == expected.map { Array($0.marker.utf8) },
-                        "List markers: \(fixture.id)")
-                #expect(items.map(\.depth) == expected.map(\.depth), "List depth: \(fixture.id)")
-                #expect(items.map { Array($0.source.utf8) } == swiftItems.map { Array($0.body.utf8) },
-                        "Prepared list source: \(fixture.id)")
-            }
-        }
-    }
-
-    @Test("Core tables match shared fixture order, alignment and prepared cell bytes")
-    func coreTables() async throws {
-        let ids: Set = [
-            "MD-020", "MD-021", "MD-022", "MD-023", "MD-024", "MD-025", "MD-026",
-            "MD-062", "MD-063", "MD-064", "MD-065", "MD-066", "MD-067", "MD-068",
-            "MD-088", "MD-089", "MD-090", "MD-091", "MD-092",
-        ]
-        let fixtures = try loadCorpus().fixtures.filter { ids.contains($0.id) }
-        #expect(Set(fixtures.map(\.id)) == ids)
-        for fixture in fixtures {
-            let document = try await CoreMarkdownParser.parse(fixture.input)
-            let prepared = MarkdownContentBlocks.prepare(from: fixture.input)
-            #expect(document.blocks.map(projectCoreBlock).map(\.kind) == fixture.blocks.map(\.kind),
-                    "Block order: \(fixture.id)")
-            for (index, block) in document.blocks.enumerated() {
-                guard case .table(let table) = block else { continue }
-                guard fixture.blocks.indices.contains(index),
-                      prepared.indices.contains(index),
-                      case .table(let headers, let alignments, let rows) = prepared[index].kind
-                else {
-                    Issue.record("Unexpected table block in \(fixture.id)")
-                    continue
-                }
-                #expect(table.alignments.map(\.rawValue) == fixture.blocks[index].alignments,
-                        "Alignment: \(fixture.id)")
-                #expect(table.alignments == alignments, "Prepared alignment: \(fixture.id)")
-                #expect(table.headers.map { Array($0.utf8) } == headers.map { Array($0.utf8) },
-                        "Prepared headers: \(fixture.id)")
-                #expect(table.rows.map { $0.map { Array($0.utf8) } } == rows.map { $0.map { Array($0.utf8) } },
-                        "Prepared body: \(fixture.id)")
-            }
-        }
-    }
-
     @Test("Core images retain shared fixture metadata and leave fallback source in prose")
     func coreImages() async throws {
         let ids: Set = ["MD-037", "MD-038", "MD-039", "MD-079", "MD-080", "MD-081", "MD-082", "MD-083", "MD-090"]
@@ -258,7 +145,7 @@ struct MarkdownCompatibilityTests {
         #expect(Set(fixtures.map(\.id)) == ids)
         for fixture in fixtures {
             let document = try await CoreMarkdownParser.parse(fixture.input)
-            let kinds = document.blocks.map(projectCoreBlock).map(\.kind)
+            let kinds = document.blocks.map(kind)
             if fixture.id == "MD-082" {
                 // T10.S3 will interpret the remaining image syntax as alt text.
                 #expect(document.blocks == [.paragraph("![pic][asset]")])
@@ -285,10 +172,17 @@ struct MarkdownCompatibilityTests {
         ])
     }
 
-    private struct BaseBlock: Equatable {
-        let kind: String
-        var level: Int?
-        var bytes: [UInt8]?
+    private func kind(_ block: CoreMarkdownDocument.Block) -> String {
+        switch block {
+        case .heading: "heading"
+        case .paragraph: "paragraph"
+        case .code: "code"
+        case .thematicBreak: "thematicBreak"
+        case .list: "list"
+        case .quote: "quote"
+        case .table: "table"
+        case .image: "image"
+        }
     }
 
     private func literalBytes(_ fixture: Fixture) -> [[UInt8]] {
@@ -348,15 +242,18 @@ struct MarkdownCompatibilityTests {
         return try encoder.encode(value)
     }
 
-    private func project(_ block: MarkdownPreparedBlock) -> Block {
-        func inline(_ source: String) -> [Run] {
-            runs(MarkdownRenderer.renderInline(from: source, referenceLinks: block.referenceLinks))
+    private func project(
+        _ block: CoreMarkdownDocument.Block, at index: Int, in document: CoreMarkdownDocument
+    ) -> Block {
+        // Default inline styling keeps the heading and table-header base weight out of the semantic traits.
+        func inline(row: Int = 0, column: Int = 0) -> [Run] {
+            runs(MarkdownRenderer.renderInline(from: document.inlineRuns(inBlock: index, row: row, column: column)))
         }
-        switch block.kind {
-        case .heading(let level, let source):
-            return Block(kind: "heading", level: level, runs: inline(source))
-        case .paragraph(let source):
-            return Block(kind: "paragraph", runs: inline(source))
+        switch block {
+        case .heading(let level, _):
+            return Block(kind: "heading", level: level, runs: inline())
+        case .paragraph:
+            return Block(kind: "paragraph", runs: inline())
         case .code(let text):
             return Block(kind: "code", text: text)
         case .thematicBreak:
@@ -364,48 +261,40 @@ struct MarkdownCompatibilityTests {
         case .image(let alt, let url, let title):
             return Block(kind: "image", alt: alt, destination: url, title: title)
         case .list(let items):
-            return Block(kind: "list", items: items.map { item in
-                let marker: String
-                switch item.marker {
-                case "•": marker = "bullet"
-                case "☐": marker = "taskUnchecked"
-                case "☑": marker = "taskChecked"
-                default: marker = item.marker
+            return Block(kind: "list", items: items.enumerated().map { row, item in
+                let marker = switch item.marker {
+                case .bullet: "bullet"
+                case .ordered(let spelling): spelling
+                case .task(checked: false): "taskUnchecked"
+                case .task(checked: true): "taskChecked"
                 }
-                return Item(depth: item.nestingLevel, marker: marker, runs: inline(item.body))
+                return Item(depth: item.depth, marker: marker, runs: inline(row: row))
             })
         case .quote(let source):
-            let bodies = quoteBodies(from: source)
-            // Production parses the whole quote once, so styles can cross source lines.
-            let rendered = MarkdownRenderer.renderInline(
-                from: bodies.map(\.body).joined(separator: "\n"), referenceLinks: block.referenceLinks
-            )
+            let rendered = MarkdownRenderer.renderInline(from: document.inlineRuns(inBlock: index))
             var offset = 0
-            let lines = rendered.string.components(separatedBy: "\n").enumerated().map { index, line in
+            let lines = rendered.string.components(separatedBy: "\n").enumerated().map { number, line in
                 let length = (line as NSString).length
-                let content = rendered.attributedSubstring(from: NSRange(location: offset, length: length))
+                let depth = number < source.count ? source[number].depth : 1
+                #expect(number < source.count, "Quote line count must retain source depth mapping")
+                let indicator = String(repeating: MarkdownContentBlocks.nestedQuoteIndicator, count: max(0, depth - 1))
+                #expect(line.hasPrefix(indicator), "Quote indicator")
+                let skip = (indicator as NSString).length
+                let body = NSRange(location: offset + skip, length: max(0, length - skip))
                 offset += length + 1
-                #expect(index < bodies.count, "Quote line count must retain source depth mapping")
-                return QuoteLine(depth: index < bodies.count ? bodies[index].depth : 1, runs: runs(content))
+                return QuoteLine(depth: depth, runs: runs(rendered.attributedSubstring(from: body)))
             }
-            #expect(lines.count == bodies.count)
-            #expect(offset == rendered.length + 1)
+            #expect(lines.count == source.count)
             return Block(kind: "quote", lines: lines)
-        case .table(let headers, let alignments, let rows):
-            return Block(kind: "table", headers: headers.map(inline),
-                         alignments: alignments.map(\.rawValue), rows: rows.map { $0.map(inline) })
-        }
-    }
-
-    private func quoteBodies(from source: String) -> [(depth: Int, body: String)] {
-        source.components(separatedBy: "\n").map { line in
-            var body = line.trimmingCharacters(in: .whitespaces)
-            var depth = 0
-            while body.hasPrefix(">") {
-                depth += 1
-                body = String(body.dropFirst()).trimmingCharacters(in: .whitespaces)
-            }
-            return (depth: depth, body: body)
+        case .table(let table):
+            return Block(
+                kind: "table",
+                headers: table.alignments.indices.map { inline(column: $0) },
+                alignments: table.alignments.map(\.rawValue),
+                rows: table.rows.indices.map { row in
+                    table.alignments.indices.map { inline(row: row + 1, column: $0) }
+                }
+            )
         }
     }
 
@@ -487,8 +376,6 @@ private struct Fixture: Decodable {
     let evidence: [String]
     let input: String
     let blocks: [Block]
-    let legacyRuns: [Run]?
-    let inlineRuns: [Run]?
 }
 
 private struct Block: Codable {

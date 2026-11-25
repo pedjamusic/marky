@@ -1582,28 +1582,6 @@
             }
           ]
         }
-      ],
-      "legacyRuns": [
-        {
-          "text": "Before ``first\nsecond`` after",
-          "traits": []
-        }
-      ],
-      "inlineRuns": [
-        {
-          "text": "Before ",
-          "traits": []
-        },
-        {
-          "text": "first second",
-          "traits": [
-            "code"
-          ]
-        },
-        {
-          "text": " after",
-          "traits": []
-        }
       ]
     },
     {
@@ -1636,22 +1614,6 @@
               "traits": []
             }
           ]
-        }
-      ],
-      "legacyRuns": [
-        {
-          "text": "Before ``unclosed ",
-          "traits": []
-        },
-        {
-          "text": "tick",
-          "traits": [
-            "code"
-          ]
-        },
-        {
-          "text": " after",
-          "traits": []
         }
       ]
     },
@@ -1686,22 +1648,6 @@
             }
           ]
         }
-      ],
-      "legacyRuns": [
-        {
-          "text": "Before ",
-          "traits": []
-        },
-        {
-          "text": "padded",
-          "traits": [
-            "code"
-          ]
-        },
-        {
-          "text": " after",
-          "traits": []
-        }
       ]
     },
     {
@@ -1735,20 +1681,6 @@
             }
           ]
         }
-      ],
-      "legacyRuns": [
-        {
-          "text": "`first\n\nsecond`",
-          "traits": []
-        }
-      ],
-      "inlineRuns": [
-        {
-          "text": "first  second",
-          "traits": [
-            "code"
-          ]
-        }
       ]
     },
     {
@@ -1773,12 +1705,6 @@
             }
           ]
         }
-      ],
-      "inlineRuns": [
-        {
-          "text": "first  \nsecond\nthird",
-          "traits": []
-        }
       ]
     },
     {
@@ -1801,12 +1727,6 @@
               "traits": []
             }
           ]
-        }
-      ],
-      "inlineRuns": [
-        {
-          "text": "first\nsecond",
-          "traits": []
         }
       ]
     },

@@ -115,24 +115,41 @@ struct CoreMarkdownParserTests {
 
     @Test("Nested quote indicators retain native inline styles and text",
           arguments: [
-            "> `a\n>> nested`",
-            "> ` a\n>>`",
-            "> ![a\n>> nested](image.png)",
-            "> ![a&#10;b\n>>> 音🎵](image.png)",
-            "> [a\n>> nested](https://example.invalid)",
-            "> *a\n>> nested*",
-            "> outer  \n>> nested"
+            QuoteCase(source: "> `a\n>> nested`", text: "a ▎ nested", code: true),
+            QuoteCase(source: "> ` a\n>>`", text: "a ▎", code: true),
+            QuoteCase(source: "> ![a\n>> nested](image.png)", text: "a\n▎ nested"),
+            QuoteCase(source: "> ![a&#10;b\n>>> 音🎵](image.png)", text: "a\nb\n▎ ▎ 音🎵"),
+            QuoteCase(source: "> [a\n>> nested](https://example.invalid)", text: "a\n▎ nested",
+                      link: "https://example.invalid"),
+            QuoteCase(source: "> *a\n>> nested*", text: "a\n▎ nested", italic: true),
+            QuoteCase(source: "> outer  \n>> nested", text: "outer\n▎ nested")
           ])
-    func nestedQuoteInlineParity(source: String) async throws {
-        let swift = MarkdownContentBlocks.render(from: source, mode: .allSystem, isDarkMode: true)
-        let core = try await renderBlocks(source)
-        guard case .quote(let expected) = try #require(swift.first).kind,
-              case .quote(let actual) = try #require(core.first).kind else {
-            Issue.record("Expected a native quote from both readers")
+    func nestedQuoteInlineStyles(expected: QuoteCase) async throws {
+        let blocks = try await renderBlocks(expected.source)
+        guard case .quote(let quote) = try #require(blocks.first).kind else {
+            Issue.record("Expected the native quote")
             return
         }
-        #expect(Array(String(actual.characters).utf8) == Array(String(expected.characters).utf8))
-        #expect(NSAttributedString(actual).isEqual(to: NSAttributedString(expected)))
+        let text = NSAttributedString(quote)
+        #expect(Array(text.string.utf8) == Array(expected.text.utf8))
+        // Each of these styles must cover the whole quote, including the inserted indicator.
+        for location in 0..<text.length {
+            let attributes = text.attributes(at: location, effectiveRange: nil)
+            let font = try #require(attributes[.font] as? NSFont)
+            #expect(font.isFixedPitch == expected.code, "Offset \(location)")
+            #expect((attributes[.backgroundColor] != nil) == expected.code, "Offset \(location)")
+            #expect(NSFontManager.shared.traits(of: font).contains(.italicFontMask) == expected.italic,
+                    "Offset \(location)")
+            #expect((attributes[.link] as? URL)?.absoluteString == expected.link, "Offset \(location)")
+        }
+    }
+
+    nonisolated struct QuoteCase: Sendable {
+        let source: String
+        let text: String
+        var code = false
+        var italic = false
+        var link: String?
     }
 
     private func renderBlocks(
@@ -210,13 +227,13 @@ struct CoreMarkdownParserTests {
         let source = "[**`x`**](https://example.org)"
         let document = try await CoreMarkdownParser.parse(source)
         let rendered = MarkdownRenderer.renderInline(from: document.inlineRuns(inBlock: 0), isDarkMode: true)
-        let existing = MarkdownRenderer.renderInline(from: source, isDarkMode: true)
+        let typography = MarkdownTypography(mode: .allSystem)
         #expect(rendered.string == "x")
-        try #require(rendered.length == 1 && existing.length == 1)
+        try #require(rendered.length == 1)
         #expect(rendered.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
-                == existing.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor)
+                == typography.codeForegroundColor(isDarkMode: true))
         #expect(rendered.attribute(.backgroundColor, at: 0, effectiveRange: nil) as? NSColor
-                == existing.attribute(.backgroundColor, at: 0, effectiveRange: nil) as? NSColor)
+                == typography.codeBackgroundColor(isDarkMode: true))
         let font = try #require(rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(font.isFixedPitch && NSFontManager.shared.traits(of: font).contains(.boldFontMask))
         #expect(rendered.attribute(.underlineStyle, at: 0, effectiveRange: nil) as? Int != nil)

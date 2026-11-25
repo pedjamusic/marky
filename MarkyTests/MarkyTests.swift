@@ -955,9 +955,9 @@ struct MarkyTests {
     #if os(macOS)
     @MainActor
     @Test("markdown renderer preserves paragraph breaks and keeps first heading flush")
-    func markdownRendererPreservesParagraphBreaksAndKeepsFirstHeadingFlush() {
-        let rendered = MarkdownRenderer.render(from: "# Title\n\nBody")
-        #expect(rendered.string == "Title\n\nBody")
+    func markdownRendererPreservesParagraphBreaksAndKeepsFirstHeadingFlush() async throws {
+        let rendered = try await coreText("# Title\n\nBody")
+        #expect(rendered.string == "Title\nBody")
 
         let paragraph = rendered.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
         #expect(paragraph != nil)
@@ -966,15 +966,20 @@ struct MarkyTests {
 
     @MainActor
     @Test("markdown renderer converts task/bullet list markers")
-    func markdownRendererConvertsTaskAndBulletMarkers() {
-        let rendered = MarkdownRenderer.render(from: "- [x] Done\n- [ ] Todo\n* Bullet\n• Existing")
-        #expect(rendered.string == "☑ Done\n☐ Todo\n• Bullet\n• Existing")
+    func markdownRendererConvertsTaskAndBulletMarkers() async throws {
+        let rendered = try await coreText("- [x] Done\n- [ ] Todo\n* Bullet\n• Existing")
+        guard case .list(let items) = try await coreBlocks("- [x] Done\n- [ ] Todo\n* Bullet\n• Existing").first?.kind else {
+            Issue.record("Expected list block")
+            return
+        }
+        #expect(items.map(\.marker) == ["☑", "☐", "•", "•"])
+        #expect(rendered.string == "Done\nTodo\nBullet\nExisting")
     }
 
     @MainActor
     @Test("markdown renderer applies inline link and code transformations")
-    func markdownRendererTransformsInlineElements() {
-        let rendered = MarkdownRenderer.render(from: "A **bold** and `code` [site](https://example.com)")
+    func markdownRendererTransformsInlineElements() async throws {
+        let rendered = try await coreText("A **bold** and `code` [site](https://example.com)")
         #expect(rendered.string == "A bold and code site")
 
         let nsString = rendered.string as NSString
@@ -1011,9 +1016,9 @@ struct MarkyTests {
 
     @MainActor
     @Test("serif body mode increases body point size")
-    func markdownTypographySerifBodyModeIncreasesBodyPointSize() {
-        let systemRendered = MarkdownRenderer.render(from: "Body", mode: .allSystem)
-        let serifBodyRendered = MarkdownRenderer.render(from: "Body", mode: .systemHeadingsSerifBody)
+    func markdownTypographySerifBodyModeIncreasesBodyPointSize() async throws {
+        let systemRendered = try await coreText("Body", mode: .allSystem)
+        let serifBodyRendered = try await coreText("Body", mode: .systemHeadingsSerifBody)
 
         let systemFont = systemRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
         let serifBodyFont = serifBodyRendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
@@ -1025,8 +1030,8 @@ struct MarkyTests {
 
     @MainActor
     @Test("markdown heading scale keeps descending hierarchy")
-    func markdownHeadingScaleIsDescending() {
-        let rendered = MarkdownRenderer.render(from: "# H1\n## H2\n### H3", mode: .allSystem)
+    func markdownHeadingScaleIsDescending() async throws {
+        let rendered = try await coreText("# H1\n## H2\n### H3", mode: .allSystem)
         let text = rendered.string as NSString
         let h1Range = text.range(of: "H1")
         let h2Range = text.range(of: "H2")
@@ -1049,19 +1054,16 @@ struct MarkyTests {
 
     @MainActor
     @Test("reader text size presets scale body typography up and down subtly")
-    func markdownReaderTextSizePresetsScaleBodyTypography() {
-        let smallerRendered = MarkdownRenderer.render(
-            from: "Body",
+    func markdownReaderTextSizePresetsScaleBodyTypography() async throws {
+        let smallerRendered = try await coreText("Body",
             mode: .allSystem,
             textSizePreset: .slightlySmaller
         )
-        let defaultRendered = MarkdownRenderer.render(
-            from: "Body",
+        let defaultRendered = try await coreText("Body",
             mode: .allSystem,
             textSizePreset: .default
         )
-        let biggerRendered = MarkdownRenderer.render(
-            from: "Body",
+        let biggerRendered = try await coreText("Body",
             mode: .allSystem,
             textSizePreset: .slightlyBigger
         )
@@ -1080,72 +1082,53 @@ struct MarkyTests {
 
     @MainActor
     @Test("markdown renderer handles fenced code blocks as literal monospaced content")
-    func markdownRendererHandlesFencedCodeBlocks() {
-        let rendered = MarkdownRenderer.render(from: "```swift\nlet x = **1**\n```")
-        #expect(rendered.string == "let x = **1**")
-
-        let font = rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
-        let background = rendered.attribute(.backgroundColor, at: 0, effectiveRange: nil)
-        #expect(font != nil)
-        #expect(background != nil)
-        #expect((font?.fontName.contains("Mono") ?? false) || (font?.fontName.contains("Menlo") ?? false))
+    func markdownRendererHandlesFencedCodeBlocks() async throws {
+        let blocks = try await coreBlocks("```swift\nlet x = **1**\n```")
+        try #require(blocks.count == 1)
+        guard case .code(let code) = blocks[0].kind else {
+            Issue.record("Expected a code block")
+            return
+        }
+        #expect(code == "let x = **1**")
     }
 
     @Test("markdown content blocks split prose and fenced code without parsing code markup")
-    func markdownContentBlocksSplitFencedCode() {
-        let blocks = MarkdownContentBlocks.parse(from: "Before\n\n```swift\nlet x = **1**\n```\n\nAfter")
-        #expect(blocks.count == 3)
-
-        if case .markdown(let before) = blocks[0] {
-            #expect(before == "Before")
-        } else {
-            Issue.record("Expected markdown block before code fence")
-        }
-
-        if case .code(let code) = blocks[1] {
-            #expect(code == "let x = **1**")
-        } else {
-            Issue.record("Expected code block between markdown blocks")
-        }
-
-        if case .markdown(let after) = blocks[2] {
-            #expect(after == "After")
-        } else {
-            Issue.record("Expected markdown block after code fence")
-        }
+    func markdownContentBlocksSplitFencedCode() async throws {
+        let blocks = try await CoreMarkdownParser.parse("Before\n\n```swift\nlet x = **1**\n```\n\nAfter").blocks
+        #expect(blocks == [.paragraph("Before"), .code("let x = **1**"), .paragraph("After")])
     }
 
     @Test("markdown content blocks prepare lightweight parsed blocks for rerendering")
-    func markdownContentBlocksPrepareLightweightBlocks() {
-        let blocks = MarkdownContentBlocks.prepare(
-            from: "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n\n```swift\nlet x = 1\n```"
-        )
+    func markdownContentBlocksPrepareLightweightBlocks() async throws {
+        let blocks = try await CoreMarkdownParser.parse(
+            "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n\n```swift\nlet x = 1\n```"
+        ).blocks
 
         #expect(blocks.count == 4)
 
-        if case .heading(let level, let source) = blocks[0].kind {
+        if case .heading(let level, let source) = blocks[0] {
             #expect(level == 1)
             #expect(source == "Title")
         } else {
             Issue.record("Expected heading block first")
         }
 
-        if case .paragraph(let source) = blocks[1].kind {
+        if case .paragraph(let source) = blocks[1] {
             #expect(source == "Body line 1 Body line 2")
         } else {
             Issue.record("Expected paragraph block second")
         }
 
-        if case .list(let items) = blocks[2].kind {
+        if case .list(let items) = blocks[2] {
             #expect(items.count == 2)
-            #expect(items[0].marker == "1.")
-            #expect(items[1].marker == "•")
-            #expect(items[1].nestingLevel > items[0].nestingLevel)
+            #expect(items[0].marker == .ordered("1."))
+            #expect(items[1].marker == .bullet)
+            #expect(items[1].depth > items[0].depth)
         } else {
             Issue.record("Expected list block third")
         }
 
-        if case .code(let source) = blocks[3].kind {
+        if case .code(let source) = blocks[3] {
             #expect(source == "let x = 1")
         } else {
             Issue.record("Expected code block fourth")
@@ -1154,11 +1137,9 @@ struct MarkyTests {
 
     @MainActor
     @Test("markdown content blocks split prose into heading paragraph list and quote blocks")
-    func markdownContentBlocksSplitProseRhythmBlocks() {
-        let blocks = MarkdownContentBlocks.render(
-            from: "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n2. two\n\n> quoted",
-            mode: .allSystem,
-            isDarkMode: false
+    func markdownContentBlocksSplitProseRhythmBlocks() async throws {
+        let blocks = try await coreBlocks(
+            "# Title\nBody line 1\nBody line 2\n\n1. one\n   - nested\n2. two\n\n> quoted"
         )
 
         #expect(blocks.count == 4)

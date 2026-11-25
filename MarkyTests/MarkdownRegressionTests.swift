@@ -6,8 +6,8 @@ import Testing
 @MainActor
 struct MarkdownRegressionTests {
     @Test("Inline code stays literal through surrounding Unicode, links and bold")
-    func literalCode() {
-        let rendered = MarkdownRenderer.render(from: "🎵 [site](https://example.com) **bold** `**literal**` `[literal](https://example.com)`")
+    func literalCode() async throws {
+        let rendered = try await coreText("🎵 [site](https://example.com) **bold** `**literal**` `[literal](https://example.com)`")
         #expect(rendered.string == "🎵 site bold **literal** [literal](https://example.com)")
         let literal = (rendered.string as NSString).range(of: "[literal]")
         #expect(rendered.attribute(.link, at: literal.location, effectiveRange: nil) == nil)
@@ -15,37 +15,37 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Inline code pairs complete backtick runs and preserves embedded literal syntax")
-    func codeDelimiterRuns() {
-        let rendered = MarkdownRenderer.render(from: "Before ``code containing `tick` and **literal**`` after **bold**")
+    func codeDelimiterRuns() async throws {
+        let rendered = try await coreText("Before ``code containing `tick` and **literal**`` after **bold**")
         #expect(rendered.string == "Before code containing `tick` and **literal** after bold")
         let literal = (rendered.string as NSString).range(of: "**literal**")
         #expect(rendered.attribute(.backgroundColor, at: literal.location, effectiveRange: nil) != nil)
-        let unmatched = MarkdownRenderer.render(from: "Before ``unclosed `tick` after")
+        let unmatched = try await coreText("Before ``unclosed `tick` after")
         #expect(unmatched.string == "Before ``unclosed tick after")
-        let whitespace = MarkdownRenderer.render(from: "Before `` padded `` after")
+        let whitespace = try await coreText("Before `` padded `` after")
         #expect(whitespace.string == "Before padded after")
-        let newline = MarkdownRenderer.render(from: "Before ``first\nsecond`` after")
-        #expect(newline.string == "Before ``first\nsecond`` after")
+        let newline = try await coreText("Before ``first\nsecond`` after")
+        #expect(newline.string == "Before first second after")
     }
 
     @Test("Link labels may contain code while literal delimiters and destinations stay protected")
-    func codeInLinkLabels() {
-        let rendered = MarkdownRenderer.render(from: "[Use `tick` here](https://example.com) [prose `label](https://literal.example)`")
+    func codeInLinkLabels() async throws {
+        let rendered = try await coreText("[Use `tick` here](https://example.com) [prose `label](https://literal.example)`")
         #expect(rendered.string == "Use tick here [prose label](https://literal.example)")
         let code = (rendered.string as NSString).range(of: "tick")
         #expect(rendered.attribute(.link, at: code.location, effectiveRange: nil) != nil)
         #expect(rendered.attribute(.backgroundColor, at: code.location, effectiveRange: nil) != nil)
         let protected = (rendered.string as NSString).range(of: "label]")
         #expect(rendered.attribute(.link, at: protected.location, effectiveRange: nil) == nil)
-        let bold = MarkdownRenderer.render(from: "**before `literal` after**")
+        let bold = try await coreText("**before `literal` after**")
         #expect(bold.string == "before literal after")
         let boldCode = (bold.string as NSString).range(of: "literal")
         #expect(bold.attribute(.backgroundColor, at: boldCode.location, effectiveRange: nil) != nil)
     }
 
     @Test("Outer styles recognize punctuation inside protected code")
-    func punctuationInsideStyledCode() throws {
-        let bold = MarkdownRenderer.render(from: "**before `a*b` after**", mode: .systemHeadingsSerifBody)
+    func punctuationInsideStyledCode() async throws {
+        let bold = try await coreText("**before `a*b` after**", mode: .systemHeadingsSerifBody)
         #expect(bold.string == "before a*b after")
         let proseFont = try #require(bold.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: proseFont).contains(.boldFontMask))
@@ -53,7 +53,7 @@ struct MarkdownRegressionTests {
         let codeFont = try #require(bold.attribute(.font, at: codeRange.location, effectiveRange: nil) as? NSFont)
         #expect(codeFont.fontDescriptor.symbolicTraits.contains(.monoSpace))
         #expect(bold.attribute(.backgroundColor, at: codeRange.location, effectiveRange: nil) != nil)
-        let linked = MarkdownRenderer.render(from: "[Use `array[index]`](https://example.com)")
+        let linked = try await coreText("[Use `array[index]`](https://example.com)")
         #expect(linked.string == "Use array[index]")
         let literalRange = (linked.string as NSString).range(of: "array[index]")
         #expect(linked.attribute(.link, at: literalRange.location, effectiveRange: nil) as? URL == URL(string: "https://example.com"))
@@ -61,30 +61,30 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Edits before fenced code cannot shift literal protection")
-    func codeOffsets() {
-        let rendered = MarkdownRenderer.render(from: "🎵 [site](https://example.com) **bold**\n```\n**literal** [literal](https://example.com)\n```\n**after**")
+    func codeOffsets() async throws {
+        let rendered = try await coreText("🎵 [site](https://example.com) **bold**\n```\n**literal** [literal](https://example.com)\n```\n**after**")
         #expect(rendered.string == "🎵 site bold\n**literal** [literal](https://example.com)\nafter")
-        let code = (rendered.string as NSString).range(of: "**literal**")
-        #expect(rendered.attribute(.backgroundColor, at: code.location, effectiveRange: nil) != nil)
+        let blocks = try await CoreMarkdownParser.parse("```\n**literal** [literal](https://example.com)\n```").blocks
+        #expect(blocks == [.code("**literal** [literal](https://example.com)")])
     }
 
     @Test("Code fences close only on matching delimiter of sufficient length")
-    func fenceDelimiters() {
+    func fenceDelimiters() async throws {
         for delimiter in ["````", "~~~~"] {
             let inner = delimiter.first == "`" ? "```" : "~~~"
             let source = "\(delimiter)example\n\(inner)\n**literal**\n\(delimiter) trailing text\n\(delimiter)\nAfter"
-            let blocks = MarkdownContentBlocks.prepare(from: source)
+            let blocks = try await CoreMarkdownParser.parse(source).blocks
             #expect(blocks.count == 2)
-            if case .code(let text) = blocks.first?.kind {
+            if case .code(let text) = blocks.first {
                 #expect(text == "\(inner)\n**literal**\n\(delimiter) trailing text")
-                let rendered = MarkdownRenderer.render(from: source)
+                let rendered = try await coreText(source)
                 #expect(rendered.string == text + "\nAfter")
             } else {
                 Issue.record("Expected one literal outer fence")
             }
         }
-        let blocks = MarkdownContentBlocks.prepare(from: "```\nunclosed **literal**")
-        if case .code(let text) = blocks.first?.kind {
+        let blocks = try await CoreMarkdownParser.parse("```\nunclosed **literal**").blocks
+        if case .code(let text) = blocks.first {
             #expect(text == "unclosed **literal**")
         } else {
             Issue.record("Expected unclosed fence to preserve code")
@@ -92,41 +92,41 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Indented fence-like lines stay literal until a valid closer")
-    func indentedFenceClosers() {
+    func indentedFenceClosers() async throws {
         for indent in ["    ", "\t"] {
             let source = "~~~\n\(indent)~~~\n**literal**\n~~~\nAfter"
-            let prepared = MarkdownContentBlocks.prepare(from: source)
+            let prepared = try await CoreMarkdownParser.parse(source).blocks
             #expect(prepared.count == 2)
-            if case .code(let text) = prepared.first?.kind {
+            if case .code(let text) = prepared.first {
                 #expect(text == "\(indent)~~~\n**literal**")
             } else {
                 Issue.record("Expected indented fence candidate to remain code")
             }
-            #expect(MarkdownRenderer.render(from: source).string == "\(indent)~~~\n**literal**\nAfter")
+            let visible = try await coreText(source).string
+            #expect(visible == "\(indent)~~~\n**literal**\nAfter")
         }
     }
 
     @Test("Combined bold links preserve link traits and the selected font family")
-    func combinedStyles() throws {
+    func combinedStyles() async throws {
         for source in ["[**linked**](https://example.com)", "**[linked](https://example.com)**"] {
-            let rendered = MarkdownRenderer.render(from: source, mode: .systemHeadingsSerifBody)
+            let rendered = try await coreText(source, mode: .systemHeadingsSerifBody)
             #expect(rendered.string == "linked")
             #expect(rendered.attribute(.link, at: 0, effectiveRange: nil) != nil)
             let font = try #require(rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
-            let regular = try #require(MarkdownRenderer.render(from: "regular", mode: .systemHeadingsSerifBody).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+            let regular = try #require(try await coreText("regular", mode: .systemHeadingsSerifBody).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
             #expect(font.familyName == regular.familyName)
             #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
         }
     }
 
-    @Test("Nested list inset is visible while the established top-level rail stays flush")
-    func nestedListInsets() {
+    @Test("Nested list items have increasing depth and a visible inset")
+    func nestedListInsets() async throws {
         let typography = MarkdownTypography(mode: .allSystem)
-        #expect(typography.listIndent == 0)
         #expect(typography.nestedListIndent > 0)
-        let blocks = MarkdownContentBlocks.prepare(from: "- parent\n  - child\n    - grandchild")
-        if case .list(let items) = blocks.first?.kind {
-            #expect(items.map(\.nestingLevel) == [0, 1, 2])
+        let blocks = try await CoreMarkdownParser.parse("- parent\n  - child\n    - grandchild").blocks
+        if case .list(let items) = blocks.first {
+            #expect(items.map(\.depth) == [0, 1, 2])
         } else {
             Issue.record("Expected list hierarchy")
         }
@@ -269,31 +269,24 @@ struct MarkdownRegressionTests {
     }
 
     @Test("GFM pipe tables parse headers, alignments, and body rows")
-    func tableBasicAndAlignment() {
+    func tableBasicAndAlignment() async throws {
         let markdown = """
         | Left | Center | Right |
         | :--- | :---: | ---: |
         | L1 | C1 | R1 |
         | L2 | C2 | R2 |
         """
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
+        let prepared = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(prepared.count == 1)
-        guard case .table(let headers, let alignments, let rows) = prepared.first?.kind else {
+        guard case .table(let table) = prepared.first else {
             Issue.record("Expected table block")
             return
         }
-        #expect(headers == ["Left", "Center", "Right"])
-        #expect(alignments == [.left, .center, .right])
-        #expect(rows.count == 2)
-        #expect(rows[0] == ["L1", "C1", "R1"])
-        #expect(rows[1] == ["L2", "C2", "R2"])
+        #expect(table.headers == ["Left", "Center", "Right"])
+        #expect(table.alignments == [.left, .center, .right])
+        #expect(table.rows.map { Array($0) } == [["L1", "C1", "R1"], ["L2", "C2", "R2"]])
 
-        let rendered = MarkdownContentBlocks.render(
-            preparedBlocks: prepared,
-            mode: .allSystem,
-            textSizePreset: .default,
-            isDarkMode: false
-        )
+        let rendered = try await coreBlocks(markdown)
         #expect(rendered.count == 1)
         guard case .table(let renderedTable) = rendered.first?.kind else {
             Issue.record("Expected rendered table")
@@ -307,90 +300,90 @@ struct MarkdownRegressionTests {
     }
 
     @Test("GFM tables handle escaped pipes and code spans containing pipes")
-    func tablePipesEscapedAndInCode() {
+    func tablePipesEscapedAndInCode() async throws {
         let markdown = """
         | Syntax | Note |
         | --- | --- |
         | Escaped \\| pipe | Works |
         | `a | b` code | Also works |
         """
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
+        let prepared = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(prepared.count == 1)
-        guard case .table(let headers, _, let rows) = prepared.first?.kind else {
+        guard case .table(let table) = prepared.first else {
             Issue.record("Expected table block")
             return
         }
-        #expect(headers == ["Syntax", "Note"])
-        #expect(rows.count == 2)
-        #expect(rows[0][0].contains("\\| pipe"))
-        #expect(rows[1][0] == "`a | b` code")
+        #expect(table.headers == ["Syntax", "Note"])
+        #expect(table.rows.count == 2)
+        #expect(table.rows[0][0].contains("\\| pipe"))
+        #expect(table.rows[1][0] == "`a | b` code")
     }
 
     @Test("GFM tables support missing outer boundary pipes")
-    func tableAbsentOuterPipes() {
+    func tableAbsentOuterPipes() async throws {
         let markdown = """
         Name | Age | City
         --- | :---: | ---:
         Alice | 30 | London
         Bob | 25 | Paris
         """
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
+        let prepared = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(prepared.count == 1)
-        guard case .table(let headers, let alignments, let rows) = prepared.first?.kind else {
+        guard case .table(let table) = prepared.first else {
             Issue.record("Expected table block without outer pipes")
             return
         }
-        #expect(headers == ["Name", "Age", "City"])
-        #expect(alignments == [.left, .center, .right])
-        #expect(rows.count == 2)
+        #expect(table.headers == ["Name", "Age", "City"])
+        #expect(table.alignments == [.left, .center, .right])
+        #expect(table.rows.count == 2)
     }
 
     @Test("GFM tables normalize missing or extra row cells")
-    func tableUnevenCells() {
+    func tableUnevenCells() async throws {
         let markdown = """
         | Col A | Col B | Col C |
         | --- | --- | --- |
         | Only A |
         | A | B | C | Extra D |
         """
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
-        guard case .table(let headers, _, let rows) = prepared.first?.kind else {
+        let prepared = try await CoreMarkdownParser.parse(markdown).blocks
+        guard case .table(let table) = prepared.first else {
             Issue.record("Expected table block")
             return
         }
-        #expect(headers.count == 3)
-        #expect(rows[0] == ["Only A", "", ""])
-        #expect(rows[1] == ["A", "B", "C"])
+        #expect(table.headers.count == 3)
+        #expect(Array(table.rows[0]) == ["Only A", "", ""])
+        #expect(Array(table.rows[1]) == ["A", "B", "C"])
     }
 
     @Test("Malformed delimiter rows fall back gracefully to paragraphs without dropping input")
-    func tableMalformedFallback() {
+    func tableMalformedFallback() async throws {
         let markdown = """
         | Col A | Col B |
         | --- | not-a-delimiter |
         | Val A | Val B |
         """
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
+        let prepared = try await CoreMarkdownParser.parse(markdown).blocks
         let isTable = prepared.contains { block in
-            if case .table = block.kind { return true }
+            if case .table = block { return true }
             return false
         }
         #expect(!isTable)
         #expect(prepared.count == 1)
-        guard case .paragraph(let text) = prepared.first?.kind else {
+        guard case .paragraph(let text) = prepared.first else {
             Issue.record("Expected paragraph fallback preserving entire source")
             return
         }
         #expect(text == "| Col A | Col B | | --- | not-a-delimiter | | Val A | Val B |")
-        let rendered = MarkdownRenderer.render(from: markdown)
+        let rendered = try await coreText(markdown)
         #expect(rendered.string.contains("| Col A | Col B |"))
         #expect(rendered.string.contains("| --- | not-a-delimiter |"))
         #expect(rendered.string.contains("| Val A | Val B |"))
     }
 
     @Test("Italic emphasis supports stars and underscores while ignoring intra-word underscores")
-    func italicEmphasis() {
-        let star = MarkdownRenderer.render(from: "Before *star italic* after")
+    func italicEmphasis() async throws {
+        let star = try await coreText("Before *star italic* after")
         #expect(star.string == "Before star italic after")
         let starRange = (star.string as NSString).range(of: "star italic")
         let starFont = star.attribute(.font, at: starRange.location, effectiveRange: nil) as? NSFont
@@ -398,39 +391,39 @@ struct MarkdownRegressionTests {
         let hasObliqueness = star.attribute(.obliqueness, at: starRange.location, effectiveRange: nil) != nil
         #expect(hasItalicTrait || hasObliqueness)
 
-        let underscore = MarkdownRenderer.render(from: "Before _underscore italic_ after")
+        let underscore = try await coreText("Before _underscore italic_ after")
         #expect(underscore.string == "Before underscore italic after")
 
-        let intraWord = MarkdownRenderer.render(from: "variable_name_with_underscores")
+        let intraWord = try await coreText("variable_name_with_underscores")
         #expect(intraWord.string == "variable_name_with_underscores")
     }
 
     @Test("Double underscores and double stars both render as bold")
-    func boldDoubleUnderscores() throws {
-        let underscoreBold = MarkdownRenderer.render(from: "__bold underscore__")
+    func boldDoubleUnderscores() async throws {
+        let underscoreBold = try await coreText("__bold underscore__")
         #expect(underscoreBold.string == "bold underscore")
         let uFont = try #require(underscoreBold.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: uFont).contains(.boldFontMask))
 
-        let starBold = MarkdownRenderer.render(from: "**bold star**")
+        let starBold = try await coreText("**bold star**")
         #expect(starBold.string == "bold star")
         let sFont = try #require(starBold.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: sFont).contains(.boldFontMask))
     }
 
     @Test("Triple stars and triple underscores render as combined bold and italic")
-    func boldItalicCombined() throws {
-        let triple = MarkdownRenderer.render(from: "***bold and italic***", mode: .systemHeadingsSerifBody)
+    func boldItalicCombined() async throws {
+        let triple = try await coreText("***bold and italic***", mode: .systemHeadingsSerifBody)
         #expect(triple.string == "bold and italic")
         let font = try #require(triple.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
-        let regular = try #require(MarkdownRenderer.render(from: "regular", mode: .systemHeadingsSerifBody).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let regular = try #require(try await coreText("regular", mode: .systemHeadingsSerifBody).attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(font.familyName == regular.familyName)
         let traits = NSFontManager.shared.traits(of: font)
         #expect(traits.contains(.boldFontMask))
         let hasItalic = traits.contains(.italicFontMask) || triple.attribute(.obliqueness, at: 0, effectiveRange: nil) != nil
         #expect(hasItalic)
 
-        let tripleUnderscore = MarkdownRenderer.render(from: "___bold and italic underscore___", mode: .systemHeadingsSerifBody)
+        let tripleUnderscore = try await coreText("___bold and italic underscore___", mode: .systemHeadingsSerifBody)
         #expect(tripleUnderscore.string == "bold and italic underscore")
         let uFont = try #require(tripleUnderscore.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(uFont.familyName == regular.familyName)
@@ -441,8 +434,8 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Strikethrough applies single strikethrough line attribute")
-    func strikethrough() throws {
-        let rendered = MarkdownRenderer.render(from: "Before ~~deleted text~~ after")
+    func strikethrough() async throws {
+        let rendered = try await coreText("Before ~~deleted text~~ after")
         #expect(rendered.string == "Before deleted text after")
         let strikeRange = (rendered.string as NSString).range(of: "deleted text")
         let strikeVal = try #require(rendered.attribute(.strikethroughStyle, at: strikeRange.location, effectiveRange: nil) as? Int)
@@ -450,16 +443,16 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Backslash escapes prevent formatting while removing the backslash")
-    func backslashEscapes() {
-        let rendered = MarkdownRenderer.render(from: "\\*not italic\\* \\_not italic\\_ \\[not link\\]")
+    func backslashEscapes() async throws {
+        let rendered = try await coreText("\\*not italic\\* \\_not italic\\_ \\[not link\\]")
         #expect(rendered.string == "*not italic* _not italic_ [not link]")
         let firstStar = (rendered.string as NSString).range(of: "*not italic*")
         #expect(rendered.attribute(.link, at: firstStar.location, effectiveRange: nil) == nil)
     }
 
     @Test("Autolinks render with destination link attributes")
-    func autolinks() throws {
-        let rendered = MarkdownRenderer.render(from: "Visit <https://example.com/docs> today")
+    func autolinks() async throws {
+        let rendered = try await coreText("Visit <https://example.com/docs> today")
         #expect(rendered.string == "Visit https://example.com/docs today")
         let linkRange = (rendered.string as NSString).range(of: "https://example.com/docs")
         let url = try #require(rendered.attribute(.link, at: linkRange.location, effectiveRange: nil) as? URL)
@@ -467,11 +460,11 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Thematic breaks parse as thematicBreak blocks")
-    func thematicBreaks() {
+    func thematicBreaks() async throws {
         for rule in ["---", "***", "___", "- - -", "* * * *"] {
-            let prepared = MarkdownContentBlocks.prepare(from: rule)
+            let prepared = try await CoreMarkdownParser.parse(rule).blocks
             #expect(prepared.count == 1)
-            guard case .thematicBreak = prepared.first?.kind else {
+            guard case .thematicBreak = prepared.first else {
                 Issue.record("Expected thematicBreak for '\(rule)'")
                 continue
             }
@@ -479,11 +472,11 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Setext headings are recognized from underline dashes or equals")
-    func setextHeadings() {
+    func setextHeadings() async throws {
         let h1Markdown = "Heading 1\n========="
-        let h1Blocks = MarkdownContentBlocks.prepare(from: h1Markdown)
+        let h1Blocks = try await CoreMarkdownParser.parse(h1Markdown).blocks
         #expect(h1Blocks.count == 1)
-        if case .heading(let level, let source) = h1Blocks.first?.kind {
+        if case .heading(let level, let source) = h1Blocks.first {
             #expect(level == 1)
             #expect(source == "Heading 1")
         } else {
@@ -491,9 +484,9 @@ struct MarkdownRegressionTests {
         }
 
         let h2Markdown = "Heading 2\n---------"
-        let h2Blocks = MarkdownContentBlocks.prepare(from: h2Markdown)
+        let h2Blocks = try await CoreMarkdownParser.parse(h2Markdown).blocks
         #expect(h2Blocks.count == 1)
-        if case .heading(let level, let source) = h2Blocks.first?.kind {
+        if case .heading(let level, let source) = h2Blocks.first {
             #expect(level == 2)
             #expect(source == "Heading 2")
         } else {
@@ -502,42 +495,40 @@ struct MarkdownRegressionTests {
     }
 
     @Test("List item continuations append to the item body")
-    func listContinuation() {
+    func listContinuation() async throws {
         let markdown = "- First line\n  Continuation line\n- Second item"
-        let blocks = MarkdownContentBlocks.prepare(from: markdown)
+        let blocks = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(blocks.count == 1)
-        if case .list(let items) = blocks.first?.kind {
+        if case .list(let items) = blocks.first {
             #expect(items.count == 2)
-            #expect(items[0].body == "First line\nContinuation line")
-            #expect(items[1].body == "Second item")
+            #expect(items[0].source == "First line\nContinuation line")
+            #expect(items[1].source == "Second item")
         } else {
             Issue.record("Expected list with continuation")
         }
     }
 
     @Test("Task lists parse unchecked and checked states")
-    func taskLists() {
+    func taskLists() async throws {
         let markdown = "- [ ] Todo task\n- [x] Done task\n- [X] Upper done task"
-        let blocks = MarkdownContentBlocks.prepare(from: markdown)
-        if case .list(let items) = blocks.first?.kind {
+        let blocks = try await CoreMarkdownParser.parse(markdown).blocks
+        if case .list(let items) = blocks.first {
             #expect(items.count == 3)
-            #expect(items[0].marker == "☐")
-            #expect(items[0].body == "Todo task")
-            #expect(items[1].marker == "☑")
-            #expect(items[1].body == "Done task")
-            #expect(items[2].marker == "☑")
-            #expect(items[2].body == "Upper done task")
+            #expect(items.map(\.marker) == [.task(checked: false), .task(checked: true), .task(checked: true)])
+            #expect(items[0].source == "Todo task")
+            #expect(items[1].source == "Done task")
+            #expect(items[2].source == "Upper done task")
         } else {
             Issue.record("Expected task list items")
         }
     }
 
     @Test("Standalone images parse as image blocks and inline images render cleanly")
-    func imagesStandaloneAndInline() {
+    func imagesStandaloneAndInline() async throws {
         let standalone = "![Marky Mascot](assets/mascot.png \"Mascot\")"
-        let blocks = MarkdownContentBlocks.prepare(from: standalone)
+        let blocks = try await CoreMarkdownParser.parse(standalone).blocks
         #expect(blocks.count == 1)
-        if case .image(let alt, let url, let title) = blocks.first?.kind {
+        if case .image(let alt, let url, let title) = blocks.first {
             #expect(alt == "Marky Mascot")
             #expect(url == "assets/mascot.png")
             #expect(title == "Mascot")
@@ -545,24 +536,24 @@ struct MarkdownRegressionTests {
             Issue.record("Expected image block")
         }
 
-        let inline = MarkdownRenderer.render(from: "See ![icon](icon.png) inline")
+        let inline = try await coreText("See ![icon](icon.png) inline")
         #expect(inline.string == "See icon inline")
     }
 
     @Test("Inline cell and list text cannot be mistaken for block markers or headings")
-    func inlineTextCellHeadingIsolation() {
-        let cellText = "# Not A Heading"
-        let rendered = MarkdownRenderer.renderInline(from: cellText)
-        #expect(rendered.string == "# Not A Heading")
-
-        let quoteInCell = "> Not A Quote"
-        let renderedQuote = MarkdownRenderer.renderInline(from: quoteInCell)
-        #expect(renderedQuote.string == "> Not A Quote")
+    func inlineTextCellHeadingIsolation() async throws {
+        let blocks = try await coreBlocks("| # Not A Heading |\n| --- |\n| > Not A Quote |")
+        guard case .table(let table) = blocks.first?.kind else {
+            Issue.record("Expected table block")
+            return
+        }
+        #expect(table.headers.map { String($0.content.characters) } == ["# Not A Heading"])
+        #expect(table.rows.flatMap(\.cells).map { String($0.content.characters) } == ["> Not A Quote"])
     }
 
     @Test("Nested emphasis renders accurately both ways without leftover markers")
-    func nestedEmphasisBothWays() throws {
-        let boldOuter = MarkdownRenderer.renderInline(from: "**bold and *italic***")
+    func nestedEmphasisBothWays() async throws {
+        let boldOuter = try await coreText("**bold and *italic***")
         #expect(boldOuter.string == "bold and italic")
         let boldFont = try #require(boldOuter.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: boldFont).contains(.boldFontMask))
@@ -570,7 +561,7 @@ struct MarkdownRegressionTests {
         let biFont = try #require(boldOuter.attribute(.font, at: italicRange.location, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: biFont).contains(.boldFontMask))
 
-        let italicOuter = MarkdownRenderer.renderInline(from: "*italic and **bold***")
+        let italicOuter = try await coreText("*italic and **bold***")
         #expect(italicOuter.string == "italic and bold")
         let boldInnerRange = (italicOuter.string as NSString).range(of: "bold")
         let ibFont = try #require(italicOuter.attribute(.font, at: boldInnerRange.location, effectiveRange: nil) as? NSFont)
@@ -578,26 +569,26 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Adjacent links and balanced destination parentheses parse cleanly")
-    func adjacentLinksAndBalancedDestinations() throws {
-        let adjacent = MarkdownRenderer.renderInline(from: "[one](https://one.test)[two](https://two.test)")
+    func adjacentLinksAndBalancedDestinations() async throws {
+        let adjacent = try await coreText("[one](https://one.test)[two](https://two.test)")
         #expect(adjacent.string == "onetwo")
         let oneLink = try #require(adjacent.attribute(.link, at: 0, effectiveRange: nil) as? URL)
         #expect(oneLink.absoluteString == "https://one.test")
         let twoLink = try #require(adjacent.attribute(.link, at: 3, effectiveRange: nil) as? URL)
         #expect(twoLink.absoluteString == "https://two.test")
 
-        let balanced = MarkdownRenderer.renderInline(from: "[Wiki](https://en.wikipedia.org/wiki/File_(format))")
+        let balanced = try await coreText("[Wiki](https://en.wikipedia.org/wiki/File_(format))")
         #expect(balanced.string == "Wiki")
         let wikiLink = try #require(balanced.attribute(.link, at: 0, effectiveRange: nil) as? URL)
         #expect(wikiLink.absoluteString == "https://en.wikipedia.org/wiki/File_(format)")
     }
 
     @Test("HTML entities and email autolinks decode and link natively")
-    func htmlEntitiesAndEmailAutolinks() throws {
-        let entities = MarkdownRenderer.renderInline(from: "&copy; 2026 Marky &amp; Co. &lt;tag&gt; &#65;")
+    func htmlEntitiesAndEmailAutolinks() async throws {
+        let entities = try await coreText("&copy; 2026 Marky &amp; Co. &lt;tag&gt; &#65;")
         #expect(entities.string == "© 2026 Marky & Co. <tag> A")
 
-        let email = MarkdownRenderer.renderInline(from: "Contact <mailto:user@example.com>")
+        let email = try await coreText("Contact <mailto:user@example.com>")
         #expect(email.string == "Contact mailto:user@example.com")
         let linkRange = (email.string as NSString).range(of: "mailto:user@example.com")
         let mailtoURL = try #require(email.attribute(.link, at: linkRange.location, effectiveRange: nil) as? URL)
@@ -605,11 +596,11 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Table recognition requires unescaped pipes and exact column match; Title followed by underlines becomes Setext")
-    func tableExactHeaderDelimiterMatch() {
+    func tableExactHeaderDelimiterMatch() async throws {
         let setextH2 = "Title\n---"
-        let h2Blocks = MarkdownContentBlocks.prepare(from: setextH2)
+        let h2Blocks = try await CoreMarkdownParser.parse(setextH2).blocks
         #expect(h2Blocks.count == 1)
-        if case .heading(let level, let source) = h2Blocks.first?.kind {
+        if case .heading(let level, let source) = h2Blocks.first {
             #expect(level == 2)
             #expect(source == "Title")
         } else {
@@ -617,9 +608,9 @@ struct MarkdownRegressionTests {
         }
 
         let setextH1 = "Title\n==="
-        let h1Blocks = MarkdownContentBlocks.prepare(from: setextH1)
+        let h1Blocks = try await CoreMarkdownParser.parse(setextH1).blocks
         #expect(h1Blocks.count == 1)
-        if case .heading(let level, let source) = h1Blocks.first?.kind {
+        if case .heading(let level, let source) = h1Blocks.first {
             #expect(level == 1)
             #expect(source == "Title")
         } else {
@@ -627,29 +618,29 @@ struct MarkdownRegressionTests {
         }
 
         let mismatched = "| A | B | C |\n| --- | --- |\n| 1 | 2 |"
-        let mismatchedBlocks = MarkdownContentBlocks.prepare(from: mismatched)
+        let mismatchedBlocks = try await CoreMarkdownParser.parse(mismatched).blocks
         let isTable = mismatchedBlocks.contains { block in
-            if case .table = block.kind { return true }
+            if case .table = block { return true }
             return false
         }
         #expect(!isTable)
 
         let valid = "| A | B |\n| :--- | ---: |\n| 1 | 2 |"
-        let validBlocks = MarkdownContentBlocks.prepare(from: valid)
+        let validBlocks = try await CoreMarkdownParser.parse(valid).blocks
         #expect(validBlocks.count == 1)
-        if case .table(let headers, let alignments, _) = validBlocks.first?.kind {
-            #expect(headers == ["A", "B"])
-            #expect(alignments == [.left, .right])
+        if case .table(let table) = validBlocks.first {
+            #expect(table.headers == ["A", "B"])
+            #expect(table.alignments == [.left, .right])
         } else {
             Issue.record("Expected valid table for exact column match")
         }
     }
 
     @Test("Headings renderInline applies heading font size and tracking")
-    func headingInlineFontAndTracking() throws {
+    func headingInlineFontAndTracking() async throws {
         let typography = MarkdownTypography(mode: .allSystem)
         let headingText = "Main Title"
-        let rendered = MarkdownRenderer.renderInline(from: headingText, headingLevel: 1)
+        let rendered = try await coreText("# " + headingText)
         let font = try #require(rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         let expectedFont = typography.headingFont(for: 1)
         #expect(abs(font.pointSize - expectedFont.pointSize) < 0.01)
@@ -658,18 +649,18 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Table headers render with bold font traits on the typography font family")
-    func tableHeaderAttributedBoldTrait() throws {
-        let rendered = MarkdownRenderer.renderInline(from: "Column Header", mode: .systemHeadingsSerifBody, isTableHeader: true)
+    func tableHeaderAttributedBoldTrait() async throws {
+        let rendered = try await coreText("| Column Header |\n| --- |", mode: .systemHeadingsSerifBody)
         let font = try #require(rendered.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
         #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
     }
 
     @Test("Indented code blocks are recognized from 4 leading spaces")
-    func indentedCodeBlocks() {
+    func indentedCodeBlocks() async throws {
         let markdown = "Intro\n\n    let value = 42\n    print(value)\n\nAfter"
-        let blocks = MarkdownContentBlocks.prepare(from: markdown)
+        let blocks = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(blocks.count == 3)
-        if case .code(let code) = blocks[1].kind {
+        if case .code(let code) = blocks[1] {
             #expect(code == "let value = 42\nprint(value)")
         } else {
             Issue.record("Expected indented code block")
@@ -677,11 +668,11 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Reference links resolve from document context definitions")
-    func referenceLinksWithContext() throws {
+    func referenceLinksWithContext() async throws {
         let markdown = "[Learn Swift][swift]\n\n[swift]: https://swift.org"
-        let blocks = MarkdownContentBlocks.prepare(from: markdown)
+        let blocks = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(blocks.count == 1)
-        let rendered = MarkdownContentBlocks.render(preparedBlocks: blocks, mode: .allSystem, isDarkMode: false)
+        let rendered = try await coreBlocks(markdown)
         guard case .paragraph(let text) = rendered.first?.kind else {
             Issue.record("Expected paragraph block")
             return
@@ -693,7 +684,7 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Reference links resolve across fences while code and escaped brackets remain literal")
-    func referenceLinksAcrossFencesAndCodeIsolation() throws {
+    func referenceLinksAcrossFencesAndCodeIsolation() async throws {
         let markdown = """
         [go][ref]
 
@@ -705,7 +696,7 @@ struct MarkdownRegressionTests {
 
         [ref]: https://example.com/target
         """
-        let rendered = MarkdownRenderer.render(from: markdown)
+        let rendered = try await coreText(markdown)
         let str = rendered.string
         let nsStr = str as NSString
 
@@ -745,7 +736,7 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Four-space indented reference definition is preserved as literal code")
-    func indentedReferenceDefinitionPreservedAsCode() {
+    func indentedReferenceDefinitionPreservedAsCode() async throws {
         let markdown = """
         Intro paragraph
 
@@ -753,9 +744,9 @@ struct MarkdownRegressionTests {
 
         After paragraph
         """
-        let blocks = MarkdownContentBlocks.prepare(from: markdown)
+        let blocks = try await CoreMarkdownParser.parse(markdown).blocks
         #expect(blocks.count == 3)
-        if case .code(let code) = blocks[1].kind {
+        if case .code(let code) = blocks[1] {
             #expect(code == "[ref]: https://example.com")
         } else {
             Issue.record("Expected indented code block containing definition syntax")
@@ -763,27 +754,21 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Nested blockquotes render stacked quote bars")
-    func nestedBlockquotesRendering() {
-        let markdown = "> Outer\n> > Inner"
-        let rendered = MarkdownRenderer.render(from: markdown)
-        #expect(rendered.string.contains("▎ Outer"))
-        #expect(rendered.string.contains("▎ ▎ Inner"))
-
-        let prepared = MarkdownContentBlocks.prepare(from: markdown)
-        #expect(prepared.count == 1)
-        let blocks = MarkdownContentBlocks.render(preparedBlocks: prepared, mode: .allSystem, isDarkMode: false)
+    func nestedBlockquotesRendering() async throws {
+        let blocks = try await coreBlocks("> Outer\n> > Inner")
+        #expect(blocks.count == 1)
         guard case .quote(let text) = blocks.first?.kind else {
             Issue.record("Expected quote block")
             return
         }
-        #expect(String(text.characters).contains("Outer"))
-        #expect(String(text.characters).contains("▎ Inner"))
+        // The view draws the outer bar; the text carries one indicator per further level.
+        #expect(String(text.characters) == "Outer\n▎ Inner")
     }
 
     @Test("Same-label links with different or identical URLs process in source order without styling collisions")
-    func sameLabelLinksWithDifferentAndSameURLs() throws {
+    func sameLabelLinksWithDifferentAndSameURLs() async throws {
         let diffMarkdown = "[same](https://a.test) [**same**](https://b.test)"
-        let diffRendered = MarkdownRenderer.render(from: diffMarkdown)
+        let diffRendered = try await coreText(diffMarkdown)
         #expect(diffRendered.string == "same same")
 
         let firstSameRange = NSRange(location: 0, length: 4)
@@ -799,7 +784,7 @@ struct MarkdownRegressionTests {
         #expect(NSFontManager.shared.traits(of: secondFont).contains(.boldFontMask))
 
         let sameMarkdown = "[target](https://same.test) [**target**](https://same.test)"
-        let sameRendered = MarkdownRenderer.render(from: sameMarkdown)
+        let sameRendered = try await coreText(sameMarkdown)
         #expect(sameRendered.string == "target target")
         let secondTargetRange = NSRange(location: 7, length: 6)
         let secondTargetFont = try #require(sameRendered.attribute(.font, at: secondTargetRange.location, effectiveRange: nil) as? NSFont)
@@ -807,9 +792,9 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Outer bold with inner italic inside link preserves both traits")
-    func outerBoldWithInnerItalicInLink() throws {
+    func outerBoldWithInnerItalicInLink() async throws {
         let markdown = "**[linked *italic* here](https://example.com)**"
-        let rendered = MarkdownRenderer.render(from: markdown)
+        let rendered = try await coreText(markdown)
         #expect(rendered.string == "linked italic here")
 
         let linkedRange = (rendered.string as NSString).range(of: "linked")
@@ -862,38 +847,25 @@ struct MarkdownRegressionTests {
     }
 
     @Test("Reference label normalization collapses internal whitespace and case-folds consistently, keeping first definition")
-    func referenceLabelNormalization() throws {
-        #expect(MarkdownContentBlocks.normalizeReferenceLabel("  a   b\t c  ") == "a b c")
-        #expect(MarkdownContentBlocks.normalizeReferenceLabel("FOO   BAR") == "foo bar")
-        #expect(MarkdownContentBlocks.normalizeReferenceLabel("") == "")
-
+    func referenceLabelNormalization() async throws {
         let markdown = """
         [Test Label][a  b] and [Shortcut][a b] and [Uppercase][A   B]
 
         [a b]: https://example.com/first
         [a  b]: https://example.com/second
         """
-        let (cleaned, links) = MarkdownContentBlocks.extractDocumentReferenceLinks(from: markdown)
-        #expect(links["a b"]?.absoluteString == "https://example.com/first")
-        #expect(cleaned.contains("[Test Label][a  b]"))
-
-        let rendered = MarkdownRenderer.render(from: markdown)
-        let str = rendered.string
-        let firstRange = (str as NSString).range(of: "Test Label")
-        let firstLink = try #require(rendered.attribute(.link, at: firstRange.location, effectiveRange: nil) as? URL)
-        #expect(firstLink.absoluteString == "https://example.com/first")
-
-        let secondRange = (str as NSString).range(of: "Shortcut")
-        let secondLink = try #require(rendered.attribute(.link, at: secondRange.location, effectiveRange: nil) as? URL)
-        #expect(secondLink.absoluteString == "https://example.com/first")
-
-        let thirdRange = (str as NSString).range(of: "Uppercase")
-        let thirdLink = try #require(rendered.attribute(.link, at: thirdRange.location, effectiveRange: nil) as? URL)
-        #expect(thirdLink.absoluteString == "https://example.com/first")
+        let rendered = try await coreText(markdown)
+        #expect(rendered.string == "Test Label and Shortcut and Uppercase")
+        for label in ["Test Label", "Shortcut", "Uppercase"] {
+            let range = (rendered.string as NSString).range(of: label)
+            try #require(range.location != NSNotFound)
+            let link = rendered.attribute(.link, at: range.location, effectiveRange: nil) as? URL
+            #expect(link?.absoluteString == "https://example.com/first", "\(label)")
+        }
     }
 
     @Test("Invalid reference destinations remain in source text and are not removed")
-    func invalidReferenceDestinationPreserved() {
+    func invalidReferenceDestinationPreserved() async throws {
         let markdown = """
         Intro paragraph
 
@@ -902,18 +874,13 @@ struct MarkdownRegressionTests {
 
         After paragraph
         """
-        let (cleaned, links) = MarkdownContentBlocks.extractDocumentReferenceLinks(from: markdown)
-        #expect(links.isEmpty)
-        #expect(cleaned.contains("[bad1]: http://[bad"))
-        #expect(cleaned.contains("[bad2]: <http://[bad>"))
-
-        let rendered = MarkdownRenderer.render(from: markdown)
+        let rendered = try await coreText(markdown)
         #expect(rendered.string.contains("[bad1]: http://[bad"))
         #expect(rendered.string.contains("[bad2]: http://[bad"))
     }
 
     @Test("Table bodies accept pipe-free short rows and terminate on real block boundaries")
-    func tableShortRowsAndQuotedPipes() {
+    func tableShortRowsAndQuotedPipes() async throws {
         let shortRowMarkdown = """
         | Header 1 | Header 2 | Header 3 |
         | :--- | :---: | ---: |
@@ -922,17 +889,15 @@ struct MarkdownRegressionTests {
 
         Following paragraph after blank line.
         """
-        let preparedShort = MarkdownContentBlocks.prepare(from: shortRowMarkdown)
+        let preparedShort = try await CoreMarkdownParser.parse(shortRowMarkdown).blocks
         #expect(preparedShort.count == 2)
-        if case .table(let headers, _, let rows) = preparedShort[0].kind {
-            #expect(headers.count == 3)
-            #expect(rows.count == 2)
-            #expect(rows[0] == ["C1", "C2", "C3"])
-            #expect(rows[1] == ["Single Cell Only", "", ""])
+        if case .table(let table) = preparedShort[0] {
+            #expect(table.headers.count == 3)
+            #expect(table.rows.map { Array($0) } == [["C1", "C2", "C3"], ["Single Cell Only", "", ""]])
         } else {
             Issue.record("Expected table block with padded short row")
         }
-        if case .paragraph(let text) = preparedShort[1].kind {
+        if case .paragraph(let text) = preparedShort[1] {
             #expect(text.contains("Following paragraph"))
         } else {
             Issue.record("Expected following paragraph preserved")
@@ -944,73 +909,64 @@ struct MarkdownRegressionTests {
         | Val A | Val B |
         > Quoted block | with | pipes
         """
-        let preparedQuote = MarkdownContentBlocks.prepare(from: quoteMarkdown)
+        let preparedQuote = try await CoreMarkdownParser.parse(quoteMarkdown).blocks
         #expect(preparedQuote.count == 2)
-        if case .table(let headers, _, let rows) = preparedQuote[0].kind {
-            #expect(headers == ["Col A", "Col B"])
-            #expect(rows.count == 1)
-            #expect(rows[0] == ["Val A", "Val B"])
+        if case .table(let table) = preparedQuote[0] {
+            #expect(table.headers == ["Col A", "Col B"])
+            #expect(table.rows.map { Array($0) } == [["Val A", "Val B"]])
         } else {
             Issue.record("Expected table to terminate before quote")
         }
-        if case .quote(let source) = preparedQuote[1].kind {
-            #expect(source.contains("Quoted block | with | pipes"))
+        if case .quote(let lines) = preparedQuote[1] {
+            #expect(lines.map(\.source) == ["Quoted block | with | pipes"])
         } else {
             Issue.record("Expected quote block containing pipes")
         }
     }
 
-    @Test("Table splitting and pipe recognition share backtick matching semantics")
-    func tableCodeSpanBackticksRecognitionAndSplitting() {
-        #expect(!MarkdownContentBlocks.containsUnescapedPipe("`pipe | inside code`"))
-        #expect(!MarkdownContentBlocks.containsUnescapedPipe("``double `tick` | code``"))
-
-        #expect(MarkdownContentBlocks.containsUnescapedPipe("`unmatched backtick | separator"))
-        #expect(MarkdownContentBlocks.containsUnescapedPipe("``unmatched double | separator"))
-
-        #expect(!MarkdownContentBlocks.containsUnescapedPipe("escaped \\| pipe only"))
-        #expect(MarkdownContentBlocks.containsUnescapedPipe("escaped \\| pipe | real separator"))
-
-        let unmatchedCells = MarkdownContentBlocks.splitTableRow("`literal tick | second cell")
-        #expect(unmatchedCells == ["`literal tick", "second cell"])
-
-        let matchedCells = MarkdownContentBlocks.splitTableRow("`a | b` | second cell")
-        #expect(matchedCells == ["`a | b`", "second cell"])
-
-        let multiCells = MarkdownContentBlocks.splitTableRow("``nested `tick` | inner`` | outer cell")
-        #expect(multiCells == ["``nested `tick` | inner``", "outer cell"])
+    @Test("Table splitting and pipe recognition share backtick matching semantics",
+          arguments: [
+            ("`literal tick | second cell", ["`literal tick", "second cell"]),
+            ("`a | b` | second cell", ["`a | b`", "second cell"]),
+            ("``nested `tick` | inner`` | outer cell", ["``nested `tick` | inner``", "outer cell"])
+          ])
+    func tableCodeSpanBackticks(row: String, cells: [String]) async throws {
+        let blocks = try await CoreMarkdownParser.parse("A | B\n--- | ---\n" + row).blocks
+        guard case .table(let table) = blocks.first else {
+            Issue.record("Expected table block")
+            return
+        }
+        #expect(table.rows.map { Array($0) } == [cells])
     }
 
-    @Test("Standalone image parser accepts angle-bracket destinations with spaces and rejects unbracketed spaces")
-    func standaloneImageAngleBracketSpaces() {
-        let bracketedWithSpaces = "![Alt text](<my photo.png> \"Image Title\")"
-        let parsed = MarkdownContentBlocks.parseStandaloneImage(bracketedWithSpaces)
-        #expect(parsed?.alt == "Alt text")
-        #expect(parsed?.url == "my photo.png")
-        #expect(parsed?.title == "Image Title")
+    @Test("Pipes inside code or behind a backslash do not make a header row",
+          arguments: ["`pipe | inside code`", "``double `tick` | code``", "escaped \\| pipe only"])
+    func protectedPipesAreNotTables(header: String) async throws {
+        let blocks = try await CoreMarkdownParser.parse(header + "\n---").blocks
+        #expect(!blocks.contains { if case .table = $0 { true } else { false } })
+    }
 
-        let bracketedNoTitle = "![Alt text](<path/with spaces/image.jpg>)"
-        let parsedNoTitle = MarkdownContentBlocks.parseStandaloneImage(bracketedNoTitle)
-        #expect(parsedNoTitle?.alt == "Alt text")
-        #expect(parsedNoTitle?.url == "path/with spaces/image.jpg")
-        #expect(parsedNoTitle?.title == nil)
-
-        let unbracketedSpace = "![Alt text](my photo.png)"
-        #expect(MarkdownContentBlocks.parseStandaloneImage(unbracketedSpace) == nil)
-
-        let unbracketedWithTitle = "![Alt text](my photo.png \"Title\")"
-        #expect(MarkdownContentBlocks.parseStandaloneImage(unbracketedWithTitle) == nil)
+    @Test("Standalone images accept angle-bracket destinations with spaces and reject unbracketed spaces")
+    func standaloneImageAngleBracketSpaces() async throws {
+        let titled = try await CoreMarkdownParser.parse("![Alt text](<my photo.png> \"Image Title\")").blocks
+        #expect(titled == [.image(alt: "Alt text", destination: "my photo.png", title: "Image Title")])
+        let untitled = try await CoreMarkdownParser.parse("![Alt text](<path/with spaces/image.jpg>)").blocks
+        #expect(untitled == [.image(alt: "Alt text", destination: "path/with spaces/image.jpg", title: nil)])
+        for source in ["![Alt text](my photo.png)", "![Alt text](my photo.png \"Title\")"] {
+            let blocks = try await CoreMarkdownParser.parse(source).blocks
+            #expect(!blocks.contains { if case .image = $0 { true } else { false } }, "\(source)")
+        }
     }
 
     @Test("Explicit undefined reference links remain untouched and destination parentheses serialize safely")
-    func explicitUndefinedReferenceLinks() throws {
+    func explicitUndefinedReferenceLinks() async throws {
         let markdown = """
         [foo][missing] and [unknown][foo] and [foo][] and [parens][dest_parens]
 
         [foo]: https://example.com/foo
         [dest_parens]: https://example.com/a)b
         """
-        let rendered = MarkdownRenderer.render(from: markdown)
+        let rendered = try await coreText(markdown)
         let str = rendered.string
         let nsStr = str as NSString
 

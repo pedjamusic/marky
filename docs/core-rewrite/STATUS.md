@@ -1,6 +1,6 @@
 # Core rewrite status
 
-Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
+Updated: 2026-11-25. This is the authoritative live ledger. [README](README.md) defines status and acceptance conventions. [CONTRACT](CONTRACT.md) owns scope and interface decisions. Phase files define work rather than duplicating state.
 
 ## Current checkpoint
 
@@ -30,6 +30,7 @@ Updated: 2026-11-23. This is the authoritative live ledger. [README](README.md) 
 - **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). [macOS run](#t17s1-mac-run)
 - **T17.S2 is accepted and delivered.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. The slice landed on `main` as `ead9682` (E145). [Verification](#t17s2-verification-and-review)
 - **T17.S3 and T17 are complete.** User **PASS** in E148 accepts the signed candidate and the fixed-baseline evidence in E147. Scan peak is 16.03 MiB across the two corrected model series, below the 20.31 MiB ceiling. Both native endpoints meet the limits at the fixed window size and recorded thermal conditions. The correction landed on `main` as `ac15aba` in E149. T18.S1 is next when selected. [T17.S3 report](T17-S3-PERFORMANCE.md)
+- **T18.S1 is accepted.** User **PASS** (E151) accepts removal of the replaced Swift Markdown parser and renderer, verified in E150. Git integration is recorded separately. T18.S2 is next when selected. [Verification](#t18s1-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -56,7 +57,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
 | T17 | [07](phases/07-hardening-and-closure.md) | done | T17.S1 done; T17.S2 done; T17.S3 done | E140–E145 record S1 and S2 verification, acceptance, and integration. E146 and E147 record the initial and corrected S3 runs. E148 records user acceptance and E149 records integration. |
-| T18 | [07](phases/07-hardening-and-closure.md) | queued | T18.S1 queued; T18.S2 queued | Not implemented; no verification or acceptance claimed. |
+| T18 | [07](phases/07-hardening-and-closure.md) | in_progress | T18.S1 done; T18.S2 queued | E150 and E151 record S1 verification and acceptance. S2 is not implemented. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
 ## Blockers
@@ -93,7 +94,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T09 | T09 | T11, T12 | closed | E75 supplies the combined-style corpus. E88–E89 close the T11 receipt with accepted attributed text and Unicode projection, including combining marks at delimiter boundaries. T12 receipt closed with the native attributed parity checks and signed candidate acceptance (E102–E103). |
 | OWE-T10 | T10 | T11, T12 | closed | E85 supplies the C run views and the full portable corpus. E88–E89 and E91–E92 close the T11 receipt with accepted native link destinations, inline alt text, and standalone image presentation. T12 receipt closed with the full native corpus and signed candidate acceptance (E102–E103). |
 | OWE-T11 | T11 | T12 | closed | E88–E95 deliver `CoreMarkdownParserTests` for native mapping, lifetime and Swift/core comparisons, `MarkdownRegressionTests` for loading through both parsers, and the Debug reader route for native inspection. T12 receipt closed with E97–E98 parity and quote evidence and E102–E103 dense-document, load lifecycle, and signed candidate acceptance. |
-| OWE-T12 | T12 | T17, T18 | open | E102 supplies the [cutover evidence and Swift removal inventory](T12-S2-PRODUCTION-CUTOVER.md). E103 accepts the cutover. E147 and E148 close the T17 performance receipt. T18 still verifies removal against the inventory. |
+| OWE-T12 | T12 | T17, T18 | closed | E102 supplies the [cutover evidence and Swift removal inventory](T12-S2-PRODUCTION-CUTOVER.md). E103 accepts the cutover. E147 and E148 close the T17 performance receipt. E150 verifies removal against the inventory and E151 accepts it, closing the T18 receipt. |
 | OWE-T13 | T13 | T16 | closed | E129 and E134 supply native enumeration, complete and partial scans, failed-open preservation, and retention when availability is unknown. E130 and E135 record user acceptance. |
 | OWE-T14 | T14 | T16 | closed | E134 verifies native matching, ordering, filtering, and outline behavior against the index and query fixtures in E113 and E117. E135 records user acceptance. |
 | OWE-T15 | T15 | T16 | closed | E134 verifies native persistence for availability, latest-store edits, and authorized aliases against the [T15.S2 fixtures and API](#t15s2-mac-run). E135 records user acceptance. |
@@ -261,6 +262,19 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E147 | T17.S3 project performance correction | Same local branch and base. The uncommitted correction reuses resolved parent URLs, captures the sort locale once, checks cancellation during sorting, and skips unchanged favorites writes. [Correction measurements](measurements/t17-s3-correction.json) and [signed candidate](T17-S3-PERFORMANCE.md#signed-review-candidate). | 131 unit tests and three focused Release UI tests passed. Exact fixtures and signature verified. Both corrected nominal model series clear the matched processing and peak limits. The final folder and dense viewport series each meet the limits at 1252 × 833 points and their respective original thermal states. | B09 resolved. User **PASS** and Git integration are pending. |
 | E148 | T17.S3 and T17 acceptance | User **PASS** ("pass."), 2026-11-23, accepts the signed Release candidate and fixed-baseline evidence in E147. | Rechecked the executable SHA-256, strict signature, measured source hashes, baseline records, and clean integration base. The [correction record](measurements/t17-s3-correction.json) has SHA-256 `e03747b53c761053be635a3a7225e266598ed8a410764d731a1527c59474f932`. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
 | E149 | T17.S3 integration | The accepted correction landed on `main` as `ac15abaf312bce605febff5fb88c02af1cf43435` on 2026-11-23. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S3 and T17 are delivered. T18.S1 is next when selected. |
+| E150 | T18.S1 removal of replaced Swift paths | Local `codex/t18s1-remove-legacy-parser` from clean `main` at `5fd3531`, uncommitted. The tracked diff followed by the new `CoreRenderingTestSupport.swift` has SHA-256 `94d8aad1da7ad1b6efc93846556d116ebb894bcd4a2c2b8d3b262f670c815ae8`, excluding this ledger. | [Mac run](#t18s1-mac-run). 128 unit tests, 4/4 core tests, a Release build, and the UI tests passed. Three opt-in performance tests were skipped. | User **PASS** pending at verification. |
+| E151 | T18.S1 acceptance | User **PASS** ("pass"), 2026-11-25, accepts the E150 candidate. The user will do T18.S2 separately. | The candidate files are unchanged since E150 verification. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
+
+### T18.S1 Mac run
+
+Xcode 27.2 (27B52), macOS, 2026-11-25. Commands as in the app README.
+
+- Removed: the Swift block parser, inline and string renderers, link detection, reference substitution, and seven typography tokens only they used. `render(coreDocument:)`, native services, and presentation remain. A search finds no code references to the removed paths.
+- Tests that used the Swift implementation as the expected result now assert fixture or pinned values against the core. Eight `legacyRuns`/`inlineRuns` fixture entries were removed. A forced list-nesting and paragraph-spacing defect failed the new tests.
+- Three ported expectations now follow production behavior: a newline in a code span becomes a space, quote text has no outer-quote indicator, and the view styles code blocks. No unit test checks code block appearance.
+- Passed: 128 unit tests, C++ CTest `macos-appleclang-debug` 4/4, Release build, `MarkyUITests` (three opt-in `LargeInputPerformanceTests` skipped), `git diff --check`.
+- Not run: compilation of the standalone `tools/performance` tools, and sandbox restoration. T19 owns final signed acceptance.
+- Left for T18.S2: fixture `evidence` strings that name removed Swift functions, and the old file layout in `docs/AGENT_POLICY_AND_PORTABILITY.md`.
 
 ### T17.S2 verification and review
 
