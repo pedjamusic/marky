@@ -31,6 +31,7 @@ Updated: 2026-11-25. This is the authoritative live ledger. [README](README.md) 
 - **T17.S2 is accepted and delivered.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. The slice landed on `main` as `ead9682` (E145). [Verification](#t17s2-verification-and-review)
 - **T17.S3 and T17 are complete.** User **PASS** in E148 accepts the signed candidate and the fixed-baseline evidence in E147. Scan peak is 16.03 MiB across the two corrected model series, below the 20.31 MiB ceiling. Both native endpoints meet the limits at the fixed window size and recorded thermal conditions. The correction landed on `main` as `ac15aba` in E149. T18.S1 is next when selected. [T17.S3 report](T17-S3-PERFORMANCE.md)
 - **T18.S1 is accepted.** User **PASS** (E151) accepts removal of the replaced Swift Markdown parser and renderer, verified in E150. The slice landed on `main` as `9113729` (E152). T18.S2 is next when selected. [Verification](#t18s1-mac-run)
+- **T18.S2 and T18 are accepted.** User **PASS** (E154) accepts the E153 documentation: architecture, C interface and lifetime rules, build and verification procedures, fixture provenance, and the 0.2.5 changelog. Git integration is recorded separately. T19.S1 is next when selected and remains blocked by B03 for Windows and Linux execution. [Review record](#t18s2-documentation-review)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -57,7 +58,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
 | T17 | [07](phases/07-hardening-and-closure.md) | done | T17.S1 done; T17.S2 done; T17.S3 done | E140–E145 record S1 and S2 verification, acceptance, and integration. E146 and E147 record the initial and corrected S3 runs. E148 records user acceptance and E149 records integration. |
-| T18 | [07](phases/07-hardening-and-closure.md) | in_progress | T18.S1 done; T18.S2 queued | E150–E152 record S1 verification, acceptance, and integration. S2 is not implemented. |
+| T18 | [07](phases/07-hardening-and-closure.md) | done | T18.S1 done; T18.S2 done | E150–E152 record S1 verification, acceptance, and integration. E153 supplies the S2 documentation and E154 records user PASS. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
 ## Blockers
@@ -100,7 +101,7 @@ Rows below are defined obligations. `planned` means the origin has not delivered
 | OWE-T15 | T15 | T16 | closed | E134 verifies native persistence for availability, latest-store edits, and authorized aliases against the [T15.S2 fixtures and API](#t15s2-mac-run). E135 records user acceptance. |
 | OWE-T16 | T16 | T17, T19 | open | E137 and E138 supply accepted native project integration and its fixed fixtures. E143–E144 and E147–E148 close the T17 resource and performance receipt. T19 still owns final signed native acceptance. |
 | OWE-T17 | T17 | T19 | open | E140–E148 supply the accepted fixes, sanitizer and lifetime results, and corrected fixed-baseline comparison. T19 verifies the fixes on the final tree and audits the evidence. |
-| OWE-T18 | T18 | T19 | planned | Final clean builds/dependency inspection and audit verify final source inventory, removal, interface docs, and commands. |
+| OWE-T18 | T18 | T19 | open | E153 supplies the final architecture, C interface and lifetime rules, reproducible build and verification commands, and removal records in the root and core READMEs. T19 clean builds, runtime dependency inspection, and the final audit must verify them on the final tree. |
 
 T19 has no outgoing owe. Required incoming receipts must be closed before final acceptance. Optional future app work is reported separately and cannot be counted as delivered core scope.
 
@@ -265,6 +266,21 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E150 | T18.S1 removal of replaced Swift paths | Local `codex/t18s1-remove-legacy-parser` from clean `main` at `5fd3531`, uncommitted. The tracked diff followed by the new `CoreRenderingTestSupport.swift` has SHA-256 `94d8aad1da7ad1b6efc93846556d116ebb894bcd4a2c2b8d3b262f670c815ae8`, excluding this ledger. | [Mac run](#t18s1-mac-run). 128 unit tests, 4/4 core tests, a Release build, and the UI tests passed. Three opt-in performance tests were skipped. | User **PASS** pending at verification. |
 | E151 | T18.S1 acceptance | User **PASS** ("pass"), 2026-11-25, accepts the E150 candidate. The user will do T18.S2 separately. | The candidate files are unchanged since E150 verification. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
 | E152 | T18.S1 integration | The accepted candidate landed on `main` as `91137293a2fcf1b610f4b1afa7d1c3f61b7bef7a` on 2026-11-25. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T18.S1 is delivered. T18.S2 is next when selected. |
+| E153 | T18.S2 documentation candidate | Local `codex/t18s2-architecture-docs` from clean `main` at `a71a2bd`, uncommitted. Documentation only. | [Review record](#t18s2-documentation-review). The documented core, unit-test, build, and signed Release commands were rerun and passed. | User documentation review recorded in E154. |
+| E154 | T18.S2 and T18 acceptance | User **PASS** ("Pass"), 2026-11-25, accepts the E153 documentation diff. | The documents are unchanged since E153 apart from this ledger. The `AGENTS.md` statement noted in the review record remains unchanged. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
+
+### T18.S2 documentation review
+
+macOS 27.2.1 arm64, Xcode 27.2 (27B52), CMake 4.5.0, 2026-11-25. Each changed document was checked against the source, the C header, the Xcode project settings, and commands run on this candidate.
+
+- Changed: the [root README](../../README.md#architecture) (architecture table, layout, version note), the [core README](../../core/README.md#c-interface-and-lifetime) (C interface and lifetime rules, project sources, supported versus executed platforms, and the removed Swift reader references), [CODE_QUALITY_VERIFICATION](../CODE_QUALITY_VERIFICATION.md#current-checks) (current checks), [MARKDOWN_STYLING_VERIFICATION](../MARKDOWN_STYLING_VERIFICATION.md), the [portability assessment](../AGENT_POLICY_AND_PORTABILITY.md#current-architecture-what-would-move) (marked historical), [T01-S2-CORPUS](T01-S2-CORPUS.md) (`evidence` provenance), the roadmap README, and [CHANGELOG](../../CHANGELOG.md) 0.2.5.
+- Removed paths: the T12.S2 inventory and the T18.S1 Mac run record them. Fixture `evidence` strings keep their historical names; the corpus document says which name removed code, readable at `5fd3531`.
+- Native responsibilities: file reads, enumeration, grants and bookmarks, persistence, localized matching and ordering, image loading, fonts, and presentation stay in Swift. The core does no I/O.
+- Platforms: only macOS/Apple Clang arm64 has executed the core tests. Windows/MSVC and Linux/GCC remain under B03 and T19.
+- Release: 0.2.5 stays undated. The Xcode project remains 0.2.4 (5); no version bump accompanies this documentation slice.
+- Commands rerun: `macos-appleclang-debug` and `-release` presets, 4/4 CTest each; README unit-test command, 128 passed; README build; the new signed Release command in CODE_QUALITY_VERIFICATION, with `codesign --verify --deep --strict` passing and sandbox, read-only user-selected files, and network client entitlements present. `git diff --check` passed.
+- Not run: UI tests, the sanitizer procedure, performance comparisons, and the inline data regeneration check. No code changed.
+- Not changed: `AGENTS.md` still says no C++ core or CMake build exists. It is repository policy, so it needs a separate decision.
 
 ### T18.S1 Mac run
 

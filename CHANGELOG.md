@@ -12,6 +12,8 @@ All notable changes to this project are documented in this file.
 - Large project scans reuse resolved folder paths and can stop during folder sorting when a scan is canceled.
 - The macOS sidebar uses the shared project index for search and favorites while keeping localized matching and the existing saved favorites.
 - The core C API rejects malformed UTF-8 with typed results.
+- Removed the Swift Markdown parser and string renderer that the C++ core replaced. Reading behavior is unchanged.
+- The README and core README document the architecture, the C interface's ownership and cancellation rules, and which platforms have run the core tests.
 
 ## [0.2.4] - 2026-11-06
 

@@ -1,6 +1,6 @@
 # C++ core rewrite roadmap
 
-This is the durable entry point for work across sessions: **8 phases, 20 tickets, and 51 slices**. Slices are resumable work units, not estimates of sessions or dates. The current delivery is the documentation package; core implementation requires a subsequent implementation instruction.
+This is the durable entry point for work across sessions: **8 phases, 20 tickets, and 51 slices**. Slices are resumable work units, not estimates of sessions or dates. [STATUS.md](STATUS.md) records which slices are implemented and accepted.
 
 ## Read the right document
 

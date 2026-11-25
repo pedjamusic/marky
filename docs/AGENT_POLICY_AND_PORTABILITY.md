@@ -44,6 +44,8 @@ No new skill installation is needed for this update. Consider a repository-local
 
 ## Current architecture: what would move
 
+> **Historical, 2026-11-06.** This section describes the app before the C++ core existed. The core now owns Markdown and project rules, and the Swift parser was removed in T18.S1. See the [current architecture](../README.md#architecture). The file sizes and observations below are kept as the original assessment.
+
 Source inspection found 15 app Swift files totaling approximately 5,490 lines, excluding tests, assets, and project configuration. These counts describe size, not translation effort.
 
 | Current source | Observation | Portability implication |

@@ -1,5 +1,30 @@
 # Code-quality verification
 
+## Current checks
+
+Run these from the repository root before handing off a change. Run the checks that cover the changed code, and broaden them for cross-cutting changes.
+
+1. **Core.** Run the `macos-appleclang-debug` and `macos-appleclang-release` presets from the [root README](../README.md#standalone-c-core-build). Both must pass all four CTest tests: core, fault, hardening, and Markdown corpus. For interface or memory changes, also run the [sanitizer procedure](../core/README.md#sanitizer-mutation-and-stress-checks).
+2. **App.** Build the `Marky` scheme and run `MarkyTests` with the [README commands](../README.md#run). Run `MarkyUITests` for changed interactions.
+3. **Signed candidate.** Build a standalone Release app with a local ad hoc signature for manual acceptance and sandbox restoration:
+
+   ```bash
+   xcodebuild -scheme Marky -project Marky.xcodeproj -configuration Release \
+     -destination 'platform=macOS,arch=arm64' -derivedDataPath "$CANDIDATE" \
+     CLANG_ENABLE_CODE_COVERAGE=NO ENABLE_TESTABILITY=NO \
+     CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
+   codesign --verify --deep --strict "$CANDIDATE/Build/Products/Release/Marky.app"
+   ```
+
+   Set `CANDIDATE` to a new directory. An unsigned build or a UI-test run does not show sandbox restoration. Use the [manual acceptance](#manual-acceptance) steps below for access, favorites, and reading behavior.
+4. **Performance.** For changes that affect parsing, rendering, or scanning, repeat the fixed-input comparison in the [T17.S3 reproduction steps](core-rewrite/T17-S3-PERFORMANCE.md#reproduction). The limit is a 20% regression in median time or peak memory.
+
+These checks run on macOS only. Windows and Linux core runs are not yet executed; the [core README](../core/README.md#platform-presets) lists their commands.
+
+The sections below record the 0.2.2 verification and its acceptance steps.
+
+## 0.2.2 record
+
 Date: 2026-11-05
 
 Candidate: 0.2.2 (3), branch `codex/code-quality-bugfixes`.

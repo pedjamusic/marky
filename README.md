@@ -1,6 +1,6 @@
 # Marky
 
-Marky is a native SwiftUI Markdown reader for macOS focused on fast local-folder browsing and clean reading.
+Marky is a native Markdown reader for macOS focused on fast local-folder browsing and clean reading. A portable C++20 core interprets Markdown and project rules; SwiftUI and AppKit provide the Mac interface.
 
 ## Current Highlights
 
@@ -72,21 +72,38 @@ ctest --preset macos-appleclang-debug
 
 Repeat with `macos-appleclang-release`. See the [core procedures](core/README.md) for platform prerequisites, Windows/Linux commands, deliberate failure/recovery checks, and manual CMake 3.20+ builds. [T03.S2 evidence](docs/core-rewrite/T03-S2-PLATFORM-BUILDS.md) distinguishes executed Mac smoke tests from unexecuted Windows/Linux configurations.
 
-The macOS reader parses Markdown through the same C++ core. Xcode links it as a [local static Swift package](core/README.md#xcode-integration), and SwiftUI and AppKit render the result.
+The core's [C interface and lifetime rules](core/README.md#c-interface-and-lifetime) describe ownership, borrowed views, status values, and cancellation. The sanitizer and stress procedure is in the [core README](core/README.md#sanitizer-mutation-and-stress-checks).
+
+## Architecture
+
+Xcode links the core as a [local static Swift package](core/README.md#xcode-integration). The app calls it only through the C header `core/include/MarkyCore.h`.
+
+| Layer | Owns | Source |
+| --- | --- | --- |
+| Portable core (C++20) | Block and inline Markdown semantics, reference resolution, link and image data, Markdown-file eligibility, empty-folder pruning, project index and filtering, favorite membership and reconciliation | `core/src/` |
+| Swift adapters | Copying core results into `Sendable` Swift values, cancellation tokens, translating native scan metadata and saved favorites into core inputs | `Marky/Services/CoreMarkdownParser.swift`, `Marky/Services/CoreCancellationToken.swift`, `Marky/FileNode.swift`, `Marky/Services/ProjectFavoritesStore.swift` |
+| Native Mac services | File reads and text decoding, folder enumeration, security-scoped bookmarks and grants, preferences and favorites persistence, localized search matching and ordering, image loading, bundled fonts | `Marky/FileNode.swift`, `Marky/Services/`, `Marky/ViewModels/ContentViewModel.swift` |
+| Mac presentation | Attributed text, typography and theme tokens, tables, images and preview, sidebar, settings, windows, menus, keyboard, accessibility | `Marky/MarkdownViewer.swift`, `Marky/MarkdownContentBlocks.swift`, `Marky/MarkdownTypography.swift`, the other views in `Marky/` |
+
+Documents load off the main actor. Settings changes rerender the cached core document without reparsing it. The core makes no filesystem calls, so a future Windows or Linux app would supply its own native scanning, access, persistence, and interface. No such app exists yet.
+
+The Swift Markdown parser and string renderer that preceded the core were removed in 0.2.5. Their [removal inventory](docs/core-rewrite/T12-S2-PRODUCTION-CUTOVER.md#swift-parser-removal-inventory-for-t18) and [verification](docs/core-rewrite/STATUS.md#t18s1-mac-run) are in the roadmap.
 
 ## Repository Layout
 
 - `core/`: C++20 static core, CTest harness, and local Swift package for Xcode
-- `Marky/`: app source code (SwiftUI app, views, theme, markdown rendering)
-- `MarkyTests/`: unit tests
-- `MarkyUITests/`: UI tests
+- `Marky/`: Mac app source (SwiftUI and AppKit views, core adapters, native services, theme)
+- `MarkyTests/`: unit tests, including the shared Markdown fixture corpus in `MarkyTests/Fixtures/`
+- `MarkyUITests/`: UI tests and opt-in large-input performance tests
+- `tools/`: inline data generator and performance probes
+- `docs/`: verification procedures, Markdown showcase, and the core rewrite roadmap
 - `AGENTS.md`: repository policy for coding agents
 - [C++ core rewrite roadmap](docs/core-rewrite/README.md): phased plan, approved contract, live progress, and session handoff.
 
 ## Notes
 
 - This repository follows a solo workflow with versioned changelog entries (no `Unreleased` section).
-- The Xcode project sets the current app version to `0.2.4` (`CURRENT_PROJECT_VERSION = 5`).
+- The Xcode project sets the current app version to `0.2.4` (`CURRENT_PROJECT_VERSION = 5`). The undated `0.2.5` changelog entry collects changes made since then; the project version has not been raised yet.
 - Folder loading preserves the current project if another location cannot be read. Single-file access preserves favorites for other files in the same project.
 - Detailed validation and manual acceptance steps are recorded in [the code-quality verification notes](docs/CODE_QUALITY_VERIFICATION.md).
 
