@@ -30,7 +30,7 @@ Updated: 2026-11-25. This is the authoritative live ledger. [README](README.md) 
 - **T17.S1 is accepted and delivered.** User **PASS** (E141) accepts the deterministic mutation tests, stress fixtures, and typed UTF-8 failures verified in E140. The slice landed on `main` as `424f09c` (E142). [macOS run](#t17s1-mac-run)
 - **T17.S2 is accepted and delivered.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. The slice landed on `main` as `ead9682` (E145). [Verification](#t17s2-verification-and-review)
 - **T17.S3 and T17 are complete.** User **PASS** in E148 accepts the signed candidate and the fixed-baseline evidence in E147. Scan peak is 16.03 MiB across the two corrected model series, below the 20.31 MiB ceiling. Both native endpoints meet the limits at the fixed window size and recorded thermal conditions. The correction landed on `main` as `ac15aba` in E149. T18.S1 is next when selected. [T17.S3 report](T17-S3-PERFORMANCE.md)
-- **T18.S1 is accepted.** User **PASS** (E151) accepts removal of the replaced Swift Markdown parser and renderer, verified in E150. Git integration is recorded separately. T18.S2 is next when selected. [Verification](#t18s1-mac-run)
+- **T18.S1 is accepted.** User **PASS** (E151) accepts removal of the replaced Swift Markdown parser and renderer, verified in E150. The slice landed on `main` as `9113729` (E152). T18.S2 is next when selected. [Verification](#t18s1-mac-run)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -57,7 +57,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
 | T17 | [07](phases/07-hardening-and-closure.md) | done | T17.S1 done; T17.S2 done; T17.S3 done | E140–E145 record S1 and S2 verification, acceptance, and integration. E146 and E147 record the initial and corrected S3 runs. E148 records user acceptance and E149 records integration. |
-| T18 | [07](phases/07-hardening-and-closure.md) | in_progress | T18.S1 done; T18.S2 queued | E150 and E151 record S1 verification and acceptance. S2 is not implemented. |
+| T18 | [07](phases/07-hardening-and-closure.md) | in_progress | T18.S1 done; T18.S2 queued | E150–E152 record S1 verification, acceptance, and integration. S2 is not implemented. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
 ## Blockers
@@ -264,6 +264,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E149 | T17.S3 integration | The accepted correction landed on `main` as `ac15abaf312bce605febff5fb88c02af1cf43435` on 2026-11-23. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T17.S3 and T17 are delivered. T18.S1 is next when selected. |
 | E150 | T18.S1 removal of replaced Swift paths | Local `codex/t18s1-remove-legacy-parser` from clean `main` at `5fd3531`, uncommitted. The tracked diff followed by the new `CoreRenderingTestSupport.swift` has SHA-256 `94d8aad1da7ad1b6efc93846556d116ebb894bcd4a2c2b8d3b262f670c815ae8`, excluding this ledger. | [Mac run](#t18s1-mac-run). 128 unit tests, 4/4 core tests, a Release build, and the UI tests passed. Three opt-in performance tests were skipped. | User **PASS** pending at verification. |
 | E151 | T18.S1 acceptance | User **PASS** ("pass"), 2026-11-25, accepts the E150 candidate. The user will do T18.S2 separately. | The candidate files are unchanged since E150 verification. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
+| E152 | T18.S1 integration | The accepted candidate landed on `main` as `91137293a2fcf1b610f4b1afa7d1c3f61b7bef7a` on 2026-11-25. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T18.S1 is delivered. T18.S2 is next when selected. |
 
 ### T18.S1 Mac run
 
