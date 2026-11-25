@@ -31,7 +31,7 @@ Updated: 2026-11-25. This is the authoritative live ledger. [README](README.md) 
 - **T17.S2 is accepted and delivered.** User **PASS** (E144) accepts the repeated core and Swift lifetime checks and signed macOS picker verification in E143. The slice landed on `main` as `ead9682` (E145). [Verification](#t17s2-verification-and-review)
 - **T17.S3 and T17 are complete.** User **PASS** in E148 accepts the signed candidate and the fixed-baseline evidence in E147. Scan peak is 16.03 MiB across the two corrected model series, below the 20.31 MiB ceiling. Both native endpoints meet the limits at the fixed window size and recorded thermal conditions. The correction landed on `main` as `ac15aba` in E149. T18.S1 is next when selected. [T17.S3 report](T17-S3-PERFORMANCE.md)
 - **T18.S1 is accepted.** User **PASS** (E151) accepts removal of the replaced Swift Markdown parser and renderer, verified in E150. The slice landed on `main` as `9113729` (E152). T18.S2 is next when selected. [Verification](#t18s1-mac-run)
-- **T18.S2 and T18 are accepted.** User **PASS** (E154) accepts the E153 documentation: architecture, C interface and lifetime rules, build and verification procedures, fixture provenance, and the 0.2.5 changelog. Git integration is recorded separately. T19.S1 is next when selected and remains blocked by B03 for Windows and Linux execution. [Review record](#t18s2-documentation-review)
+- **T18.S2 and T18 are accepted.** User **PASS** (E154) accepts the E153 documentation: architecture, C interface and lifetime rules, build and verification procedures, fixture provenance, and the 0.2.5 changelog. The slice landed on `main` as `effddc0` (E155). T19.S1 is next when selected and remains blocked by B03 for Windows and Linux execution. [Review record](#t18s2-documentation-review)
 - Windows/MSVC and Linux/GCC execution remains open under B03/OWE-T03.
 
 ## Ticket and slice state
@@ -58,7 +58,7 @@ All tickets started queued. T00 now has user acceptance for documentation delive
 | T15 | [06](phases/06-project-rules.md) | done | T15.S1 done; T15.S2 done | E121–E124 record membership delivery. E125–E128 record reconciliation verification, acceptance, branch placement, and integration. |
 | T16 | [06](phases/06-project-rules.md) | done | T16.S1 done; T16.S2 done; T16.S3 done | E129–E132 record T16.S1. E133–E136 record T16.S2. E137–E139 record the signed T16.S3 candidate, user acceptance, and integration. |
 | T17 | [07](phases/07-hardening-and-closure.md) | done | T17.S1 done; T17.S2 done; T17.S3 done | E140–E145 record S1 and S2 verification, acceptance, and integration. E146 and E147 record the initial and corrected S3 runs. E148 records user acceptance and E149 records integration. |
-| T18 | [07](phases/07-hardening-and-closure.md) | done | T18.S1 done; T18.S2 done | E150–E152 record S1 verification, acceptance, and integration. E153 supplies the S2 documentation and E154 records user PASS. |
+| T18 | [07](phases/07-hardening-and-closure.md) | done | T18.S1 done; T18.S2 done | E150–E152 record S1 verification, acceptance, and integration. E153 supplies the S2 documentation and E154 records user PASS and E155 records integration. |
 | T19 | [07](phases/07-hardening-and-closure.md) | queued | T19.S1 queued; T19.S2 queued; T19.S3 queued | Not implemented; no verification or acceptance claimed. |
 
 ## Blockers
@@ -268,6 +268,7 @@ Record candidate revision plus dirty-state/diff identity for uncommitted candida
 | E152 | T18.S1 integration | The accepted candidate landed on `main` as `91137293a2fcf1b610f4b1afa7d1c3f61b7bef7a` on 2026-11-25. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T18.S1 is delivered. T18.S2 is next when selected. |
 | E153 | T18.S2 documentation candidate | Local `codex/t18s2-architecture-docs` from clean `main` at `a71a2bd`, uncommitted. Documentation only. | [Review record](#t18s2-documentation-review). The documented core, unit-test, build, and signed Release commands were rerun and passed. | User documentation review recorded in E154. |
 | E154 | T18.S2 and T18 acceptance | User **PASS** ("Pass"), 2026-11-25, accepts the E153 documentation diff. | The documents are unchanged since E153 apart from this ledger. The `AGENTS.md` statement noted in the review record remains unchanged. | PASS authorizes the focused commit, fast-forward merge into local `main`, push of `main`, and deletion of the merged local branch. |
+| E155 | T18.S2 integration | The accepted candidate landed on `main` as `effddc0c502992f95f692e42e452ddc145b29696` on 2026-11-25. | Local `main` fast-forwarded, and the push succeeded. `git ls-remote --exit-code origin refs/heads/main` confirmed the revision before the merged local branch was deleted. | T18.S2 and T18 are delivered. T19.S1 is next when selected; B03 blocks its Windows and Linux execution. |
 
 ### T18.S2 documentation review
 
