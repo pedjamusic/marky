@@ -16,6 +16,8 @@ This file defines repository policy and takes precedence over other repository d
 
 ## Workflow
 
+- When asked for an opinion, discuss; do not change code or files.
+- In the shell, prefer `rg`, `fd` and `bat` over `grep`, `find` and `cat`.
 - Read the owning code and tests first. Work on one small, reviewable slice; reuse existing patterns and keep unrelated refactors separate.
 - State the intended behavior and how it will be verified. For a large feature, architecture change, or new dependency, propose a short design and get approval before implementation. An explicit implementation request authorizes work within its agreed scope.
 - Measure performance and inspect library behavior instead of assuming. Report what passed, what remains untested, and any material uncertainty.
@@ -54,7 +56,9 @@ This file defines repository policy and takes precedence over other repository d
 
 - Read-only Git inspection is allowed. Ask before Git mutations unless that operation is already authorized in the conversation; approval for a branch is not approval to commit, merge, or push.
 - Work on a local `codex/` branch from `main`, after checking for existing user changes. Use separate worktrees for concurrent sessions; preserve unrelated work.
-- User-reported **PASS** for a verified candidate authorizes committing the focused changes, merging into local `main`, pushing `main`, and deleting the merged task branch. Proceed with that integration unless the user specifically requests a PR, in which case follow the requested PR workflow. Record acceptance and executed Git operations separately.
+- Integration route is chosen per task by the user. If they chose a pull request, that choice overrides direct merge: push the task branch, open the PR, and stop. User-reported **PASS** then authorizes the agent to merge the PR and delete the merged task branch; never merge locally or push `main` directly for that task.
+- With no PR requested, user-reported **PASS** for a verified candidate authorizes committing the focused changes, merging into local `main`, pushing `main`, and deleting the merged task branch.
+- After **PASS**, without asking again: update the ticket status in `docs/core-rewrite/STATUS.md` or the `_plans/*TODO*.md` item; update the changelog and version only for behavior changes; then integrate by the chosen route. Record acceptance and executed Git operations separately.
 - Push only battle-tested `main`. Push a task branch or open a pull request only when explicitly requested. Never rewrite or force-push `main`.
 
 ## Skills and delegation

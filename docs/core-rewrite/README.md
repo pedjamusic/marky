@@ -56,7 +56,7 @@ An owe is unfinished work or evidence deliberately assigned to a receiving ticke
 - For core-only changes without changed app flows, present automated evidence for user acceptance. Keep the applicable work awaiting acceptance until that review/PASS is recorded.
 - For changed app behavior or UI, provide the exact signed, sandbox-enabled Mac candidate and focused manual steps. User-reported **PASS** gates completion, commits, and merges under repository policy.
 - A phase exits when its tickets meet their exits and acceptance requirements, and its outgoing owes have named recipients. A future obligation may remain open only if the current exit permits it. The final phase permits no open required obligation.
-- Record authorization and execution for each Git operation. Under [repository policy](../../AGENTS.md#git), user PASS for a verified candidate authorizes commit, merge to main, main push, and merged-branch cleanup unless the user specifically requests a PR. Branch creation and PR publication retain their explicit authorization requirements.
+- Record authorization and execution for each Git operation. Under [repository policy](../../AGENTS.md#git), the integration route is chosen per task. If the user chose a PR, push the branch, open the PR and stop; user PASS then authorizes the agent to merge the PR and delete the branch. Otherwise user PASS for a verified candidate authorizes commit, merge to main, main push, and merged-branch cleanup. Branch creation and PR publication retain their explicit authorization requirements.
 
 ## Resume a session
 
